@@ -59,6 +59,9 @@ const LEGACY_GLOBAL_FILE = join(GLOBAL_DIR, 'global-knowledge.md');
 const GLOBAL_FACETS_DIR = join(GLOBAL_DIR, 'global');
 const GLOBAL_FACETS = ['preferences', 'patterns', 'stack', 'anti-patterns', 'lessons'];
 const DEFAULT_FACET = 'preferences';
+// Phase 3: cross-project registry. Session-start hooks append one line per
+// known IJFW project. Used by search(scope:'all') and recall(from_project:X).
+const REGISTRY_FILE = join(homedir(), '.ijfw', 'registry.md');
 
 // Claude Code's native auto-memory lives at ~/.claude/projects/<encoded>/memory/
 // where <encoded> is the project path with `/` → `-`. IJFW reads these files
@@ -345,9 +348,83 @@ function getRecentJournalEntries(count = 5) {
   return entries.slice(-count).join('\n');
 }
 
+// --- Cross-project registry (Phase 3) ---
+//
+// Registry lines look like: <abs-path> | <sha256-12> | <first-seen-iso>
+// Returns [{path, hash, iso}]. Skips malformed lines; excludes current project.
+function readRegistry({ includeCurrent = false } = {}) {
+  const r = readMarkdownFile(REGISTRY_FILE);
+  if (!r.ok) return [];
+  const out = [];
+  for (const line of r.content.split('\n')) {
+    const parts = line.split('|').map(s => s.trim());
+    if (parts.length < 3) continue;
+    const [path, hash, iso] = parts;
+    if (!path || !isAbsolute(path)) continue;
+    if (!includeCurrent && path === PROJECT_DIR) continue;
+    out.push({ path, hash, iso });
+  }
+  return out;
+}
+
+// Resolve a from_project arg (path OR 12-char hash) to a registry entry.
+function resolveProject(spec) {
+  if (!spec || typeof spec !== 'string') return null;
+  const all = readRegistry({ includeCurrent: true });
+  const trimmed = spec.trim();
+  // Try absolute path first, then hash, then basename suffix match.
+  return all.find(e => e.path === trimmed)
+      || all.find(e => e.hash === trimmed)
+      || all.find(e => basename(e.path) === trimmed)
+      || null;
+}
+
+// Read this-project-shape memory for an arbitrary project root. Mirrors the
+// sources the local search uses, but isolated to that project's directory.
+function readProjectMemory(projectPath) {
+  const memDir = join(projectPath, '.ijfw', 'memory');
+  return {
+    knowledge: readOr(join(memDir, 'knowledge.md')),
+    journal:   readOr(join(memDir, 'project-journal.md')),
+    handoff:   readOr(join(memDir, 'handoff.md'))
+  };
+}
+
+function searchAcrossProjects(query, limit) {
+  const queryLower = String(query).toLowerCase();
+  const keywords = queryLower.split(/\s+/).filter(w => w.length > 2);
+  if (keywords.length === 0) return [];
+
+  const results = [];
+  for (const entry of readRegistry()) {
+    const tag = basename(entry.path);
+    const mem = readProjectMemory(entry.path);
+    for (const [src, content] of Object.entries(mem)) {
+      if (!content) continue;
+      const lines = content.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim().length === 0) continue;
+        const score = keywords.filter(k => line.toLowerCase().includes(k)).length;
+        if (score > 0) {
+          results.push({
+            source: `${src}@${tag}`,
+            line: i + 1,
+            content: `[project:${tag}] ${line.trim().substring(0, 200)}`,
+            score
+          });
+        }
+      }
+    }
+  }
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, limit);
+}
+
 // --- Search ---
-function searchMemory(query, limit = 10) {
+function searchMemory(query, limit = 10, scope = 'project') {
   limit = Math.min(Math.max(1, limit | 0), MAX_SEARCH_RESULTS);
+  if (scope === 'all') return searchAcrossProjects(query, limit);
   const results = [];
   const queryLower = String(query).toLowerCase();
   const keywords = queryLower.split(/\s+/).filter(w => w.length > 2);
@@ -386,7 +463,7 @@ function searchMemory(query, limit = 10) {
 const TOOLS = [
   {
     name: 'ijfw_memory_recall',
-    description: 'Retrieve context from IJFW memory. Call at session start or when needing past decisions, handoff state, or project knowledge.',
+    description: 'Retrieve context from IJFW memory. Call at session start or when needing past decisions, handoff state, or project knowledge. Pass from_project to pull from a different IJFW project (by absolute path, 12-char hash, or basename).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -398,6 +475,10 @@ const TOOLS = [
           type: 'string',
           enum: ['summary', 'standard', 'full'],
           description: 'Level of detail. Summary: ~200 tokens. Standard: recent context. Full: everything.'
+        },
+        from_project: {
+          type: 'string',
+          description: 'Optional. Pull from a different IJFW project by absolute path, 12-char hash, or basename. Project must exist in the registry (~/.ijfw/registry.md).'
         }
       },
       required: ['context_hint']
@@ -421,12 +502,13 @@ const TOOLS = [
   },
   {
     name: 'ijfw_memory_search',
-    description: 'Keyword search across memory sources. Up to 20 results.',
+    description: 'Keyword search across memory sources. Up to 20 results. Scope defaults to current project; pass scope:"all" to search across every IJFW project ever opened on this machine (results tagged [project:<name>]).',
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Natural language search query.' },
-        limit: { type: 'number', description: 'Max results (default 10, max 20).' }
+        limit: { type: 'number', description: 'Max results (default 10, max 20).' },
+        scope: { type: 'string', enum: ['project', 'all'], description: 'project (default) = this project only. all = every known IJFW project on this machine.' }
       },
       required: ['query']
     }
@@ -455,7 +537,27 @@ const TOOLS = [
 
 // --- Tool Handlers ---
 
-function handleRecall({ context_hint, detail_level = 'standard' }) {
+function handleRecall({ context_hint, detail_level = 'standard', from_project }) {
+  // Cross-project explicit pull. We bypass current-project sources and read
+  // the target project's knowledge/handoff/journal directly. Search queries
+  // are routed through searchAcrossProjects via scope:'all' on the search tool;
+  // recall here is for "give me everything from X."
+  if (from_project) {
+    const target = resolveProject(from_project);
+    if (!target) {
+      return { text: `No registered IJFW project matches: ${from_project}`, isError: true };
+    }
+    const mem = readProjectMemory(target.path);
+    const tag = basename(target.path);
+    const out = [];
+    if (mem.knowledge) out.push(`## Knowledge [${tag}]\n${mem.knowledge}`);
+    if (mem.handoff)   out.push(`## Handoff [${tag}]\n${mem.handoff}`);
+    if (mem.journal && (context_hint === 'decisions' || detail_level === 'full')) {
+      out.push(`## Journal [${tag}]\n${mem.journal}`);
+    }
+    return { text: out.join('\n\n') || `No memory found in project: ${tag}` };
+  }
+
   const parts = [];
 
   if (context_hint === 'session_start' || detail_level === 'summary') {
@@ -622,13 +724,17 @@ function handlePrelude({ detail_level = 'summary' } = {}) {
   return { text };
 }
 
-function handleSearch({ query, limit = 10 }) {
+function handleSearch({ query, limit = 10, scope = 'project' }) {
   if (!query || typeof query !== 'string') {
     return { text: 'query is required and must be a string.', isError: true };
   }
   if (query.length > 500) query = query.substring(0, 500);
-  const results = searchMemory(query, limit);
-  if (results.length === 0) return { text: `No results for: "${query}"` };
+  if (scope !== 'project' && scope !== 'all') scope = 'project';
+  const results = searchMemory(query, limit, scope);
+  if (results.length === 0) {
+    const where = scope === 'all' ? ' across all projects' : '';
+    return { text: `No results for: "${query}"${where}` };
+  }
   return { text: results.map(r => `[${r.source}:L${r.line}] ${r.content}`).join('\n') };
 }
 

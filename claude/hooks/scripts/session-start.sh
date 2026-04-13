@@ -35,6 +35,21 @@ fi
 mkdir -p "$IJFW_DIR/memory" "$IJFW_DIR/sessions" "$IJFW_DIR/index" 2>/dev/null
 mkdir -p "$IJFW_GLOBAL/memory" 2>/dev/null
 
+# --- Project registry (Phase 3: enables cross-project memory search) ---
+# Append <absolute-path> | <sha256-12> | <first-seen-iso> on first sight only.
+# Registry lives in ~/.ijfw/ (gitignored); per-project memory remains in repo.
+REGISTRY_FILE="$IJFW_GLOBAL/registry.md"
+PROJECT_PATH=$(pwd -P 2>/dev/null)
+if [ -n "$PROJECT_PATH" ]; then
+  if [ ! -f "$REGISTRY_FILE" ] || ! grep -qF "$PROJECT_PATH |" "$REGISTRY_FILE" 2>/dev/null; then
+    REG_HASH=$(printf '%s' "$PROJECT_PATH" | shasum 2>/dev/null | cut -c1-12)
+    REG_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)
+    if [ -n "$REG_HASH" ] && [ -n "$REG_ISO" ]; then
+      printf '%s | %s | %s\n' "$PROJECT_PATH" "$REG_HASH" "$REG_ISO" >> "$REGISTRY_FILE" 2>/dev/null
+    fi
+  fi
+fi
+
 # Reset session-scoped state.
 : > "$IJFW_DIR/.startup-flags" 2>/dev/null
 MIGRATION_MSGS_FILE="$IJFW_DIR/.migration-msgs"

@@ -9,7 +9,8 @@
 import { spawn } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { rmSync, existsSync } from 'fs';
+import { rmSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SERVER_PATH = join(__dirname, 'src', 'server.js');
@@ -334,8 +335,105 @@ async function runTest() {
     failed++;
   }
 
-  // Clean up
   server.kill();
+
+  // --- Phase 3: Cross-project search via registry ---
+  // Isolated harness: fake HOME so registry + global dirs don't touch the real
+  // user's ~/.ijfw. Two project dirs (primary + secondary), both registered,
+  // each seeded with distinct knowledge.
+  console.log('\nCross-project search:');
+  const HARNESS = join(tmpdir(), `ijfw-xproj-${process.pid}`);
+  const FAKE_HOME = join(HARNESS, 'home');
+  const PROJ_A = join(HARNESS, 'project-alpha');
+  const PROJ_B = join(HARNESS, 'project-beta');
+  if (existsSync(HARNESS)) rmSync(HARNESS, { recursive: true });
+  mkdirSync(join(FAKE_HOME, '.ijfw'), { recursive: true });
+  mkdirSync(join(PROJ_A, '.ijfw', 'memory'), { recursive: true });
+  mkdirSync(join(PROJ_B, '.ijfw', 'memory'), { recursive: true });
+  // Seed knowledge in each project. PROJ_B mentions "waylander" (the live use case).
+  writeFileSync(join(PROJ_A, '.ijfw', 'memory', 'knowledge.md'),
+    '# Knowledge\n**decision**: Project alpha uses Postgres for storage\n');
+  writeFileSync(join(PROJ_B, '.ijfw', 'memory', 'knowledge.md'),
+    '# Knowledge\n**decision**: Beta replaced Waylander with AionUI\n');
+  writeFileSync(join(PROJ_B, '.ijfw', 'memory', 'handoff.md'),
+    'Migrated all Waylander panels to AionUI components.\n');
+  // Registry references both projects.
+  writeFileSync(join(FAKE_HOME, '.ijfw', 'registry.md'),
+    `${PROJ_A} | aaaaaaaaaaaa | 2026-04-14T00:00:00Z\n${PROJ_B} | bbbbbbbbbbbb | 2026-04-14T00:00:01Z\n`);
+
+  function spawnXProj(projectDir) {
+    return spawn('node', [SERVER_PATH], {
+      env: { ...process.env, HOME: FAKE_HOME, IJFW_PROJECT_DIR: projectDir },
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  }
+
+  async function callTool(srv, id, name, args) {
+    let buf = '';
+    const out = [];
+    srv.stdout.on('data', d => {
+      buf += d.toString();
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const l of lines) { if (l.trim()) try { out.push(JSON.parse(l)); } catch {} }
+    });
+    srv.stdin.write(JSON.stringify({ jsonrpc:'2.0', id:0, method:'initialize', params:{} }) + '\n');
+    srv.stdin.write(JSON.stringify({ jsonrpc:'2.0', id, method:'tools/call', params:{ name, arguments: args } }) + '\n');
+    return new Promise((resolve, reject) => {
+      const t = setInterval(() => {
+        const m = out.find(r => r.id === id);
+        if (m) { clearInterval(t); resolve(m); }
+      }, 30);
+      setTimeout(() => { clearInterval(t); reject(new Error(`xproj timeout id=${id}`)); }, 3000);
+    });
+  }
+
+  try {
+    // From PROJ_A, default scope should NOT find PROJ_B's "waylander" memory.
+    let srv = spawnXProj(PROJ_A);
+    let resp = await callTool(srv, 100, 'ijfw_memory_search', { query: 'waylander replaced' });
+    let txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.startsWith('No results'), 'Default scope is project-isolated');
+    srv.kill();
+
+    // From PROJ_A, scope:'all' SHOULD find PROJ_B's memory, tagged with project name.
+    srv = spawnXProj(PROJ_A);
+    resp = await callTool(srv, 101, 'ijfw_memory_search', { query: 'waylander aionui', scope: 'all' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('AionUI'), 'scope:all surfaces other-project memory');
+    assert(txt.includes('[project:project-beta]'), 'Cross-project results are tagged with project basename');
+    srv.kill();
+
+    // scope:'all' should NOT include the current project's own results twice
+    // (current project is excluded from registry walk).
+    srv = spawnXProj(PROJ_A);
+    resp = await callTool(srv, 102, 'ijfw_memory_search', { query: 'postgres', scope: 'all' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(!txt.includes('[project:project-alpha]'), 'scope:all excludes the current project');
+    srv.kill();
+
+    // recall(from_project) should work by basename, hash, and absolute path.
+    srv = spawnXProj(PROJ_A);
+    resp = await callTool(srv, 103, 'ijfw_memory_recall', { context_hint: 'session_start', from_project: 'project-beta' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('AionUI'), 'recall(from_project: basename) returns target knowledge');
+    srv.kill();
+
+    srv = spawnXProj(PROJ_A);
+    resp = await callTool(srv, 104, 'ijfw_memory_recall', { context_hint: 'session_start', from_project: 'bbbbbbbbbbbb' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('AionUI'), 'recall(from_project: hash) returns target knowledge');
+    srv.kill();
+
+    srv = spawnXProj(PROJ_A);
+    resp = await callTool(srv, 105, 'ijfw_memory_recall', { context_hint: 'session_start', from_project: '/no/such/path' });
+    assert(resp.result?.isError === true, 'recall(from_project) errors on unknown project');
+    srv.kill();
+  } catch (err) {
+    console.log(`  ✗ xproj error: ${err.message}`);
+    failed++;
+  }
+
+  if (existsSync(HARNESS)) rmSync(HARNESS, { recursive: true });
   if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
 
   // Summary
