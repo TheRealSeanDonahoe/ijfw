@@ -1,55 +1,61 @@
 ---
 name: ijfw-status
-description: "Show current IJFW state — mode, routing, memory, context health, and efficiency metrics."
+description: "Show IJFW state — mode, routing, memory, recent activity, codebase index, settings. Use when you want the at-a-glance banner you'd otherwise get at session start."
 ---
 
-Display current IJFW status with cumulative metrics. Positive framing — show what IJFW has done for the user.
+Render the IJFW status block as a fenced code block. **Compute it deterministically** from filesystem state — never invent values.
 
-## Current Session
-- Mode (smart/fast/deep/manual)
-- Effort level
-- Routing (native / OpenRouter / local model / smart routing)
-- Turns this session
-- Agents dispatched this session
-- Context usage %
+## Data sources (read in this order, skip silently if missing)
 
-## Cumulative Metrics (from .ijfw/metrics/sessions.jsonl)
+1. `IJFW_MODE` env var → mode (default: smart)
+2. `CLAUDE_CODE_EFFORT_LEVEL` env var → effort (default: high)
+3. Routing detection:
+   - `OPENROUTER_API_KEY` env or `ANTHROPIC_BASE_URL` containing "openrouter" → "multi-model"
+   - `~/.claude-code-router/config.json` exists → "smart routing"
+   - `.ijfw/.detection.prev` contains `OLLAMA=1` or `LMSTUDIO=1` → "+ local model"
+4. `.ijfw/sessions/` → count `*.md` files = sessions
+5. `.ijfw/memory/project-journal.md` → count lines matching `^- \[\d{4}-` = decisions
+6. `.ijfw/memory/knowledge.md` → count lines starting with `**` = knowledge entries
+7. `.ijfw/memory/handoff.md` → first non-blank, non-`#`, non-`<!--` line = last status
+8. `.ijfw/index/files.md` → count lines matching `^- \`` = indexed files
+9. `~/.ijfw/memory/global/*.md` → count lines per facet matching this project's namespace `[ns:HASH]`
+10. `.ijfw/.startup-flags` → list any IJFW_NEEDS_* flags
 
-Read the JSONL file. Each line is one session's metrics. Compute:
-
-**Sessions:** total count, average duration
-**Routing efficiency:** if routing detected, estimate savings:
-  - Each scout (Haiku) turn instead of Opus saves ~$0.074 per 1K output tokens
-  - Each builder (Sonnet) turn instead of Opus saves ~$0.060 per 1K output tokens
-  - Rough estimate: 500 output tokens/turn average
-**Memory:** total stores, decisions tracked, consolidations run
-**Continuity:** % sessions with handoff generated
-
-## Display Format
+## Output format (positive framing — never "missing", "warning", "failed")
 
 ```
-━━━ IJFW Status ━━━━━━━━━━━━━━━━━━━━━━
-Mode: smart | Effort: high | OpenRouter + local model
+━━━ IJFW Status ━━━━━━━━━━━━━━━━━━━━━━━━
+{mode} mode | {effort} effort{routing_str}
 
-This Session:
-  14 turns | scout: 5, builder: 7, architect: 2
-  3 decisions stored | Context: 34%
+Memory
+  Knowledge: {N} entries
+  Sessions tracked: {N}
+  Decisions logged: {N}
+  Last session: {last_status_or_omit}
 
-All Time (47 sessions):
-  Smart routing saved ~$43 in model costs
-  Memory: 89 decisions, 12 patterns
-  Session continuity: 94%
+Codebase
+  Indexed: {N} files{or_omit}
 
-Context: 34% used | Healthy
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Project preferences
+  preferences: {N}, patterns: {N}, stack: {N}, anti-patterns: {N}, lessons: {N}
+  (omit any facet with 0 entries; omit whole section if all zero)
+
+Recent decisions
+  {top 3 most recent from knowledge.md, one per line, truncated to 100 chars each}
+  (omit section if 0)
+
+Pending
+  {one line per IJFW_NEEDS_* flag — e.g. "Memory consolidation due (run /consolidate)"}
+  (omit section if no flags)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-If no metrics exist yet (first session), show:
+## Rules
 
-```
-━━━ IJFW Status ━━━━━━━━━━━━━━━━━━━━━━
-Mode: smart | Effort: high
-
-First session — metrics start accumulating now.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+- ALL counts are real reads from disk. No fabrication.
+- Sections with zero values are OMITTED entirely (don't show "0 entries").
+- Truncate decision lines at 100 chars with `…` if longer.
+- If `.ijfw/` doesn't exist: render `Fresh project — no IJFW state yet. Memory will start accumulating from your next "remember X" or stored decision.`
+- Do NOT use jargon like "JSONL", "SQLite", file paths, or "MCP". User-facing only.
+- Do NOT include load times, check marks, or framework details. Just facts.
+- Use the fenced code block (triple backticks) so the output renders as visible chrome regardless of Claude Code's hook output handling.

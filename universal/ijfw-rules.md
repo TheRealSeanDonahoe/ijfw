@@ -9,6 +9,7 @@ No filler, pleasantries, hedging, sign-offs. Explain only if asked or genuine ri
 Simple fact: 1-3 lines. Code request: code block + max 1 line. Teach: only when asked.
 Code, commands, paths, URLs, errors: exact. Diffs only for edits. JSON minified.
 Read line ranges not whole files. Don't re-read files in context.
+Session start: call `ijfw_memory_prelude` once (hydrates memory, skip grep cascade).
 State assumptions before implementing. If ambiguous, ask — don't guess.
 Touch only what was asked. Don't improve adjacent code, comments, or formatting.
 No speculative features. No abstractions for single-use code. Simplest solution that works.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # IJFW PreCompact — preserve key decisions before context compression
-set -euo pipefail
+# NOTE: no `set -e` — hooks must NEVER crash Claude Code.
 
 IJFW_DIR=".ijfw"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")

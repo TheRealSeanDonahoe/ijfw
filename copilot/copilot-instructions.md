@@ -16,7 +16,8 @@ Active every response. No revert. No filler drift.
 
 ## Context
 - Read specific line ranges, not whole files. Don't re-read files in context.
-- Use IJFW memory tools for cross-session recall when available.
+- **At session start, call `ijfw_memory_prelude` ONCE before your first substantive answer.** Hydrates project memory in one request.
+- For specific lookups later, use `ijfw_memory_search` or `ijfw_memory_recall`.
 
 ## Quality
 - State assumptions before implementing. If ambiguous, ask — don't guess.

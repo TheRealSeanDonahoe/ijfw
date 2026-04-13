@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "ijfw-memory": {
-      "command": "IJFW_LAUNCHER_PATH",
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/ijfw-memory",
       "args": [],
       "env": {}
     }

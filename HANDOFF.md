@@ -16,50 +16,34 @@ It ships as a Claude Code plugin (full featured) plus platform configs for Codex
 
 ## How to Set Up This Project
 
-### Step 1: Create the repo
+### Step 1: Clone
 
 ```bash
-mkdir ijfw && cd ijfw
-git init
+git clone https://github.com/seandonahoe/ijfw.git ~/.ijfw
+cd ~/.ijfw
+export IJFW_HOME="$HOME/.ijfw"   # Add to ~/.zshrc or ~/.bashrc for persistence
 ```
 
-### Step 2: Unzip the build
-
-The zip file `ijfw-project.zip` contains everything. The contents are inside an `ijfw/` directory:
+### Step 2: Verify
 
 ```bash
-unzip ijfw-project.zip
-mv ijfw/* .
-mv ijfw/.* . 2>/dev/null || true
-rmdir ijfw
+ls claude/ codex/ gemini/ cursor/ windsurf/ copilot/ universal/ mcp-server/ docs/ scripts/
+
+# Run all CI guards (tests, syntax, JSON, line caps, positive framing, MCP health)
+bash scripts/check-all.sh
+# Should see: All checks passed.
 ```
 
-### Step 3: Verify
+### Step 3: Install as a Claude Code plugin
 
-```bash
-# Check structure
-ls claude/ codex/ gemini/ cursor/ windsurf/ copilot/ universal/ mcp-server/ docs/
+Inside Claude Code:
 
-# Run the test suite
-node mcp-server/test.js
-# Should see: Results: 23/23 passed, 0 failed
-
-# Check the project context
-cat CLAUDE.md
+```
+/plugin marketplace add ~/.ijfw/claude
+/plugin install ijfw
 ```
 
-### Step 4: Install as a Claude Code plugin for testing
-
-```bash
-# From the project root
-claude --plugin-dir ./claude
-```
-
-Or for persistent install:
-```bash
-# Copy to user plugins
-cp -r claude ~/.claude/plugins/ijfw
-```
+For other platforms, see `README.md` install section — each platform copies its config from `$IJFW_HOME/<platform>/` and the MCP memory server resolves via `$IJFW_HOME/mcp-server/src/server.js`.
 
 ---
 
@@ -188,11 +172,12 @@ Session-end hook writes JSONL metrics. `/ijfw-status` shows cumulative efficienc
 ## What to Test First
 
 ### 1. Basic Plugin Loading
-```bash
-claude --plugin-dir ./claude
-# Should see IJFW startup report
-# Type: /help — should list IJFW commands
+Inside Claude Code:
 ```
+/plugin marketplace add ~/.ijfw/claude
+/plugin install ijfw
+```
+Then start a fresh Claude Code session and verify the IJFW startup banner appears. `/help` should list the IJFW slash commands.
 
 ### 2. Core Skill Behaviour
 ```bash

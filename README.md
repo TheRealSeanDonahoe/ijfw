@@ -15,71 +15,35 @@ One install. Zero config. Makes your AI coding agent smarter, more efficient, an
 
 ## Install
 
-### Claude Code (Full Plugin — Recommended)
+```bash
+git clone https://github.com/seandonahoe/ijfw.git ~/.ijfw
+cd ~/.ijfw
+bash scripts/install.sh                  # all platforms
+# or:
+bash scripts/install.sh codex cursor     # only the platforms you use
+```
+
+The installer resolves the absolute path to the bundled MCP launcher and writes platform-native configs with that path baked in. No env vars, no manual JSON editing.
+
+Verify everything's healthy:
 
 ```bash
-# From the plugin marketplace
-/plugin marketplace add seandonahoe/ijfw
+bash scripts/check-all.sh
+# Should show: All checks passed.
+```
+
+### Claude Code
+
+Inside Claude Code:
+
+```
+/plugin marketplace add ~/.ijfw/claude
 /plugin install ijfw
-
-# Or manually
-git clone https://github.com/seandonahoe/ijfw.git
-cd ijfw/claude
-claude plugin install .
 ```
 
-### Codex CLI
+### Any other agent
 
-```bash
-# Add MCP memory server
-codex mcp add ijfw-memory -- node ./node_modules/@ijfw/memory-server/src/server.js
-
-# Copy instructions
-cp codex/instructions.md ~/.codex/instructions.md
-```
-
-### Gemini CLI
-
-```bash
-# Copy MCP config to your Gemini settings
-# Add the ijfw-memory server block from gemini/.gemini/settings.json
-# to your ~/.gemini/settings.json
-
-# Copy context file
-cp gemini/GEMINI.md ./GEMINI.md
-```
-
-### Cursor
-
-```bash
-# Copy MCP config
-cp cursor/.cursor/mcp.json .cursor/mcp.json
-
-# Copy rules
-cp cursor/.cursorrules .cursorrules
-```
-
-### Windsurf
-
-```bash
-# Copy MCP config and rules
-cp windsurf/mcp_config.json ~/.codeium/windsurf/mcp_config.json
-cp windsurf/.windsurfrules .windsurfrules
-```
-
-### Copilot (VS Code)
-
-```bash
-# Copy MCP config
-cp copilot/.vscode/mcp.json .vscode/mcp.json
-
-# Copy instructions
-cp copilot/copilot-instructions.md .github/copilot-instructions.md
-```
-
-### Any Other Agent
-
-Paste the contents of `universal/ijfw-rules.md` into your agent's system prompt or rules file. 15 lines. Works everywhere.
+Paste the contents of `universal/ijfw-rules.md` into your agent's system prompt or rules file.
 
 ---
 
@@ -107,6 +71,7 @@ Switch: `/mode fast` or just say "go fast" / "think deeper"
 | `/ijfw-status` | Show current mode, routing, memory, context health |
 | `/handoff` | Create or resume a session handoff |
 | `/consolidate` | Run memory dream cycle (promote, prune, reconcile) |
+| `/cross-audit` | Generate audit doc for Multi-AI Quality Trident review |
 
 ### Memory
 
@@ -126,7 +91,7 @@ On session start, IJFW silently:
 
 ### Per Turn
 
-The always-on core skill (~40 lines, ~600 tokens) ensures:
+The always-on core skill (~51 lines, ~700 tokens) ensures:
 - Terse, efficient output
 - Smart agent delegation
 - Context discipline
@@ -148,11 +113,11 @@ ijfw/
 ├── claude/          Claude Code plugin (full featured)
 ├── codex/           Codex CLI config + instructions
 ├── gemini/          Gemini CLI config + GEMINI.md
-├── cursor/          Cursor MCP + .cursorrules
+├── cursor/          Cursor MCP + .cursorrules + .cursor/rules
 ├── windsurf/        Windsurf MCP + rules
 ├── copilot/         Copilot MCP + instructions
-├── universal/       15-line paste-anywhere rules
-├── mcp-server/      Cross-platform MCP memory server
+├── universal/       Paste-anywhere rules
+├── mcp-server/      Cross-platform MCP memory server (Node.js, zero deps)
 └── docs/            Documentation
 ```
 
@@ -161,11 +126,12 @@ ijfw/
 ## Credits
 
 IJFW builds on the work of:
-- **caveman** by JuliusBrussee — proved terse output works
-- **claude-mem** by thedotmack — pioneered persistent memory
-- **claude-router** by 0xrdan — proved model routing saves costs
-- **Memorix** by AVIDS2 — cross-agent memory concept
-- **MemPalace** by Milla Jovovich & Ben Sigman — structured memory metaphor
+- **caveman** — proved terse output works
+- **claude-mem** — pioneered persistent memory
+- **claude-router** — proved model routing saves costs
+- **Memorix** — cross-agent memory concept
+- **MemPalace** — structured memory metaphor
+- **Superpowers** & **GSD** — workflow patterns
 
 IJFW is the first framework to coordinate all layers into a single, zero-config system.
 

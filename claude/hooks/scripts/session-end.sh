@@ -1,95 +1,88 @@
 #!/usr/bin/env bash
-# IJFW SessionEnd (Stop hook) — save session state, write metrics, manage journal
-set -euo pipefail
+# IJFW SessionEnd (Stop hook) — save session state, write metrics, manage journal.
+# NOTE: no `set -e` — hooks must NEVER crash Claude Code.
+#
+# Hardened against:
+#   - JSONL corruption from unescaped env vars (uses node -e to encode JSON)
+#   - local-time timestamps masquerading as UTC (TZ=UTC fallback)
+#   - clobbering session-start's startup flags (always >>)
+#   - schema drift (every record carries "v":1)
 
 IJFW_DIR=".ijfw"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-ISO_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
+# UTC ISO timestamp with TZ=UTC fallback for hardened containers where `date -u` fails.
+ISO_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || TZ=UTC date +"%Y-%m-%dT%H:%M:%SZ")
 
-mkdir -p "$IJFW_DIR/sessions" "$IJFW_DIR/memory" "$IJFW_DIR/metrics"
+mkdir -p "$IJFW_DIR/sessions" "$IJFW_DIR/memory" "$IJFW_DIR/metrics" 2>/dev/null
 
-# ============================================================
-# WRITE SESSION METRICS
-# ============================================================
 METRICS_FILE="$IJFW_DIR/metrics/sessions.jsonl"
 
-# Read mode from startup flags or default
 MODE="${IJFW_MODE:-smart}"
 EFFORT="${CLAUDE_CODE_EFFORT_LEVEL:-high}"
 
-# Detect routing (same logic as session-start, but cached)
 ROUTING="native"
-[ -n "${OPENROUTER_API_KEY:-}" ] && ROUTING="OpenRouter"
+case "${OPENROUTER_API_KEY:-}" in ?*) ROUTING="OpenRouter" ;; esac
 [ -f "$HOME/.claude-code-router/config.json" ] && ROUTING="smart-routing"
 
-# Count memory operations from journal (rough proxy)
 MEMORY_STORES=0
 if [ -f "$IJFW_DIR/memory/project-journal.md" ]; then
-  MEMORY_STORES=$(grep -c "^\- \*\*" "$IJFW_DIR/memory/project-journal.md" 2>/dev/null || echo "0")
+  MEMORY_STORES=$(grep -c '^- \[' "$IJFW_DIR/memory/project-journal.md" 2>/dev/null)
+  [ -z "$MEMORY_STORES" ] && MEMORY_STORES=0
 fi
 
-# Count session files to determine session number
 SESSION_COUNT=$(ls "$IJFW_DIR/sessions/" 2>/dev/null | wc -l | tr -d ' ')
+[ -z "$SESSION_COUNT" ] && SESSION_COUNT=0
 SESSION_NUM=$((SESSION_COUNT + 1))
 
-# Check if handoff was generated
 HAS_HANDOFF="false"
 [ -f "$IJFW_DIR/memory/handoff.md" ] && HAS_HANDOFF="true"
 
-# Write metrics line (JSONL — one JSON object per line)
-cat >> "$METRICS_FILE" << METRICS_EOF
-{"timestamp":"$ISO_TIMESTAMP","session":"$SESSION_NUM","mode":"$MODE","effort":"$EFFORT","routing":"$ROUTING","memory_stores":$MEMORY_STORES,"handoff":$HAS_HANDOFF}
-METRICS_EOF
-
-# ============================================================
-# SAVE SESSION MARKER
-# ============================================================
-
-# Write a session file for this session
-cat > "$IJFW_DIR/sessions/session_$TIMESTAMP.md" << EOF
-# Session: $TIMESTAMP
-Mode: $MODE | Effort: $EFFORT | Routing: $ROUTING
-Memory stores this session: $MEMORY_STORES
-Handoff generated: $HAS_HANDOFF
-EOF
-
-# ============================================================
-# UPDATE JOURNAL
-# ============================================================
-if [ -f "$IJFW_DIR/memory/project-journal.md" ]; then
-  echo "" >> "$IJFW_DIR/memory/project-journal.md"
-  echo "---" >> "$IJFW_DIR/memory/project-journal.md"
-  echo "## Session End: $TIMESTAMP" >> "$IJFW_DIR/memory/project-journal.md"
-  echo "- Mode: $MODE | Effort: $EFFORT | Session #$SESSION_NUM" >> "$IJFW_DIR/memory/project-journal.md"
-else
-  cat > "$IJFW_DIR/memory/project-journal.md" << EOF
-# IJFW Project Journal
-
-## Session End: $TIMESTAMP
-- First tracked session. Mode: $MODE | Effort: $EFFORT
-EOF
+# Write JSONL via node -e — guarantees valid JSON regardless of env-var content.
+# Schema version baked in for forward compatibility.
+if command -v node >/dev/null 2>&1; then
+  JSONLINE=$(node -e '
+    const o = {
+      v: 1,
+      timestamp: process.argv[1],
+      session: Number(process.argv[2]),
+      mode: process.argv[3],
+      effort: process.argv[4],
+      routing: process.argv[5],
+      memory_stores: Number(process.argv[6]),
+      handoff: process.argv[7] === "true"
+    };
+    process.stdout.write(JSON.stringify(o));
+  ' "$ISO_TIMESTAMP" "$SESSION_NUM" "$MODE" "$EFFORT" "$ROUTING" "$MEMORY_STORES" "$HAS_HANDOFF" 2>/dev/null)
+  if [ -n "$JSONLINE" ]; then
+    printf '%s\n' "$JSONLINE" >> "$METRICS_FILE" 2>/dev/null
+  fi
 fi
 
-# ============================================================
-# ENSURE HANDOFF EXISTS
-# ============================================================
-if [ ! -f "$IJFW_DIR/memory/handoff.md" ]; then
-  cat > "$IJFW_DIR/memory/handoff.md" << EOF
-## Handoff: $TIMESTAMP
+# Session marker — fixed-format, no user input interpolated.
+{
+  echo "<!-- ijfw schema:1 -->"
+  echo "# Session: $TIMESTAMP"
+  echo "Session #$SESSION_NUM"
+  echo "Memory updates this session: $MEMORY_STORES"
+  echo "Handoff present: $HAS_HANDOFF"
+} > "$IJFW_DIR/sessions/session_$TIMESTAMP.md" 2>/dev/null
 
-### Status
-Session ended. No structured handoff captured.
-
-### Next Steps
-Review recent changes and continue.
-EOF
+# Append schema-versioned journal entry.
+JOURNAL="$IJFW_DIR/memory/project-journal.md"
+if [ ! -f "$JOURNAL" ]; then
+  {
+    echo "<!-- ijfw schema:1 -->"
+    echo "# IJFW Project Journal"
+  } > "$JOURNAL" 2>/dev/null
 fi
+printf -- '- [%s] session-end: #%s\n' "$ISO_TIMESTAMP" "$SESSION_NUM" >> "$JOURNAL" 2>/dev/null
 
-# ============================================================
-# DREAM CYCLE TRIGGER
-# ============================================================
+# Dream cycle trigger — APPEND, never clobber.
 if [ "$SESSION_NUM" -gt 0 ] && [ $(( SESSION_NUM % 5 )) -eq 0 ]; then
-  echo "IJFW_NEEDS_CONSOLIDATE=1" > "$IJFW_DIR/.startup-flags" 2>/dev/null || true
+  echo "IJFW_NEEDS_CONSOLIDATE=1" >> "$IJFW_DIR/.startup-flags" 2>/dev/null
 fi
 
-echo "IJFW: Session #$SESSION_NUM saved."
+# Positive-framed status — no jargon, no negatives, no paths.
+echo "Session #$SESSION_NUM saved."
+
+exit 0

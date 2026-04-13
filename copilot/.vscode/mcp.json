@@ -1,9 +1,8 @@
 {
-  "servers": {
+  "mcpServers": {
     "ijfw-memory": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["./node_modules/@ijfw/memory-server/src/server.js"]
+      "command": "IJFW_LAUNCHER_PATH",
+      "args": []
     }
   }
 }

@@ -1,5 +1,8 @@
-# IJFW — Master Project Instructions
-## For Claude Code: Read This First, Then Execute
+# IJFW — Master Project Instructions  [ARCHIVE — DO NOT FOLLOW]
+## ⚠️ Archived build artifact from initial Phase 1 generation.
+## Canonical sources are now: `HANDOFF.md`, `README.md`, `CLAUDE.md`, `docs/DESIGN.md`.
+## This file is preserved for historical reference only and may contradict current state
+## (line-count caps, file structure, install commands).
 
 ---
 

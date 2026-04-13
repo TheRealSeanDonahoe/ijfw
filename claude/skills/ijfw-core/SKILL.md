@@ -31,18 +31,19 @@ Current mode: smart (default). Switch: /mode smart|fast|deep|manual
 - Prefer codebase index queries over grep when available.
 - At task boundaries: compact with key decisions preserved.
 
+## Memory
+`<ijfw-memory>` block at session start IS project memory; if missing call `ijfw_memory_prelude`.
+"Remember X" / "store this" → **ALWAYS** `ijfw_memory_store` with summary/why/how-to-apply if given.
+
 ## Routing (smart mode)
-- Exploration/reads/search → delegate to scout agent.
-- Implementation/boilerplate/tests → delegate to builder agent.
-- Architecture/security/complex debug → escalate to architect agent.
+- Exploration/reads/search → scout agent. Implementation/boilerplate/tests → builder.
+- Architecture/security/complex debug → architect. Escalate effort to match: high for
+  security|architecture|debug|refactor|migration; low for scaffold|rename|format|docs.
 
 ## Quality Gates
-- State assumptions before implementing. If ambiguous, ask — don't guess.
-- Touch only what was asked. Don't improve adjacent code, comments, or formatting.
-- Self-verify before destructive or irreversible actions.
-- Complex tasks: plan first, confirm, then implement.
-- Transform tasks into verifiable goals. Prefer test-first when possible.
-- After edits: run available tests/linters automatically.
+- State assumptions; if ambiguous, ask. Touch only what was asked.
+- Self-verify before destructive/irreversible actions. Complex tasks: plan, confirm, implement.
+- Transform tasks into verifiable goals; prefer test-first. After edits: run tests/linters.
 - After 2 failed corrections: stop, reassess approach, don't keep patching.
 
 ## Clarity Override
