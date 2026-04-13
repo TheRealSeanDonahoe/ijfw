@@ -97,7 +97,7 @@ async function runTest() {
     console.log('\nTools:');
     send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
     resp = await waitForResponse(2);
-    assert(resp.result?.tools?.length === 6, 'Lists exactly 6 tools (Phase 3: +ijfw_metrics)');
+    assert(resp.result?.tools?.length === 7, 'Lists exactly 7 tools (Phase 3: +ijfw_metrics, +ijfw_prompt_check)');
     const toolNames = resp.result?.tools?.map(t => t.name) || [];
     assert(toolNames.includes('ijfw_memory_recall'), 'Has recall tool');
     assert(toolNames.includes('ijfw_memory_store'), 'Has store tool');
@@ -589,6 +589,76 @@ async function runTest() {
   }
 
   if (existsSync(M_HARNESS)) rmSync(M_HARNESS, { recursive: true });
+
+  // --- Phase 3 #2: Prompt-check detector ---
+  // Direct unit tests on the pure-JS detector (no MCP roundtrip — fast),
+  // plus one MCP roundtrip to verify tool wiring.
+  console.log('\nPrompt-check detector:');
+  const { checkPrompt } = await import(join(__dirname, 'src', 'prompt-check.js'));
+
+  const expectVague = (text, label) => {
+    const r = checkPrompt(text);
+    assert(r.vague === true, `Vague: ${label}`);
+    return r;
+  };
+  const expectNotVague = (text, label) => {
+    const r = checkPrompt(text);
+    assert(r.vague === false, `Not vague: ${label}`);
+    return r;
+  };
+
+  // True positives — should fire (≥2 signals, short, no target)
+  expectVague('fix it',                         'bare verb + anaphora + no target');
+  expectVague('refactor this',                  'bare verb + anaphora + no target');
+  expectVague('make it better',                 'abstract goal + anaphora');
+  expectVague('clean up the code',              'bare verb + abstract + no target');
+
+  // True negatives — should NOT fire
+  expectNotVague('refactor src/auth.py to use async',     'has file path');
+  expectNotVague('fix the off-by-one in getUserById',     'has identifier');
+  expectNotVague('explain how rate-limiting works in Express middleware and where I should add the per-IP cap',
+    'long enough + has constraint terms');
+  expectNotVague('* fix it',                              'asterisk bypass');
+  expectNotVague('/status',                               'slash command bypass');
+  expectNotVague('# remember this',                       'memorize-prefix bypass');
+  expectNotVague('ijfw off, just do this',                'override keyword');
+  expectNotVague('',                                       'empty prompt bypass');
+
+  // Edge cases — UTF-8, emoji, multi-line, fenced
+  expectNotVague('```\nfix it\n```',                       'fenced-code bypass');
+  expectNotVague('this is fine for sources/build.py:42',  'has file:line target');
+  // Emoji + bare verb is still a target-less ask but the bare-verb regex requires
+  // verb at start of trimmed text. Should fire.
+  expectVague('fix it 🚀',                                 'emoji does not block detection');
+  // Long-prompt bypass at >4000 chars
+  expectNotVague('fix it ' + 'x'.repeat(5000),            'long-prompt bypass');
+
+  // Bypass reasons reported correctly
+  const bypassed = checkPrompt('* fix it');
+  assert(bypassed.bypass_reason === 'asterisk-prefix', 'Bypass reason exposes asterisk-prefix');
+
+  // Single signal alone (no_target only) does NOT fire
+  expectNotVague('explain TypeScript decorators',          'single signal below threshold');
+
+  // MCP roundtrip — server returns wired tool result
+  const PC_HOME = join(tmpdir(), `ijfw-pc-${process.pid}`);
+  mkdirSync(PC_HOME, { recursive: true });
+  const pcSrv = spawn('node', [SERVER_PATH], {
+    env: { ...process.env, HOME: PC_HOME, IJFW_PROJECT_DIR: PC_HOME },
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+  try {
+    const resp = await callTool(pcSrv, 400, 'ijfw_prompt_check', { prompt: 'fix it' });
+    const txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.startsWith('vague: yes'), 'MCP tool returns vague:yes for known-vague prompt');
+    assert(txt.includes('Sharpening'), 'MCP tool returns positive-framed suggestion');
+  } catch (err) {
+    console.log(`  ✗ prompt-check MCP error: ${err.message}`);
+    failed++;
+  }
+  pcSrv.kill();
+  if (existsSync(PC_HOME)) rmSync(PC_HOME, { recursive: true });
+
   if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
 
   // Summary
