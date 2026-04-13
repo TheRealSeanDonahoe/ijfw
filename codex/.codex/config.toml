@@ -1,0 +1,9 @@
+# IJFW configuration for OpenAI Codex CLI
+# Place at ~/.codex/config.toml or .codex/config.toml (project-scoped)
+
+[mcp_servers.ijfw-memory]
+command = "node"
+args = ["./node_modules/@ijfw/memory-server/src/server.js"]
+enabled = true
+startup_timeout_sec = 10
+tool_timeout_sec = 30

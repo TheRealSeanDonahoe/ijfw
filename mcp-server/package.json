@@ -1,0 +1,30 @@
+{
+  "name": "@ijfw/memory-server",
+  "version": "1.0.0",
+  "description": "Cross-platform persistent memory server for IJFW. 4 MCP tools. Works with Claude Code, Codex, Gemini CLI, Cursor, Windsurf, Copilot.",
+  "author": "Sean Donahoe",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/server.js",
+  "bin": {
+    "ijfw-memory": "./src/server.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "keywords": [
+    "mcp",
+    "memory",
+    "ijfw",
+    "claude-code",
+    "codex",
+    "gemini",
+    "cursor",
+    "ai-efficiency"
+  ]
+}

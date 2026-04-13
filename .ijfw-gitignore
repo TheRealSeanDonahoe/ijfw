@@ -1,0 +1,16 @@
+# IJFW session data — don't commit ephemeral session state
+.ijfw/sessions/
+.ijfw/index/
+.ijfw/metrics/
+.ijfw/.migrated
+.ijfw/.startup-flags
+
+# IJFW audit outputs
+.ijfw/audits/
+
+# Project state (optional — uncomment to version project plans)
+# .ijfw/projects/
+
+# Allow these to be committed (shared knowledge is useful):
+# .ijfw/agents/         — project team definitions
+# .ijfw/memory/knowledge.md — architectural decisions

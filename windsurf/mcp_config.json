@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ijfw-memory": {
+      "command": "node",
+      "args": ["./node_modules/@ijfw/memory-server/src/server.js"]
+    }
+  }
+}

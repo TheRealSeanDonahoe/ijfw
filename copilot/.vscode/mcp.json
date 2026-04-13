@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "ijfw-memory": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./node_modules/@ijfw/memory-server/src/server.js"]
+    }
+  }
+}

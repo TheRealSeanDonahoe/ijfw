@@ -1,0 +1,40 @@
+{
+  "name": "ijfw",
+  "version": "1.0.0",
+  "description": "AI efficiency framework. One install. Zero config. It just fucking works. By Sean Donahoe.",
+  "author": "Sean Donahoe",
+  "license": "MIT",
+  "homepage": "https://github.com/seandonahoe/ijfw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seandonahoe/ijfw"
+  },
+  "keywords": [
+    "ai",
+    "efficiency",
+    "claude-code",
+    "codex",
+    "gemini",
+    "cursor",
+    "windsurf",
+    "copilot",
+    "mcp",
+    "memory",
+    "token-optimization",
+    "ijfw"
+  ],
+  "scripts": {
+    "postinstall": "echo '\\n━━━ IJFW installed. It just fucking works. ━━━\\n'"
+  },
+  "files": [
+    "claude/",
+    "codex/",
+    "gemini/",
+    "cursor/",
+    "windsurf/",
+    "copilot/",
+    "universal/",
+    "mcp-server/",
+    "docs/"
+  ]
+}
