@@ -19,7 +19,7 @@ Author: Sean Donahoe
 - Core skill (ijfw-core/SKILL.md) hard cap: **55 lines**. Single source of truth — supersedes any older 40/51 references in handoff/instructions docs. Currently 51 lines.
 - On-demand skills: hot-load only when triggered, unload when done.
 - Hooks: shell scripts only, deterministic, no LLM calls.
-- MCP server: 4 tools max (recall, store, search, status).
+- MCP server: ≤8 tools (recall, store, search, status, prelude; Phase 3 adds metrics + prompt_check). Phase 1's cap of 4 outgrown by Phase 2/3 needs; ≤8 keeps the surface scannable while leaving room for Phase 4.
 - Startup report: positive framing ONLY. No negatives, no "not found", no diagnostics.
 - Platform rules files: identical core rules, adapted for platform format.
 - All memory storage: plain markdown (hot), SQLite FTS5 (warm), optional vectors (cold).
