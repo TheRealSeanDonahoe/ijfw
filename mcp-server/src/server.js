@@ -21,6 +21,7 @@ import {
 import { join, resolve, isAbsolute, normalize, basename } from 'path';
 import { homedir } from 'os';
 import { createHash, randomBytes } from 'crypto';
+import { checkPrompt } from './prompt-check.js';
 
 // --- Constants ---
 const SCHEMA_VERSION = 1;
@@ -557,6 +558,17 @@ const TOOLS = [
     }
   },
   {
+    name: 'ijfw_prompt_check',
+    description: 'CALL THIS on the first turn of a new request when the user prompt is short and could be vague. Returns whether the prompt is under-specified and a sharpening suggestion. Deterministic regex detector — no LLM call. Use for Codex/Cursor/Windsurf/Copilot/Gemini where pre-prompt hooks aren\'t available.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'The full user prompt text.' }
+      },
+      required: ['prompt']
+    }
+  },
+  {
     name: 'ijfw_metrics',
     description: 'Aggregate session metrics (tokens, cost, sessions, routing) from .ijfw/metrics/sessions.jsonl. Tolerates mixed v1/v2 lines.',
     inputSchema: {
@@ -947,6 +959,14 @@ function handleMessage(msg) {
           case 'ijfw_metrics':
             result = handleMetrics(args || {});
             break;
+          case 'ijfw_prompt_check': {
+            const pc = checkPrompt((args && args.prompt) || '');
+            const text = pc.vague
+              ? `vague: yes\nsignals: ${pc.signals.join(', ')}\nsuggestion: ${pc.suggestion}`
+              : `vague: no${pc.bypass_reason ? ` (bypass: ${pc.bypass_reason})` : pc.signals.length ? ` (signals: ${pc.signals.join(', ')} — below threshold)` : ''}`;
+            result = { text };
+            break;
+          }
           default:
             return createError(id, -32601, `Unknown tool: ${name}`);
         }
