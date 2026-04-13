@@ -37,22 +37,101 @@ SESSION_NUM=$((SESSION_COUNT + 1))
 HAS_HANDOFF="false"
 [ -f "$IJFW_DIR/memory/handoff.md" ] && HAS_HANDOFF="true"
 
-# Write JSONL via node -e — guarantees valid JSON regardless of env-var content.
-# Schema version baked in for forward compatibility.
+# Read Claude Code Stop hook payload from stdin (best-effort).
+# Payload includes transcript_path; we parse the transcript for usage tokens.
+HOOK_STDIN=""
+if [ ! -t 0 ]; then
+  HOOK_STDIN=$(cat 2>/dev/null || true)
+fi
+
+# Schema v2 (Phase 3 #6 + #2): adds input/output/cache tokens, cost_usd, model,
+# and reserved prompt_check_* fields. v1 readers tolerate missing fields; v2
+# readers tolerate v1 lines (token fields default to 0). Single bump avoids
+# the coordination bug flagged in AUDIT.md.
 if command -v node >/dev/null 2>&1; then
   JSONLINE=$(node -e '
+    const fs = require("fs");
+    let usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+    let model = null;
+
+    // Parse Stop hook stdin (JSON) for transcript_path; sum usage across turns.
+    try {
+      const stdin = process.argv[8] || "";
+      if (stdin.trim()) {
+        const payload = JSON.parse(stdin);
+        const tp = payload && payload.transcript_path;
+        if (tp && fs.existsSync(tp)) {
+          const lines = fs.readFileSync(tp, "utf8").split("\n");
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const m = JSON.parse(line);
+              const u = m && m.message && m.message.usage;
+              if (u) {
+                usage.input_tokens += u.input_tokens || 0;
+                usage.output_tokens += u.output_tokens || 0;
+                usage.cache_read_input_tokens += u.cache_read_input_tokens || 0;
+                usage.cache_creation_input_tokens += u.cache_creation_input_tokens || 0;
+              }
+              if (m && m.message && m.message.model && !model) model = m.message.model;
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    // Pricing table (USD per million tokens). Conservative — unknown model = 0.
+    // Hardcoded by design (no proxy/no network rule); update on Anthropic SKU changes.
+    const PRICES = {
+      "claude-opus-4-6":     { in: 15.0, out: 75.0, cr: 1.50, cc: 18.75 },
+      "claude-sonnet-4-6":   { in:  3.0, out: 15.0, cr: 0.30, cc:  3.75 },
+      "claude-haiku-4-5":    { in:  0.8, out:  4.0, cr: 0.08, cc:  1.00 }
+    };
+    function cost() {
+      if (!model) return 0;
+      const key = String(model).replace(/-\d{8}.*$/, "").replace(/\[.*?\]$/, "");
+      const p = PRICES[key];
+      if (!p) return 0;
+      const c = (usage.input_tokens * p.in + usage.output_tokens * p.out
+              + usage.cache_read_input_tokens * p.cr + usage.cache_creation_input_tokens * p.cc) / 1e6;
+      return Math.round(c * 10000) / 10000;
+    }
+
     const o = {
-      v: 1,
+      v: 2,
       timestamp: process.argv[1],
       session: Number(process.argv[2]),
       mode: process.argv[3],
       effort: process.argv[4],
       routing: process.argv[5],
       memory_stores: Number(process.argv[6]),
-      handoff: process.argv[7] === "true"
+      handoff: process.argv[7] === "true",
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cache_read_tokens: usage.cache_read_input_tokens,
+      cache_creation_tokens: usage.cache_creation_input_tokens,
+      cost_usd: cost(),
+      model: model,
+      // Reserved for Phase 3 #2 — populated by pre-prompt hook via .ijfw/.prompt-check-state.
+      prompt_check_fired: false,
+      prompt_check_signals: []
     };
+
+    // Merge prompt-check state file if present (set by #2 pre-prompt hook).
+    try {
+      const pcs = ".ijfw/.prompt-check-state";
+      if (fs.existsSync(pcs)) {
+        const st = JSON.parse(fs.readFileSync(pcs, "utf8"));
+        if (st && typeof st === "object") {
+          o.prompt_check_fired = !!st.fired;
+          o.prompt_check_signals = Array.isArray(st.signals) ? st.signals : [];
+        }
+        try { fs.unlinkSync(pcs); } catch {}
+      }
+    } catch {}
+
     process.stdout.write(JSON.stringify(o));
-  ' "$ISO_TIMESTAMP" "$SESSION_NUM" "$MODE" "$EFFORT" "$ROUTING" "$MEMORY_STORES" "$HAS_HANDOFF" 2>/dev/null)
+  ' "$ISO_TIMESTAMP" "$SESSION_NUM" "$MODE" "$EFFORT" "$ROUTING" "$MEMORY_STORES" "$HAS_HANDOFF" "$HOOK_STDIN" 2>/dev/null)
   if [ -n "$JSONLINE" ]; then
     printf '%s\n' "$JSONLINE" >> "$METRICS_FILE" 2>/dev/null
   fi

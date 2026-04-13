@@ -97,7 +97,7 @@ async function runTest() {
     console.log('\nTools:');
     send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
     resp = await waitForResponse(2);
-    assert(resp.result?.tools?.length === 5, 'Lists exactly 5 tools');
+    assert(resp.result?.tools?.length === 6, 'Lists exactly 6 tools (Phase 3: +ijfw_metrics)');
     const toolNames = resp.result?.tools?.map(t => t.name) || [];
     assert(toolNames.includes('ijfw_memory_recall'), 'Has recall tool');
     assert(toolNames.includes('ijfw_memory_store'), 'Has store tool');
@@ -512,6 +512,83 @@ async function runTest() {
   }
 
   if (existsSync(TEAM_HARNESS)) rmSync(TEAM_HARNESS, { recursive: true });
+
+  // --- Phase 3 #6: Metrics dashboard ---
+  // Seeds .ijfw/metrics/sessions.jsonl with mixed v1/v2 lines, calls the
+  // ijfw_metrics tool, asserts aggregation works and zero-state is positive.
+  console.log('\nMetrics dashboard:');
+  const M_HARNESS = join(tmpdir(), `ijfw-metrics-${process.pid}`);
+  const M_HOME = join(M_HARNESS, 'home');
+  const M_PROJ = join(M_HARNESS, 'metrics-proj');
+  if (existsSync(M_HARNESS)) rmSync(M_HARNESS, { recursive: true });
+  mkdirSync(join(M_HOME, '.ijfw'), { recursive: true });
+  mkdirSync(join(M_PROJ, '.ijfw', 'metrics'), { recursive: true });
+  // Use a recent date so the default 7d window catches it.
+  const today = new Date().toISOString().slice(0, 10);
+  const lines = [
+    // v1 line — no token fields, must default to 0
+    JSON.stringify({ v: 1, timestamp: `${today}T01:00:00Z`, session: 1, mode: 'smart', effort: 'high', routing: 'native', memory_stores: 3, handoff: false }),
+    // v2 line — full token + cost
+    JSON.stringify({ v: 2, timestamp: `${today}T02:00:00Z`, session: 2, mode: 'smart', effort: 'high', routing: 'OpenRouter', memory_stores: 5, handoff: true, input_tokens: 10000, output_tokens: 2000, cache_read_tokens: 5000, cache_creation_tokens: 0, cost_usd: 0.3, model: 'claude-opus-4-6', prompt_check_fired: false, prompt_check_signals: [] }),
+    'malformed line that should be skipped',
+    JSON.stringify({ v: 2, timestamp: `${today}T03:00:00Z`, session: 3, mode: 'smart', effort: 'high', routing: 'native', memory_stores: 1, handoff: true, input_tokens: 5000, output_tokens: 1000, cache_read_tokens: 0, cache_creation_tokens: 0, cost_usd: 0.12, model: 'claude-sonnet-4-6' })
+  ].join('\n') + '\n';
+  writeFileSync(join(M_PROJ, '.ijfw', 'metrics', 'sessions.jsonl'), lines);
+
+  function spawnMetrics(projectDir) {
+    return spawn('node', [SERVER_PATH], {
+      env: { ...process.env, HOME: M_HOME, IJFW_PROJECT_DIR: projectDir },
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  }
+
+  try {
+    // tokens (default) — sums input/output across mixed v1/v2; malformed line skipped.
+    let srv = spawnMetrics(M_PROJ);
+    let resp = await callTool(srv, 300, 'ijfw_metrics', { period: '7d', metric: 'tokens' });
+    let txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('15,000') || txt.includes('15000'), 'Tokens metric sums input across v1+v2 (15k)');
+    assert(txt.includes('3,000') || txt.includes('3000'),  'Tokens metric sums output across v1+v2 (3k)');
+    assert(!resp.result?.isError, 'Tokens metric does not error on mixed schema');
+    srv.kill();
+
+    // cost — total $0.42 (0.30 + 0.12); v1 line contributes 0.
+    srv = spawnMetrics(M_PROJ);
+    resp = await callTool(srv, 301, 'ijfw_metrics', { period: '7d', metric: 'cost' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('$0.4200') || txt.includes('$0.42'), 'Cost metric totals correctly across mixed schema');
+    srv.kill();
+
+    // sessions — count + handoff rate (2 of 3 = 66%).
+    srv = spawnMetrics(M_PROJ);
+    resp = await callTool(srv, 302, 'ijfw_metrics', { period: '7d', metric: 'sessions' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('Sessions in 7d: 3'), 'Sessions metric counts all valid lines');
+    assert(txt.includes('Handoffs preserved: 2'), 'Sessions metric counts handoffs');
+    srv.kill();
+
+    // routing — mixed native + OpenRouter.
+    srv = spawnMetrics(M_PROJ);
+    resp = await callTool(srv, 303, 'ijfw_metrics', { period: '7d', metric: 'routing' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('native') && txt.includes('OpenRouter'), 'Routing metric shows mixed routing breakdown');
+    srv.kill();
+
+    // Zero state — fresh project, no metrics file.
+    const freshProj = join(M_HARNESS, 'fresh');
+    mkdirSync(join(freshProj, '.ijfw'), { recursive: true });
+    srv = spawnMetrics(freshProj);
+    resp = await callTool(srv, 304, 'ijfw_metrics', {});
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.startsWith('Ready to track'), 'Zero-state is positive-framed');
+    assert(!/error|fail|missing|not found/i.test(txt), 'Zero-state contains no negative phrases');
+    srv.kill();
+  } catch (err) {
+    console.log(`  ✗ metrics error: ${err.message}`);
+    failed++;
+  }
+
+  if (existsSync(M_HARNESS)) rmSync(M_HARNESS, { recursive: true });
   if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
 
   // Summary

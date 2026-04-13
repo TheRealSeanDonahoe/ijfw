@@ -555,6 +555,18 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    name: 'ijfw_metrics',
+    description: 'Aggregate session metrics (tokens, cost, sessions, routing) from .ijfw/metrics/sessions.jsonl. Tolerates mixed v1/v2 lines.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        period: { type: 'string', enum: ['today', '7d', '30d', 'all'], description: 'Time window (default 7d).' },
+        metric: { type: 'string', enum: ['tokens', 'cost', 'sessions', 'routing'], description: 'Which metric to render (default tokens).' }
+      },
+      required: []
+    }
   }
 ];
 
@@ -770,6 +782,94 @@ function handleSearch({ query, limit = 10, scope = 'project' }) {
   return { text: results.map(r => `[${r.source}:L${r.line}] ${r.content}`).join('\n') };
 }
 
+// Phase 3 #6: aggregate session metrics. Reads .ijfw/metrics/sessions.jsonl,
+// tolerates v1 lines (treats missing token/cost fields as 0), groups by day,
+// renders compact text. Positive-framed zero-state when no sessions logged yet.
+function handleMetrics({ period = '7d', metric = 'tokens' } = {}) {
+  const file = join(IJFW_DIR, 'metrics', 'sessions.jsonl');
+  const r = readMarkdownFile(file);
+  if (!r.ok) {
+    return { text: 'Ready to track — run a session and metrics will populate here.' };
+  }
+
+  const lines = r.content.split('\n').filter(l => l.trim());
+  const rows = [];
+  for (const line of lines) {
+    try { rows.push(JSON.parse(line)); } catch { /* skip malformed line */ }
+  }
+  if (rows.length === 0) {
+    return { text: 'Ready to track — run a session and metrics will populate here.' };
+  }
+
+  // Window filter (UTC day comparison via ISO prefix).
+  const now = Date.now();
+  const cutoff = period === 'today' ? now - 24 * 3600e3
+              : period === '7d'    ? now - 7 * 24 * 3600e3
+              : period === '30d'   ? now - 30 * 24 * 3600e3
+              : 0;
+  const within = rows.filter(row => {
+    if (!row.timestamp) return false;
+    const t = Date.parse(row.timestamp);
+    return Number.isFinite(t) && t >= cutoff;
+  });
+  if (within.length === 0) {
+    return { text: `Window ${period}: no sessions yet. Earlier history available — try period: 'all'.` };
+  }
+
+  if (metric === 'sessions') {
+    const handoffs = within.filter(r => r.handoff).length;
+    const memEntries = within.reduce((s, r) => s + (r.memory_stores || 0), 0);
+    return { text: [
+      `Sessions in ${period}: ${within.length}`,
+      `Handoffs preserved: ${handoffs} (${Math.round(100 * handoffs / within.length)}%)`,
+      `Memory entries logged: ${memEntries}`
+    ].join('\n') };
+  }
+
+  if (metric === 'routing') {
+    const counts = {};
+    for (const r of within) counts[r.routing || 'native'] = (counts[r.routing || 'native'] || 0) + 1;
+    return { text: ['Routing mix:'].concat(
+      Object.entries(counts).map(([k, v]) => `  ${k}: ${v}`)
+    ).join('\n') };
+  }
+
+  // Group by UTC day for tokens / cost.
+  const byDay = {};
+  for (const row of within) {
+    const day = String(row.timestamp).slice(0, 10);
+    byDay[day] = byDay[day] || { in: 0, out: 0, cr: 0, cc: 0, cost: 0, n: 0 };
+    byDay[day].in   += row.input_tokens || 0;
+    byDay[day].out  += row.output_tokens || 0;
+    byDay[day].cr   += row.cache_read_tokens || 0;
+    byDay[day].cc   += row.cache_creation_tokens || 0;
+    byDay[day].cost += row.cost_usd || 0;
+    byDay[day].n    += 1;
+  }
+
+  const days = Object.keys(byDay).sort();
+  if (metric === 'cost') {
+    const total = days.reduce((s, d) => s + byDay[d].cost, 0);
+    const lines = ['Day        | sessions | cost (USD)'];
+    for (const d of days) lines.push(`${d} | ${String(byDay[d].n).padStart(8)} | $${byDay[d].cost.toFixed(4)}`);
+    lines.push(`Total: $${total.toFixed(4)} across ${within.length} session(s) — clean session-ends only.`);
+    return { text: lines.join('\n') };
+  }
+
+  // tokens (default)
+  const totals = days.reduce((acc, d) => {
+    acc.in += byDay[d].in; acc.out += byDay[d].out; acc.cr += byDay[d].cr; acc.cc += byDay[d].cc;
+    return acc;
+  }, { in: 0, out: 0, cr: 0, cc: 0 });
+  const out = ['Day        | sessions | input | output | cache-read'];
+  for (const d of days) {
+    const r = byDay[d];
+    out.push(`${d} | ${String(r.n).padStart(8)} | ${r.in.toLocaleString().padStart(7)} | ${r.out.toLocaleString().padStart(7)} | ${r.cr.toLocaleString().padStart(10)}`);
+  }
+  out.push(`Total: ${(totals.in + totals.out).toLocaleString()} tokens (${totals.in.toLocaleString()} in / ${totals.out.toLocaleString()} out / ${totals.cr.toLocaleString()} cache-read).`);
+  return { text: out.join('\n') };
+}
+
 function handleStatus() {
   const sessionCount = getSessionCount();
   const decisionCount = getDecisionCount();
@@ -843,6 +943,9 @@ function handleMessage(msg) {
             break;
           case 'ijfw_memory_prelude':
             result = handlePrelude(args || {});
+            break;
+          case 'ijfw_metrics':
+            result = handleMetrics(args || {});
             break;
           default:
             return createError(id, -32601, `Unknown tool: ${name}`);
