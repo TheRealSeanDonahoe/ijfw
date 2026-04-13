@@ -104,6 +104,22 @@ Hooks automatically:
 - Generate a structured handoff for next session
 - Flag when memory consolidation is due
 
+### Team Memory (optional)
+
+For shared, PR-reviewed conventions across a team, drop markdown into
+`.ijfw/team/` and commit it:
+
+```
+.ijfw/team/decisions.md   # team-wide architectural calls
+.ijfw/team/patterns.md    # coding standards everyone follows
+.ijfw/team/stack.md       # approved tech choices
+.ijfw/team/members.md     # ownership map
+```
+
+Team memory ranks **above** personal memory in search and at the top of every
+session's prelude, so shared decisions never get lost behind individual notes.
+Empty by default — create the folder when you're ready.
+
 ---
 
 ## Architecture

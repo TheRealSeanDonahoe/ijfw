@@ -434,6 +434,84 @@ async function runTest() {
   }
 
   if (existsSync(HARNESS)) rmSync(HARNESS, { recursive: true });
+
+  // --- Phase 3 #8: Team memory tier ---
+  // Isolated harness with a project that has a .ijfw/team/ directory seeded.
+  // Verifies team source is searched, surfaced in prelude, and ranks above
+  // personal knowledge.
+  console.log('\nTeam memory tier:');
+  const TEAM_HARNESS = join(tmpdir(), `ijfw-team-${process.pid}`);
+  const TEAM_HOME = join(TEAM_HARNESS, 'home');
+  const TEAM_PROJ = join(TEAM_HARNESS, 'team-proj');
+  if (existsSync(TEAM_HARNESS)) rmSync(TEAM_HARNESS, { recursive: true });
+  mkdirSync(join(TEAM_HOME, '.ijfw'), { recursive: true });
+  mkdirSync(join(TEAM_PROJ, '.ijfw', 'team'), { recursive: true });
+  mkdirSync(join(TEAM_PROJ, '.ijfw', 'memory'), { recursive: true });
+  // Personal knowledge mentions "PostgreSQL". Team decisions mention "PostgreSQL"
+  // too — both should appear, team ranked first.
+  writeFileSync(join(TEAM_PROJ, '.ijfw', 'memory', 'knowledge.md'),
+    '# Knowledge\n**decision**: Personal note — PostgreSQL local for dev\n');
+  writeFileSync(join(TEAM_PROJ, '.ijfw', 'team', 'decisions.md'),
+    '# Team Decisions\n**decision**: Team-wide PostgreSQL 16 in production, no MySQL\n');
+  writeFileSync(join(TEAM_PROJ, '.ijfw', 'team', 'patterns.md'),
+    '# Team Patterns\n- Always use repository pattern for data access\n');
+
+  function spawnTeam(projectDir) {
+    return spawn('node', [SERVER_PATH], {
+      env: { ...process.env, HOME: TEAM_HOME, IJFW_PROJECT_DIR: projectDir },
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  }
+
+  try {
+    // Search returns team-tagged result for a query that matches both team and personal.
+    let srv = spawnTeam(TEAM_PROJ);
+    let resp = await callTool(srv, 200, 'ijfw_memory_search', { query: 'postgresql production' });
+    let txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('[team:'), 'Search surfaces team source with [team:N] tag');
+    // Team result should appear before personal knowledge (highest precedence).
+    const teamIdx = txt.indexOf('[team:');
+    const knowledgeIdx = txt.indexOf('[knowledge:');
+    assert(teamIdx >= 0 && (knowledgeIdx < 0 || teamIdx < knowledgeIdx), 'Team ranks at or above personal knowledge in search results');
+    srv.kill();
+
+    // Prelude (full mode) includes "## Team knowledge" with decisions content.
+    srv = spawnTeam(TEAM_PROJ);
+    resp = await callTool(srv, 201, 'ijfw_memory_prelude', { detail_level: 'full' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(txt.includes('## Team knowledge'), 'Prelude full mode includes Team knowledge section');
+    assert(txt.includes('repository pattern'), 'Prelude surfaces team patterns content');
+    srv.kill();
+
+    // Empty .ijfw/team/ directory → no team section in prelude (no spurious header).
+    const emptyProj = join(TEAM_HARNESS, 'empty-proj');
+    mkdirSync(join(emptyProj, '.ijfw', 'team'), { recursive: true });
+    mkdirSync(join(emptyProj, '.ijfw', 'memory'), { recursive: true });
+    writeFileSync(join(emptyProj, '.ijfw', 'memory', 'knowledge.md'),
+      '# Knowledge\n**decision**: Solo project, no team\n');
+    srv = spawnTeam(emptyProj);
+    resp = await callTool(srv, 202, 'ijfw_memory_prelude', { detail_level: 'full' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(!txt.includes('## Team knowledge'), 'Empty team dir produces no Team knowledge section');
+    srv.kill();
+
+    // No .ijfw/team/ dir at all → no team section, no error.
+    const noTeamProj = join(TEAM_HARNESS, 'no-team-proj');
+    mkdirSync(join(noTeamProj, '.ijfw', 'memory'), { recursive: true });
+    writeFileSync(join(noTeamProj, '.ijfw', 'memory', 'knowledge.md'),
+      '# Knowledge\n**decision**: Pre-team-tier project\n');
+    srv = spawnTeam(noTeamProj);
+    resp = await callTool(srv, 203, 'ijfw_memory_search', { query: 'pre-team' });
+    txt = resp.result?.content?.[0]?.text || '';
+    assert(resp.result?.isError !== true, 'Project without team dir does not error');
+    assert(!txt.includes('[team:'), 'Project without team dir produces no team-tagged results');
+    srv.kill();
+  } catch (err) {
+    console.log(`  ✗ team error: ${err.message}`);
+    failed++;
+  }
+
+  if (existsSync(TEAM_HARNESS)) rmSync(TEAM_HARNESS, { recursive: true });
   if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
 
   // Summary

@@ -62,6 +62,12 @@ const DEFAULT_FACET = 'preferences';
 // Phase 3: cross-project registry. Session-start hooks append one line per
 // known IJFW project. Used by search(scope:'all') and recall(from_project:X).
 const REGISTRY_FILE = join(homedir(), '.ijfw', 'registry.md');
+// Phase 3 #8: team memory tier. Project-local, faceted, committed alongside
+// personal memory but distinguished as shared decisions/patterns/stack/members.
+// Precedence: team > personal > global. Empty by default — no behavior change
+// until user creates .ijfw/team/<facet>.md (commits it for teammates).
+const TEAM_DIR_NAME = 'team';
+const TEAM_FACETS = ['decisions', 'patterns', 'stack', 'members'];
 
 // Claude Code's native auto-memory lives at ~/.claude/projects/<encoded>/memory/
 // where <encoded> is the project path with `/` → `-`. IJFW reads these files
@@ -296,6 +302,20 @@ function readNativeClaudeMemory() {
   }
 }
 
+// Phase 3 #8: team memory — shared, project-local, committed. Read-only here.
+// Faceted (decisions/patterns/stack/members) for parity with global tier;
+// each facet is a plain markdown file that teammates edit via PR.
+function readTeamKnowledge() {
+  const teamDir = join(IJFW_DIR, TEAM_DIR_NAME);
+  if (!existsSync(teamDir)) return '';
+  const out = [];
+  for (const facet of TEAM_FACETS) {
+    const raw = readOr(join(teamDir, `${facet}.md`));
+    if (raw) out.push(`### ${facet} (team)\n${raw}`);
+  }
+  return out.join('\n\n');
+}
+
 // Global prefs are filtered to entries matching this project's namespace OR
 // entries with no namespace (legacy/manual entries). Cross-project prefs are
 // not exposed by default. Phase 2: reads both faceted files and legacy flat.
@@ -430,7 +450,10 @@ function searchMemory(query, limit = 10, scope = 'project') {
   const keywords = queryLower.split(/\s+/).filter(w => w.length > 2);
   if (keywords.length === 0) return results;
 
+  // Source order matters for ranking: team first (shared, authoritative),
+  // then personal knowledge, then journal/handoff/global/native.
   const sources = [
+    { name: 'team', content: readTeamKnowledge() },
     { name: 'knowledge', content: readKnowledgeBase() },
     { name: 'journal', content: readOr(join(MEMORY_DIR, 'project-journal.md')) },
     { name: 'handoff', content: readHandoff() },
@@ -671,9 +694,18 @@ function handlePrelude({ detail_level = 'summary' } = {}) {
   const HO_LINES = detail_level === 'full' ? 80  : detail_level === 'standard' ? 30 : 15;
   const JN_LINES = detail_level === 'full' ? 20  : detail_level === 'standard' ? 10 : 5;
 
+  const TM_LINES = detail_level === 'full' ? 200 : detail_level === 'standard' ? 60 : 20;
+
   const parts = ['<ijfw-memory>'];
   parts.push('Project memory hydrated. Treat as background context — no further recall needed unless the user asks something not covered here.');
   parts.push('');
+
+  // Team knowledge first — shared decisions/patterns/stack rank above personal.
+  const team = readTeamKnowledge();
+  if (team) {
+    const body = team.split('\n').slice(0, TM_LINES).join('\n').trim();
+    if (body) parts.push('## Team knowledge', body, '');
+  }
 
   const knowledge = readKnowledgeBase();
   if (knowledge) {
