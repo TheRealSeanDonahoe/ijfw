@@ -33,3 +33,6 @@ Resume terse after.
 
 ## Prompt Self-Check
 On a short request (<30 tokens) with no obvious target: call `ijfw_prompt_check` MCP tool. If vague, ask one sharpening question (file? symbol? expected behavior?) before answering. Override: `*` prefix or "ijfw off".
+
+## Cross-Audit / Research / Critique
+To cross-audit, cross-research, or cross-critique, run `ijfw cross <mode> <target>`.

@@ -19,3 +19,9 @@ Examples:
 - fix(auth): prevent token refresh race condition
 - feat(api): add rate limiting to public endpoints
 - refactor(db): extract connection pool into service
+
+After commit completes successfully, run in the same shell:
+```bash
+command -v ijfw >/dev/null 2>&1 && ijfw cross critique HEAD~1..HEAD &
+```
+Then tell the user: "Committed. Background critique running — check /ijfw-status for findings."

@@ -7,7 +7,8 @@
   "type": "module",
   "main": "src/server.js",
   "bin": {
-    "ijfw-memory": "./bin/ijfw-memory"
+    "ijfw-memory": "./bin/ijfw-memory",
+    "ijfw": "./bin/ijfw"
   },
   "scripts": {
     "start": "node src/server.js",

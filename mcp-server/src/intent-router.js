@@ -13,6 +13,7 @@ const INTENTS = [
   {
     intent: 'brainstorm',
     skill:  'ijfw-workflow',
+    priority: 1,
     // Bare "build" is too vague; "build X" + "brainstorm" + "let's design"
     // are the high-signal ones.
     patterns: [
@@ -26,6 +27,7 @@ const INTENTS = [
   {
     intent: 'ship',
     skill:  'ijfw-commit',
+    priority: 5,
     patterns: [
       /\b(?:ship it|let'?s ship|ready to commit|commit this|push this)\b/i,
       /\bmake a commit\b/i,
@@ -36,6 +38,7 @@ const INTENTS = [
   {
     intent: 'review',
     skill:  'ijfw-review',
+    priority: 5,
     patterns: [
       /\b(?:code review|review (?:the|this|my) (?:code|diff|PR|change))/i,
       /\breview PR\b/i,
@@ -45,6 +48,7 @@ const INTENTS = [
   {
     intent: 'remember',
     skill:  'ijfw_memory_store',
+    priority: 5,
     patterns: [
       /\b(?:remember (?:this|that)|store (?:this|that)|save (?:this|that) (?:for (?:later|next time)|to memory))\b/i,
       /\b(?:this is|that'?s) important (?:to remember|for (?:later|next time))\b/i,
@@ -55,6 +59,7 @@ const INTENTS = [
   {
     intent: 'recall',
     skill:  'ijfw_memory_recall',
+    priority: 5,
     patterns: [
       /\b(?:what did we|what (?:did|have) I|do you remember)\b/i,
       /\b(?:recall|pull up|look up) (?:from|in) memory\b/i,
@@ -65,6 +70,7 @@ const INTENTS = [
   {
     intent: 'cross-research',
     skill:  '/cross-research',
+    priority: 10,
     patterns: [
       /\bcross[- ]?research(?:\s|ing)?\b/i,
       /\blet'?s cross[- ]?research\b/i,
@@ -77,6 +83,7 @@ const INTENTS = [
   {
     intent: 'cross-critique',
     skill:  '/cross-critique',
+    priority: 10,
     patterns: [
       /\bcross[- ]?critique(?:\s|ing)?\b/i,
       /\blet'?s cross[- ]?critique\b/i,
@@ -90,6 +97,7 @@ const INTENTS = [
   {
     intent: 'critique',
     skill:  'ijfw-critique',
+    priority: 1,
     patterns: [
       /\b(?:should I|what if|is this (?:right|correct|the best))\b/i,
       /\b(?:critique|poke holes|challenge this)\b/i,
@@ -100,6 +108,7 @@ const INTENTS = [
   {
     intent: 'cross-audit',
     skill:  '/cross-audit',
+    priority: 10,
     patterns: [
       /\bcross[- ]?audit(?:\s|ing)?\b/i,
       /\b(?:get|need)\s+(?:a\s+)?second opinion\b/i,
@@ -112,6 +121,7 @@ const INTENTS = [
   {
     intent: 'handoff',
     skill:  'ijfw-handoff',
+    priority: 5,
     patterns: [
       /\b(?:session (?:handoff|summary)|wrapping up|end of session)\b/i,
       /\bcontext (?:is )?getting full\b/i,
@@ -121,6 +131,7 @@ const INTENTS = [
   {
     intent: 'mode-brutal',
     skill:  'ijfw-core',
+    priority: 5,
     patterns: [
       /\b(?:brutal mode|be brutal|caveman mode|ultra[- ]?terse)\b/i,
     ],
@@ -134,12 +145,29 @@ export function detectIntent(prompt) {
   if (/^\s*\*/.test(prompt)) return null;
   if (/\bijfw off\b/i.test(prompt)) return null;
 
+  // Collect ALL matching entries with the longest matching pattern length.
+  const matches = [];
   for (const entry of INTENTS) {
     for (const re of entry.patterns) {
-      if (re.test(prompt)) {
-        return { intent: entry.intent, skill: entry.skill, nudge: entry.nudge };
+      const m = prompt.match(re);
+      if (m) {
+        matches.push({ entry, matchLen: m[0].length });
+        break; // one match per entry is enough
       }
     }
   }
-  return null;
+
+  if (matches.length === 0) return null;
+
+  // Sort: (a) priority DESC, (b) matchLen DESC, (c) INTENTS array order ASC (stable via index).
+  matches.sort((a, b) => {
+    const pd = (b.entry.priority ?? 0) - (a.entry.priority ?? 0);
+    if (pd !== 0) return pd;
+    const ld = b.matchLen - a.matchLen;
+    if (ld !== 0) return ld;
+    return INTENTS.indexOf(a.entry) - INTENTS.indexOf(b.entry);
+  });
+
+  const winner = matches[0].entry;
+  return { intent: winner.intent, skill: winner.skill, nudge: winner.nudge };
 }

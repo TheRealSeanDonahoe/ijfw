@@ -16,6 +16,8 @@ import { spawnSync } from 'node:child_process';
 export const ROSTER = [
   {
     id: 'codex',
+    family: 'openai',
+    model: '',
     name: 'Codex CLI',
     invoke: 'codex exec',
     note: 'Different training lineage; fast on review tasks.',
@@ -23,6 +25,8 @@ export const ROSTER = [
   },
   {
     id: 'gemini',
+    family: 'google',
+    model: '',
     name: 'Gemini CLI',
     invoke: 'gemini',
     note: 'Strong on security + architectural patterns.',
@@ -30,6 +34,8 @@ export const ROSTER = [
   },
   {
     id: 'opencode',
+    family: 'oss',
+    model: '',
     name: 'opencode',
     invoke: 'opencode',
     note: 'OSS / local-friendly; good when privacy matters.',
@@ -37,6 +43,8 @@ export const ROSTER = [
   },
   {
     id: 'aider',
+    family: 'oss',
+    model: '',
     name: 'Aider',
     invoke: 'aider --message',
     note: 'Code-focused peer; terse + diff-aware.',
@@ -44,6 +52,8 @@ export const ROSTER = [
   },
   {
     id: 'copilot',
+    family: 'openai',
+    model: '',
     name: 'Copilot CLI',
     invoke: 'gh copilot suggest',
     note: 'Convenient if gh CLI is already authenticated.',
@@ -51,6 +61,8 @@ export const ROSTER = [
   },
   {
     id: 'claude',
+    family: 'anthropic',
+    model: '',
     name: 'Claude Code',
     invoke: 'claude -p',
     note: 'Anthropic; useful when you want a second Claude pass in a fresh session.',
@@ -67,7 +79,8 @@ export function detectSelf(env = process.env) {
 }
 
 // Probe whether the auditor's CLI is on PATH. Cached per process.
-const _installedCache = new Map();
+// Exported so tests can prime the cache for deterministic behaviour.
+export const _installedCache = new Map();
 export function isInstalled(id) {
   if (_installedCache.has(id)) return _installedCache.get(id);
   const entry = ROSTER.find(e => e.id === id);
@@ -93,7 +106,7 @@ export function rosterWithStatus(env = process.env) {
 //   - picks: chosen auditor entries, ready to invoke
 //   - missing: roster entries we'd have liked but aren't installed
 //   - note: human-readable advisory (Donahoe trident reminder when only 1)
-export function pickAuditors({ count = 2, env = process.env, only = null } = {}) {
+export function pickAuditors({ count = 2, env = process.env, only = null, strategy = 'priority' } = {}) {
   const all = rosterWithStatus(env);
   if (only) {
     const ids = String(only).split(/[ ,]+/).map(s => s.toLowerCase()).filter(Boolean);
@@ -105,6 +118,78 @@ export function pickAuditors({ count = 2, env = process.env, only = null } = {})
       note: missing.length ? `Requested but not installed: ${missing.map(e => e.id).join(', ')}.` : '',
     };
   }
+
+  if (strategy === 'diversity') {
+    const selfId = detectSelf(env);
+    const selfEntry = ROSTER.find(e => e.id === selfId);
+    const callerFamily = selfEntry ? selfEntry.family : null;
+
+    // Installed non-self entries, grouped by family
+    const eligible = all.filter(e => !e.isSelf && e.installed);
+    const byFamily = (fam) => eligible.filter(e => e.family === fam);
+
+    const TARGET_FAMILIES = ['openai', 'google'];
+    const picks = [];
+    const picked = new Set();
+    const missing = [];
+    const nudges = [];
+
+    for (const fam of TARGET_FAMILIES) {
+      if (fam === callerFamily) {
+        // Caller is in this family — pick next-best family (oss, or other non-self)
+        const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily);
+        if (backfill) {
+          picks.push(backfill);
+          picked.add(backfill.id);
+          nudges.push(`No ${fam}-family auditor outside caller — using ${backfill.id} (${backfill.family}) as stand-in. Install a ${fam === 'openai' ? 'google' : 'openai'}-family auditor for full Trident diversity.`);
+        } else {
+          missing.push({ family: fam, reason: `no installed auditor in family ${fam}` });
+        }
+        continue;
+      }
+      const candidates = byFamily(fam);
+      if (candidates.length > 0) {
+        const pick = candidates.find(e => !picked.has(e.id));
+        if (pick) {
+          picks.push(pick);
+          picked.add(pick.id);
+        } else {
+          // All family members already picked — leave slot missing
+          missing.push({ family: fam, reason: `all installed auditors in family ${fam} already selected` });
+        }
+      } else {
+        // No installed member of this family — backfill from oss or any remaining non-self
+        const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily && !TARGET_FAMILIES.includes(e.family));
+        missing.push({ family: fam, reason: `no installed auditor in family ${fam}` });
+        if (backfill) {
+          picks.push(backfill);
+          picked.add(backfill.id);
+          nudges.push(`No ${fam}-family auditor installed — using ${backfill.id} (${backfill.family}) as stand-in. Install gemini (google) or codex/copilot (openai) for full Trident lineage diversity.`);
+        }
+      }
+    }
+
+    // If we still have fewer than 2 picks, backfill from any remaining eligible
+    if (picks.length < 2) {
+      for (const e of eligible) {
+        if (picks.length >= 2) break;
+        if (!picked.has(e.id)) {
+          picks.push(e);
+          picked.add(e.id);
+        }
+      }
+    }
+
+    const baseNote = picks.length === 0
+      ? 'No external auditors installed. Install codex, gemini, opencode, aider, or copilot to use cross-audit.'
+      : picks.length < 2
+        ? `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} installed (${picks.map(e => e.id).join(', ')}); install another to triangulate findings.`
+        : '';
+    const note = [baseNote, ...nudges].filter(Boolean).join(' ');
+    return { picks, missing, note };
+  }
+
+  // Default: priority strategy
   const eligible = all.filter(e => !e.isSelf && e.installed);
   const picks = eligible.slice(0, count);
   const wantMore = count - picks.length;
