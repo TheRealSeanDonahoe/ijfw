@@ -21,6 +21,7 @@ run "JSON validity"            "for f in claude/.claude-plugin/plugin.json claud
 run "Line caps"                "bash scripts/check-line-caps.sh"
 run "Positive framing"         "bash scripts/check-positive-framing.sh"
 run "MCP launcher health"      "bash scripts/check-mcp.sh"
+run "Doctor runs cleanly"      "bash scripts/doctor.sh >/dev/null"
 
 echo ""
 if [ $FAILED -gt 0 ]; then
