@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # IJFW doctor — user-facing health check. Wraps existing check-*.sh dev
 # scripts in human-friendly, positive-framed output.
-set -u
+set -uo pipefail
 cd "$(dirname "$0")/.."
 
 ok()   { printf "  ✓ %s\n" "$1"; }
@@ -62,5 +62,19 @@ else
   info "user-facing surfaces want review — run: bash scripts/check-positive-framing.sh"
 fi
 echo ""
+
+HOOK_LOG="$HOME/.ijfw/logs/hooks.log"
+if [ -s "$HOOK_LOG" ]; then
+  RECENT=$(tail -3 "$HOOK_LOG" 2>/dev/null | head -c 300)
+  if [ -n "$RECENT" ]; then
+    echo "[Hook log]"
+    info "recent hook output available at $HOOK_LOG"
+    echo ""
+  fi
+else
+  echo "[Hook log]"
+  ok "no hook output this week"
+  echo ""
+fi
 
 echo "Doctor complete."

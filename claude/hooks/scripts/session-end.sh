@@ -179,6 +179,78 @@ if [ "$SESSION_NUM" -gt 0 ] && [ $(( SESSION_NUM % 5 )) -eq 0 ]; then
   echo "IJFW_NEEDS_CONSOLIDATE=1" >> "$IJFW_DIR/.startup-flags" 2>/dev/null
 fi
 
+# W4.6 / R6 — session-dir pruning. Keep newest 30 markers; archive older
+# to .ijfw/archive/sessions/ as gzip if gzip is available, else rm.
+if [ -d "$IJFW_DIR/sessions" ]; then
+  PRUNE_COUNT=$(ls -1 "$IJFW_DIR/sessions" 2>/dev/null | wc -l | tr -d ' ')
+  if [ "${PRUNE_COUNT:-0}" -gt 30 ]; then
+    mkdir -p "$IJFW_DIR/archive/sessions" 2>/dev/null
+    # shellcheck disable=SC2012
+    ls -1t "$IJFW_DIR/sessions" 2>/dev/null | tail -n +31 | while IFS= read -r f; do
+      src="$IJFW_DIR/sessions/$f"
+      if command -v gzip >/dev/null 2>&1; then
+        gzip -c "$src" > "$IJFW_DIR/archive/sessions/$f.gz" 2>/dev/null && rm -f "$src"
+      else
+        mv "$src" "$IJFW_DIR/archive/sessions/$f" 2>/dev/null
+      fi
+    done
+  fi
+fi
+
+# W4.6 / R3 — memory archival for journal entries >90 days old. Line-based
+# journal entries have ISO timestamps in [YYYY-MM-DD...] prefix; we keep the
+# newest window and archive the rest monthly.
+if [ -f "$IJFW_DIR/memory/project-journal.md" ] && command -v node >/dev/null 2>&1; then
+  node -e '
+    const fs = require("fs");
+    const path = ".ijfw/memory/project-journal.md";
+    const archDir = ".ijfw/archive";
+    try {
+      const raw = fs.readFileSync(path, "utf8");
+      const lines = raw.split("\n");
+      const cutoff = Date.now() - 90 * 24 * 3600e3;
+      const keep = [];
+      const archiveByMonth = new Map();
+      let header = "";
+      for (const line of lines) {
+        if (!header && line.startsWith("<!--")) { header = line; continue; }
+        if (!header && line.startsWith("#"))    { header = header ? header + "\n" + line : line; continue; }
+        const m = line.match(/^- \[(\d{4})-(\d{2})-\d{2}T[\d:.Z]+\]/);
+        if (!m) { keep.push(line); continue; }
+        const ts = Date.parse(line.match(/\[([^\]]+)\]/)[1]);
+        if (!Number.isFinite(ts) || ts >= cutoff) { keep.push(line); continue; }
+        const key = m[1] + "-" + m[2];
+        if (!archiveByMonth.has(key)) archiveByMonth.set(key, []);
+        archiveByMonth.get(key).push(line);
+      }
+      if (archiveByMonth.size === 0) return;
+      fs.mkdirSync(archDir, { recursive: true });
+      for (const [k, ls] of archiveByMonth) {
+        const aPath = `${archDir}/journal-${k}.md`;
+        const prior = fs.existsSync(aPath) ? fs.readFileSync(aPath, "utf8") : `<!-- ijfw-schema: v1 -->\n# Journal archive ${k}\n`;
+        fs.writeFileSync(aPath, prior + ls.join("\n") + "\n");
+      }
+      fs.writeFileSync(path, (header ? header + "\n" : "") + keep.filter(l => l !== "").join("\n") + "\n");
+    } catch {}
+  ' 2>/dev/null
+fi
+
+# W4.6 / ST3 — hook error log. Any captured stderr from this session is
+# appended here so /doctor can surface it next startup. Per-hook hooks
+# redirect their stderr to this file if they choose; this block just
+# ensures the file exists and is rotated weekly.
+HOOK_LOG="$HOME/.ijfw/logs/hooks.log"
+mkdir -p "$HOME/.ijfw/logs" 2>/dev/null
+touch "$HOOK_LOG" 2>/dev/null
+# Rotate if >256KB
+if [ -f "$HOOK_LOG" ]; then
+  size=$(wc -c < "$HOOK_LOG" 2>/dev/null | tr -d ' ')
+  if [ "${size:-0}" -gt 262144 ]; then
+    mv "$HOOK_LOG" "$HOOK_LOG.$(date -u +%Y%m%d 2>/dev/null || echo old)" 2>/dev/null
+    : > "$HOOK_LOG"
+  fi
+fi
+
 # Positive-framed status — no jargon, no negatives, no paths.
 echo "Session #$SESSION_NUM saved."
 
