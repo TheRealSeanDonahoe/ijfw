@@ -31,6 +31,13 @@ fi
 
 TS=$(date +%Y%m%d-%H%M%S)
 
+# S6 — prune backups older than 30 days from common config dirs.
+for d in "$HOME/.codex" "$HOME/.gemini" "$HOME/.codeium/windsurf" ".vscode" ".cursor"; do
+  [ -d "$d" ] || continue
+  find "$d" -maxdepth 2 -name '*.bak.*' -type f -mtime +30 -print 2>/dev/null \
+    | while IFS= read -r old; do rm -f "$old" 2>/dev/null; done
+done
+
 ok()   { printf "  ✓ %s\n" "$1"; }
 note() { printf "  → %s\n" "$1"; }
 info() { printf "  · %s\n" "$1"; }
@@ -72,10 +79,8 @@ merge_json() {
 }
 
 # --- TOML merge helper (Codex) ---
-# Zero-dep TOML merge: we only need to ensure [mcp_servers.ijfw-memory] block
-# with our keys exists and is correct. Everything else is preserved verbatim.
-# Strategy: strip any existing [mcp_servers.ijfw-memory] section (it's a
-# plain bracketed section) then append a fresh one.
+# S4 — atomic variant: write to sibling .tmp, append block, then atomic rename.
+# Eliminates the crash-mid-pipeline window where $dst could be truncated.
 merge_toml() {
   local dst="$1" launcher="$2"
   mkdir -p "$(dirname "$dst")"
@@ -83,14 +88,13 @@ merge_toml() {
   if [ ! -f "$dst" ]; then
     : > "$dst"
   fi
-  # Delete the [mcp_servers.ijfw-memory] block if present. awk is portable.
+  local tmp="$dst.merge.$$.tmp"
   awk '
     BEGIN { skip = 0 }
     /^\[mcp_servers\.ijfw-memory\][[:space:]]*$/ { skip = 1; next }
     skip && /^\[/ && !/^\[mcp_servers\.ijfw-memory\]/ { skip = 0 }
     !skip { print }
-  ' "$dst" > "$dst.tmp" && mv "$dst.tmp" "$dst"
-  # Append our block.
+  ' "$dst" > "$tmp" || { rm -f "$tmp"; return 1; }
   {
     printf '\n[mcp_servers.ijfw-memory]\n'
     printf 'command = "%s"\n' "$launcher"
@@ -98,7 +102,8 @@ merge_toml() {
     printf 'enabled = true\n'
     printf 'startup_timeout_sec = 10\n'
     printf 'tool_timeout_sec = 30\n'
-  } >> "$dst"
+  } >> "$tmp" || { rm -f "$tmp"; return 1; }
+  mv "$tmp" "$dst"
 }
 
 echo "IJFW install — launcher: $LAUNCHER"

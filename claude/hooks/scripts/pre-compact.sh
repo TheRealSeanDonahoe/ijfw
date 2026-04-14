@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # IJFW PreCompact — preserve key decisions before context compression.
 # NOTE: no `set -e` — hooks must NEVER crash Claude Code.
+[ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 
 IJFW_DIR=".ijfw"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")

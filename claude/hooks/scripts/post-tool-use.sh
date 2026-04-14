@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# E4 — universal disable switch.
+[ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 # IJFW PostToolUse — scan executed commands for destructive patterns and inject
 # a verification reminder into context. The agent sees it next turn, which
 # catches common footguns before they compound.

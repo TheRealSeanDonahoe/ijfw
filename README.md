@@ -3,6 +3,13 @@
 
 One install. Zero config. Makes your AI coding agent smarter, more efficient, and gives it persistent memory across sessions and platforms.
 
+**Measured impact** ([full report](core/benchmarks/REPORT-001.md)):
+- **−41% cost** per session (Arm C vs unconstrained baseline)
+- **−20% output tokens** (terse output rules on by default)
+- **−51% cache-creation tokens** (context discipline)
+
+Measured on `claude-sonnet-4-5` fixing a single-file bug. n=1, directional — full suite in Phase 3.5.
+
 **What it does:**
 - **Smarter output** — no filler, no preamble, no narration. Lead with the answer.
 - **Smart routing** — right model for the right task. Haiku for reads, Sonnet for code, Opus for architecture.

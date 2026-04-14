@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # IJFW SessionEnd (Stop hook) — save session state, write metrics, manage journal.
 # NOTE: no `set -e` — hooks must NEVER crash Claude Code.
+
+# E4 — universal disable switch. Any hook respects IJFW_DISABLE=1.
+[ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 #
 # Hardened against:
 #   - JSONL corruption from unescaped env vars (uses node -e to encode JSON)

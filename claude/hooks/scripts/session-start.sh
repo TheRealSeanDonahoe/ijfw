@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# E4 — universal disable switch.
+[ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 # IJFW SessionStart — emits banner first, runs detection async, never crashes Claude Code.
 #
 # Hardened against:
@@ -311,11 +313,13 @@ fi
 BANNER_BUF="$IJFW_DIR/.banner-buf"
 {
 echo "━━━ IJFW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-# Mode line: just mode + (optionally) routing. No "effort" jargon for non-tech users.
+# C5 — visible mode indicator. IJFW_MODE overrides; default "smart".
+CUR_MODE="${IJFW_MODE:-smart}"
+MODE_LABEL=$(printf '%s' "$CUR_MODE" | tr '[:lower:]' '[:upper:]')
 if [ -n "$ROUTING_STR" ]; then
-  printf 'Smart mode%s\n' "$ROUTING_STR"
+  printf '%s mode%s\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')" "$ROUTING_STR"
 else
-  echo "Smart mode"
+  printf '%s mode\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 fi
 echo ""
 

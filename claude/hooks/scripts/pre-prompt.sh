@@ -15,6 +15,9 @@
 #
 # NOTE: never crash Claude Code. Every step guards itself.
 
+# E4 — universal disable switch.
+[ "${IJFW_DISABLE:-}" = "1" ] && exit 0
+
 # Detect severity1 plugin and defer.
 if [ -d "$HOME/.claude/plugins/cache/severity1-marketplace/prompt-improver" ]; then
   exit 0

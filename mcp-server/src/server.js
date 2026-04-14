@@ -644,10 +644,14 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
     return { text: `type must be one of: ${VALID_MEMORY_TYPES.join(', ')}`, isError: true };
   }
   if (!Array.isArray(tags)) tags = [];
+  // S2 — tag whitelist. Rejects path-traversal / null bytes / punctuation
+  // in tag values that are later used as grep arguments or filenames.
   tags = tags
     .filter(t => typeof t === 'string')
     .slice(0, MAX_TAGS)
-    .map(t => sanitizeContent(t).substring(0, MAX_TAG_LEN));
+    .map(t => sanitizeContent(t).substring(0, MAX_TAG_LEN))
+    .map(t => t.replace(/[^a-zA-Z0-9_-]/g, ''))
+    .filter(t => t.length > 0);
 
   // Enforce per-field caps before sanitize (audit S1). content is rejected
   // above at the MAX_STORE_LENGTH gate so callers aren't silently truncated.
@@ -1041,6 +1045,7 @@ rl.on('line', (line) => {
 });
 
 process.on('SIGINT', () => process.exit(0));
+process.on('SIGINT',  () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 process.on('uncaughtException', (err) => {
   process.stderr.write(`IJFW: uncaught: ${err.stack || err.message}\n`);
