@@ -47,6 +47,55 @@ fires the intent router (see `mcp-server/src/intent-router.js`) which
 nudges Claude to invoke `/cross-audit` automatically — same auto-detect
 flow runs.
 
+## Default flow — Donahoe Trident (don't make me think)
+
+Caller is one perspective. **Default ask is for two more.** Per the
+Donahoe Loop: never trust a single AI; run through three. Two diverse
+auditors triangulating the caller's findings catches gaps that any
+single second-opinion would miss.
+
+When invoked, do this in order:
+
+1. **Probe roster.** Call `pickAuditors({ count: 2, env: process.env })` from `audit-roster.js`. Returns `{ picks, missing, note }` — picks are installed AND non-self.
+2. **Show a TODO surface** in chat:
+
+   ```
+   Cross-audit plan
+     [ ] Generate request (target: <auto-detected>)
+     [ ] Run auditor 1: <picks[0].name>
+     [ ] Run auditor 2: <picks[1].name>   (or note if only 1 installed)
+     [ ] Compare findings
+   ```
+
+3. **Ask the user once** which combo to actually run:
+
+   ```
+   Auditors detected and ready: codex, gemini.
+   Run cross-audit against:
+     [A] codex only      (~$0.20-0.50 estimated)
+     [B] gemini only     (free if Google AI Studio key, else ~$0.05)
+     [C] Both — recommended (Donahoe Trident)
+     [D] Cancel / pick custom
+   ```
+
+   Default suggestion: **C (Both)** when ≥2 installed.
+
+4. **If only one installed**, surface the principle:
+
+   > "Only `<id>` is installed locally. Per the Donahoe Loop and IJFW principles, you're best to have two top-tier AIs review to help avoid gaps and issues that one alone may miss. Install one of the missing auditors (`opencode`, `aider`, etc.) for the full Trident."
+
+   Then offer to run the single auditor anyway.
+
+5. **Run** via Bash (`<picks[i].invoke> < .ijfw/cross-audit/request.md > .ijfw/cross-audit/response-<id>.md`). Update TODO to `in_progress` then `completed` per auditor.
+
+6. **Compare** all returned responses together:
+   - Findings agreed by ≥2 auditors → **high confidence**
+   - Findings unique to one → **investigate**
+   - Findings only the caller had → flag for sanity check
+   - Render single merged table with a "consensus" column.
+
+7. **Archive** all request + response files to `.ijfw/cross-audit/archive/<ts>-<ids>/`.
+
 ## Auditor picking
 
 Invoke `node -e "import('./mcp-server/src/audit-roster.js').then(m => console.log(m.formatRoster()))"` (or just read `mcp-server/src/audit-roster.js`) to see:

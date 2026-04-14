@@ -2,11 +2,16 @@
 //
 // Who can we ask for a second opinion? This module knows the roster of
 // audit-capable CLI tools, fingerprints the currently-running caller via
-// env vars, and offers the "first non-self" as the default auditor.
+// env vars, AND probes whether each CLI is actually installed on PATH.
+//
+// Donahoe principle: never trust a single AI; run through (at least) three.
+// Caller is one. We aim to suggest two reviewers — the Trident.
 //
 // Detection is conservative: we'd rather show all options than silently
 // exclude a valid one. If we genuinely can't tell who's calling, nothing
-// gets filtered.
+// gets filtered as "self."
+
+import { spawnSync } from 'node:child_process';
 
 export const ROSTER = [
   {
@@ -61,6 +66,57 @@ export function detectSelf(env = process.env) {
   return null;
 }
 
+// Probe whether the auditor's CLI is on PATH. Cached per process.
+const _installedCache = new Map();
+export function isInstalled(id) {
+  if (_installedCache.has(id)) return _installedCache.get(id);
+  const entry = ROSTER.find(e => e.id === id);
+  if (!entry) return false;
+  // First word of invoke is the binary; the rest are args.
+  const bin = entry.invoke.split(/\s+/)[0];
+  // POSIX `command -v` is the portable existence check; bash builtin form
+  // works reliably across macOS + Linux. spawnSync exit code = 0 → present.
+  const r = spawnSync('bash', ['-lc', `command -v ${JSON.stringify(bin)} >/dev/null 2>&1`], { timeout: 2000 });
+  const installed = r.status === 0;
+  _installedCache.set(id, installed);
+  return installed;
+}
+
+// Returns roster entries with isSelf + installed flags resolved.
+export function rosterWithStatus(env = process.env) {
+  const self = detectSelf(env);
+  return ROSTER.map(e => ({ ...e, isSelf: e.id === self, installed: isInstalled(e.id) }));
+}
+
+// The Trident: pick up to N (default 2) installed, non-self auditors in
+// roster priority order. Returns { picks: [], missing: [], note: string }.
+//   - picks: chosen auditor entries, ready to invoke
+//   - missing: roster entries we'd have liked but aren't installed
+//   - note: human-readable advisory (Donahoe trident reminder when only 1)
+export function pickAuditors({ count = 2, env = process.env, only = null } = {}) {
+  const all = rosterWithStatus(env);
+  if (only) {
+    const ids = String(only).split(/[ ,]+/).map(s => s.toLowerCase()).filter(Boolean);
+    const picks = ids.map(id => all.find(e => e.id === id)).filter(Boolean);
+    const missing = picks.filter(e => !e.installed);
+    return {
+      picks: picks.filter(e => e.installed),
+      missing,
+      note: missing.length ? `Requested but not installed: ${missing.map(e => e.id).join(', ')}.` : '',
+    };
+  }
+  const eligible = all.filter(e => !e.isSelf && e.installed);
+  const picks = eligible.slice(0, count);
+  const wantMore = count - picks.length;
+  let note = '';
+  if (picks.length === 0) {
+    note = 'No external auditors installed. Install codex, gemini, opencode, aider, or copilot to use cross-audit.';
+  } else if (picks.length < count) {
+    note = `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} installed (${picks.map(e => e.id).join(', ')}); ${wantMore} short. Install another to triangulate findings — single-reviewer audits miss what overlap would catch.`;
+  }
+  return { picks, missing: all.filter(e => !e.isSelf && !e.installed), note };
+}
+
 // Returns roster entries, marking self and filtering when requested.
 //   { excludeSelf: bool, only: string | null }
 export function rosterFor({ excludeSelf = true, only = null, env = process.env } = {}) {
@@ -80,16 +136,18 @@ export function defaultAuditor(env = process.env) {
   return list[0] || null;
 }
 
-// Pretty-print the roster for user consumption.
+// Pretty-print the roster for user consumption. Now shows install status
+// and self marker so the user sees instantly what's actionable.
 export function formatRoster(env = process.env) {
   const self = detectSelf(env);
+  const all = rosterWithStatus(env);
   const lines = [];
-  for (const e of ROSTER) {
-    const mark = e.id === self ? 'self' : 'available';
-    lines.push(`  ${e.id.padEnd(9)} ${mark.padEnd(9)} — ${e.name} (${e.invoke}) — ${e.note}`);
+  for (const e of all) {
+    const role = e.isSelf ? 'self    ' : (e.installed ? 'ready   ' : 'install ');
+    lines.push(`  ${e.id.padEnd(9)} ${role}— ${e.name} (${e.invoke}) — ${e.note}`);
   }
   const header = self
-    ? `Detected caller: ${self}. Other auditors available:`
+    ? `Detected caller: ${self}. Roster (ready = installed + non-self):`
     : `Caller unknown — full roster:`;
   return header + '\n' + lines.join('\n');
 }
