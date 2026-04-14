@@ -65,7 +65,7 @@ if [ "${LINE_COUNT:-0}" -gt 500 ]; then
     TAIL_PART=$(printf '%s\n' "$CLEANED" | tail -30)
     # Extract error/warn lines with 1-line context (GNU + BSD grep both support -A/-B).
     ERRORS=$(printf '%s\n' "$CLEANED" | grep -En -B1 -A1 -iE '\b(error|warn(ing)?|failed|traceback|fatal|critical)\b' 2>/dev/null | head -120)
-    printf '%s\n\n... [trimmed: %s lines → head 100 + errors/warnings + tail 30] ...\n\n%s\n\n... tail ...\n\n%s\n' \
+    printf '%s\n\n... [trimmed: %s lines → head 100 + key signals + tail 30] ...\n\n%s\n\n... tail ...\n\n%s\n' \
       "$HEAD_PART" "$LINE_COUNT" "$ERRORS" "$TAIL_PART"
   else
     HEAD_PART=$(printf '%s\n' "$CLEANED" | head -250)
