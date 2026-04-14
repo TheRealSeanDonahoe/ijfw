@@ -52,13 +52,27 @@ CLEANED=$(printf '%s' "$INPUT" | sed -E '
   /^[[:space:]]*(Compiling|Downloading|Fresh) /d
 ')
 
-# Truncate if output exceeds 500 lines — keep first 250 + last 50 with marker.
+# Truncate if output exceeds 500 lines (W2.5/B3 — context-mode-style trim).
+# Policy: large log-like output → extract ERROR/WARN/Traceback lines with
+# 1 line context, keep first 100 + last 30 as scaffolding. Structured JSON
+# outputs and generic large outputs fall back to the head+tail clamp.
 LINE_COUNT=$(printf '%s\n' "$CLEANED" | wc -l | tr -d ' ')
 if [ "${LINE_COUNT:-0}" -gt 500 ]; then
-  HEAD_PART=$(printf '%s\n' "$CLEANED" | head -250)
-  TAIL_PART=$(printf '%s\n' "$CLEANED" | tail -50)
-  printf '%s\n\n... [truncated: %s lines — showing first 250 + last 50] ...\n\n%s\n' \
-    "$HEAD_PART" "$LINE_COUNT" "$TAIL_PART"
+  # Does the output look log-like (has ERROR/WARN/FAIL/Traceback markers)?
+  if printf '%s' "$CLEANED" | grep -Eq '^(ERROR|WARN|FAIL|CRITICAL|FATAL|Traceback|[[:space:]]*at [A-Z])' \
+     || printf '%s' "$CLEANED" | grep -Eqi '\berror\b|\bwarn(ing)?\b|\bfailed\b'; then
+    HEAD_PART=$(printf '%s\n' "$CLEANED" | head -100)
+    TAIL_PART=$(printf '%s\n' "$CLEANED" | tail -30)
+    # Extract error/warn lines with 1-line context (GNU + BSD grep both support -A/-B).
+    ERRORS=$(printf '%s\n' "$CLEANED" | grep -En -B1 -A1 -iE '\b(error|warn(ing)?|failed|traceback|fatal|critical)\b' 2>/dev/null | head -120)
+    printf '%s\n\n... [trimmed: %s lines → head 100 + errors/warnings + tail 30] ...\n\n%s\n\n... tail ...\n\n%s\n' \
+      "$HEAD_PART" "$LINE_COUNT" "$ERRORS" "$TAIL_PART"
+  else
+    HEAD_PART=$(printf '%s\n' "$CLEANED" | head -250)
+    TAIL_PART=$(printf '%s\n' "$CLEANED" | tail -50)
+    printf '%s\n\n... [truncated: %s lines — showing first 250 + last 50] ...\n\n%s\n' \
+      "$HEAD_PART" "$LINE_COUNT" "$TAIL_PART"
+  fi
 else
   printf '%s\n' "$CLEANED"
 fi
