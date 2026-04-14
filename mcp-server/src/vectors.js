@@ -23,17 +23,69 @@ const DEFAULT_MODEL = 'Xenova/all-MiniLM-L6-v2';
 
 let _pipelinePromise = null;
 
+// R2-B — locate the actual ONNX file the pipeline loaded. transformers.js
+// uses several cache layouts (HuggingFace-style models--{org}--{name}
+// snapshots; flat cacheDir; explicit localModelPath). Scan candidates,
+// return the first that exists.
+async function resolveModelFile(env, modelId) {
+  const { existsSync, readdirSync, statSync } = await import('node:fs');
+  const { join: pjoin } = await import('node:path');
+  const roots = [];
+  if (env && env.localModelPath) roots.push(env.localModelPath);
+  if (env && env.cacheDir)       roots.push(env.cacheDir);
+  if (process.env.IJFW_VECTORS_CACHE) roots.push(process.env.IJFW_VECTORS_CACHE);
+  if (process.env.HOME)          roots.push(pjoin(process.env.HOME, '.cache', 'huggingface'));
+
+  const filenames = ['model.onnx', 'model_quantized.onnx', 'model_fp16.onnx'];
+  const modelSlugs = [
+    modelId,
+    modelId.replace('/', '_'),
+    'models--' + modelId.replace('/', '--'),
+  ];
+
+  for (const root of roots) {
+    if (!root || !existsSync(root)) continue;
+    // Direct layout: {root}/{slug}/onnx/{file}
+    for (const slug of modelSlugs) {
+      for (const f of filenames) {
+        const p = pjoin(root, slug, 'onnx', f);
+        if (existsSync(p)) return p;
+      }
+    }
+    // HF snapshots: {root}/models--{org}--{name}/snapshots/{rev}/onnx/{file}
+    const hfDir = pjoin(root, 'models--' + modelId.replace('/', '--'));
+    if (existsSync(hfDir) && statSync(hfDir).isDirectory()) {
+      const snapshotsDir = pjoin(hfDir, 'snapshots');
+      if (existsSync(snapshotsDir)) {
+        for (const rev of readdirSync(snapshotsDir)) {
+          for (const f of filenames) {
+            const p = pjoin(snapshotsDir, rev, 'onnx', f);
+            if (existsSync(p)) return p;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 async function verifyModelSha(env, modelId) {
   const expected = process.env.IJFW_VECTORS_MODEL_SHA256;
-  if (!expected) return { ok: true };
+  if (!expected) return { ok: true }; // no pin configured, skip verification
   try {
     const { createReadStream } = await import('node:fs');
     const { createHash } = await import('node:crypto');
-    const { join: pjoin } = await import('node:path');
-    // transformers.js caches to env.cacheDir (default ~/.cache/huggingface/).
-    const cacheDir = env.cacheDir || (process.env.HOME ? pjoin(process.env.HOME, '.cache', 'huggingface') : '');
-    if (!cacheDir) return { ok: false, reason: 'no-cache-dir-for-hash-verification' };
-    const modelPath = pjoin(cacheDir, modelId.replace('/', '_'), 'onnx', 'model.onnx');
+    const modelPath = await resolveModelFile(env, modelId);
+    if (!modelPath) {
+      // R2-B — fail OPEN with a clear reason rather than closed. A path-guess
+      // miss should not disable a working embedder; surface the lack of
+      // verification so the user can set IJFW_VECTORS_CACHE explicitly.
+      process.stderr.write(
+        `IJFW: SHA verification skipped — couldn't locate ONNX for ${modelId}. ` +
+        `Set IJFW_VECTORS_CACHE to the cache root or clear IJFW_VECTORS_MODEL_SHA256.\n`
+      );
+      return { ok: true, skipped: true };
+    }
     await new Promise((resolve, reject) => {
       const h = createHash('sha256');
       const s = createReadStream(modelPath);
@@ -42,11 +94,12 @@ async function verifyModelSha(env, modelId) {
       s.on('end', () => {
         const got = h.digest('hex');
         if (got === expected.toLowerCase()) resolve();
-        else reject(new Error(`sha256 mismatch: expected ${expected}, got ${got}`));
+        else reject(new Error(`sha256 mismatch at ${modelPath}: expected ${expected}, got ${got}`));
       });
     });
-    return { ok: true };
+    return { ok: true, verified: true };
   } catch (e) {
+    // Hash mismatch IS a closed-fail (user pinned; we can't trust this model).
     return { ok: false, reason: `sha-verify-failed: ${e.message}` };
   }
 }

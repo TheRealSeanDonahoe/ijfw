@@ -84,3 +84,24 @@ test('escaped quotes inside strings do not break tokenizer', () => {
   const parsed = tolerantJsonParse(raw, 'x');
   assert.equal(parsed.quoted, 'she said "hi" // then left');
 });
+
+test('leading UTF-8 BOM is tolerated', () => {
+  const raw = '\uFEFF{ "a": 1, "b": 2 }';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.a, 1);
+  assert.equal(parsed.b, 2);
+});
+
+test('CR-only and U+2028/U+2029 terminate line comments', () => {
+  const raw = '{// classic\r  "a": 1,\n  // unicode\u2028  "b": 2,\r\n  "c": 3\n}';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.a, 1);
+  assert.equal(parsed.b, 2);
+  assert.equal(parsed.c, 3);
+});
+
+test('unterminated block comment is tolerated (EOF closes)', () => {
+  const raw = '{ "a": 1, "b": 2 } /* forgot to close';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.a, 1);
+});

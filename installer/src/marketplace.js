@@ -9,18 +9,23 @@ export function claudeSettingsPath() {
   return join(homedir(), '.claude', 'settings.json');
 }
 
-// C3 (Phase-6 audit) — a naive `//` and `/* */` regex strip was corrupting
-// JSON string values that legitimately contain those sequences (regex
-// patterns, comment-style markers, URL fragments). Tokenize character-by-
-// character so we ONLY strip comments outside string literals.
+// C3 (audit R1) + R2-F — tokenizer-aware JSONC comment strip. A naive
+// regex was corrupting string values containing //, /*, */. R2-F also
+// handles: leading BOM (U+FEFF), CR-only and U+2028/U+2029 line
+// separators inside `//` line comments, and unterminated `/* */`.
 function stripJsoncComments(raw) {
+  // Strip a leading UTF-8 BOM — common when settings.json was saved by
+  // a Windows editor. JSON.parse chokes on it too.
+  if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
   let out = '';
   let i = 0;
   const n = raw.length;
+  const isLineBreak = (code) =>
+    code === 0x0A || code === 0x0D || code === 0x2028 || code === 0x2029;
   while (i < n) {
     const c = raw[i];
     const c2 = raw[i + 1];
-    // String literal — copy through verbatim including any escaped chars.
+    // String literal — copy verbatim including any escaped chars.
     if (c === '"') {
       out += c; i++;
       while (i < n) {
@@ -32,16 +37,17 @@ function stripJsoncComments(raw) {
       }
       continue;
     }
-    // Line comment.
+    // Line comment — terminate at \n, \r, U+2028, U+2029, or EOF.
     if (c === '/' && c2 === '/') {
-      while (i < n && raw[i] !== '\n') i++;
+      i += 2;
+      while (i < n && !isLineBreak(raw.charCodeAt(i))) i++;
       continue;
     }
-    // Block comment.
+    // Block comment — tolerate unterminated (EOF closes).
     if (c === '/' && c2 === '*') {
       i += 2;
       while (i < n && !(raw[i] === '*' && raw[i + 1] === '/')) i++;
-      i += 2;
+      if (i < n) i += 2; // consume the closing */
       continue;
     }
     out += c; i++;
