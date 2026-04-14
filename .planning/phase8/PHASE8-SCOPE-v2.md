@@ -16,15 +16,28 @@ Closes the 9 issues from `SCOPE-AUDIT.md`: unified 1+8, reordered build chain, J
 
 ## Tier A — v2 lock
 
-### 0. WORKFLOW OWNS EXECUTION (new item, user-flagged)
+### 0. OWNERSHIP DISCIPLINE + VISIBLE TODO SURFACE (broadened after user follow-up)
 
-`ijfw-workflow` must drive the full plan → audit → execute → verify → ship loop itself. Never announce "dispatch to superpowers:*". Always maintain a visible `TaskCreate`/`TaskUpdate` TODO surface with one task per major step and one task per audit gate. This is a product-values fix, not an optimisation.
+Two coupled product-values fixes. No optimisation, no deferral.
+
+**0a — Ownership discipline (systemic, user-flagged after /plan-phase slip):**
+No IJFW surface (skill, command, hook, subagent prompt, MCP nudge, AND assistant narration while under IJFW workflow) may name a foreign plugin's command as the next action. `gsd:*`, `superpowers:*`, `hookify:*`, `claude-supermemory:*`, `feature-dev:*` and `pr-review-toolkit:*` are BANNED as action verbs. Specialist subagents fired inside a swarm via `Agent(` are allowed — that IS the swarm pattern. Attribution in source comments is allowed.
 
 Work:
-- Audit `claude/skills/ijfw-workflow/SKILL.md` for any "dispatch/hand off to superpowers" phrasing; replace with IJFW-native Agent dispatch (ijfw:builder / ijfw:architect / ijfw:scout) and absorb any patterns in-place with attribution.
-- Add a **Mandatory TODO surface** section to the skill: every phase transition creates tasks, every audit gate creates a gate task, every executor dispatch creates a task owned by that agent id.
-- Add a regression hook: `scripts/check-all.sh` greps the workflow skill for `superpowers:executing-plans`/`superpowers:subagent-driven-development` → fails if found at runtime-delegation call sites (attributed pattern notes in comments are fine).
-- Quick mode gets a 3–5 task surface per cycle; Deep mode gets the full 15+ task phase breakdown.
+- **Naming-gap audit:** inventory IJFW's own verbs. Today `plan`/`execute`/`verify` are sub-phases inside `ijfw-workflow`, not standalone commands. Gap — a user mid-conversation has no native IJFW jump-in verb and will reach for `gsd:plan-phase` or `superpowers:writing-plans`. **Add thin wrapper commands** `/ijfw-plan`, `/ijfw-execute`, `/ijfw-verify`, `/ijfw-audit`, `/ijfw-ship` that invoke the corresponding phase of the workflow skill directly. Close the verb vacuum.
+- **Audit** `claude/skills/ijfw-workflow/SKILL.md` + every `claude/commands/*.md` + every hook script for foreign-plugin action verbs; rewrite each violation to IJFW-native or to `Agent(` dispatch.
+- **Static guard in `scripts/check-all.sh`:** grep IJFW user-facing surfaces for `\b(gsd|superpowers|hookify|claude-supermemory|feature-dev|pr-review-toolkit):[a-z-]+` at action position → fail CI. Allow-list: `Agent(` call sites, attribution comments (must include the word "absorbed" or "pattern"), migration-detection strings.
+- **Runtime lint in workflow skill:** before emitting any "next step" text, the skill's renderer checks for foreign verbs and rewrites or halts.
+
+**0b — Mandatory TODO surface (Krug visibility, user-flagged in original message):**
+Every workflow phase transition creates a `TaskCreate` entry; every audit gate (Discover → Plan, Plan → Execute, Execute → Verify, Verify → Ship) creates its own gate task; every specialist subagent dispatch creates a task owned by that agent id. User sees the list update in real-time — it IS the progress bar.
+
+Quick mode: 3–5 task surface per cycle. Deep mode: 15+ task phase breakdown.
+
+**Regression test:** `/ijfw-workflow` run on a real phase must produce:
+(1) TaskList with ≥1 task per audit gate,
+(2) zero foreign-plugin verbs in any user-facing output,
+(3) TaskUpdate to `completed` for every task that closed successfully.
 
 ### 1. Executable cross-orchestrator + `bin/ijfw` CLI (unified, was Items 1 + 8)
 
