@@ -131,7 +131,15 @@ for target in "${TARGETS[@]}"; do
       echo "[Gemini CLI]"
       dst="$HOME/.gemini/settings.json"
       merge_json "$dst" "$LAUNCHER"
-      ok "Merged MCP into $dst"
+      # W4.1 / E2 — platform parity: copy the GEMINI.md rules file.
+      if [ ! -f "$HOME/.gemini/GEMINI.md" ]; then
+        mkdir -p "$HOME/.gemini"
+        cp "$REPO_ROOT/gemini/GEMINI.md" "$HOME/.gemini/GEMINI.md" 2>/dev/null \
+          && ok "Installed Gemini config + rules" \
+          || ok "Merged MCP into $dst"
+      else
+        ok "Merged MCP into $dst (GEMINI.md left as-is)"
+      fi
       ;;
     cursor)
       echo "[Cursor]"
@@ -145,13 +153,29 @@ for target in "${TARGETS[@]}"; do
       echo "[Windsurf]"
       dst="$HOME/.codeium/windsurf/mcp_config.json"
       merge_json "$dst" "$LAUNCHER"
-      ok "Merged MCP into $dst"
+      # W4.1 / E2 — copy the .windsurfrules to the current project.
+      if [ ! -f ".windsurfrules" ] && [ -f "$REPO_ROOT/windsurf/.windsurfrules" ]; then
+        cp "$REPO_ROOT/windsurf/.windsurfrules" .windsurfrules 2>/dev/null \
+          && ok "Merged MCP + installed .windsurfrules" \
+          || ok "Merged MCP into $dst"
+      else
+        ok "Merged MCP into $dst"
+      fi
       ;;
     copilot)
       echo "[Copilot (VS Code)]"
       dst=".vscode/mcp.json"
       merge_json "$dst" "$LAUNCHER"
-      ok "Merged MCP into project ./.vscode/mcp.json"
+      # W4.1 / E2 — copy the copilot-instructions.md to .github/ (Copilot's
+      # project-instructions convention) if not already present.
+      if [ ! -f ".github/copilot-instructions.md" ] && [ -f "$REPO_ROOT/copilot/copilot-instructions.md" ]; then
+        mkdir -p .github 2>/dev/null
+        cp "$REPO_ROOT/copilot/copilot-instructions.md" .github/copilot-instructions.md 2>/dev/null \
+          && ok "Merged MCP + installed .github/copilot-instructions.md" \
+          || ok "Merged MCP into project ./.vscode/mcp.json"
+      else
+        ok "Merged MCP into project ./.vscode/mcp.json"
+      fi
       ;;
     *)
       info "skipping unknown target: $target"
