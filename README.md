@@ -139,6 +139,12 @@ ijfw/
 
 ---
 
+## Privacy
+
+**IJFW doesn't phone home.** No telemetry, no analytics, no cloud account. Every memory, metric, and auto-extracted lesson lives on your machine. The MCP server speaks stdio only (no sockets). Hooks are deterministic bash. See [NO_TELEMETRY.md](NO_TELEMETRY.md) for the full accounting — what gets stored, where, and the handful of operations that touch the network (installer clones, optional vector-model download, optional LLM auto-memorize), plus how to turn each off.
+
+---
+
 ## Credits
 
 IJFW builds on the work of:
