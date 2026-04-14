@@ -94,7 +94,7 @@ test('assignRoles critique assigns all three angles', () => {
 test('assignRoles missing when auditor not in roster', () => {
   // Remove gemini — citations angle preferred by gemini should go to missing or fallback.
   const roster = ['codex', 'claude', 'opencode', 'aider', 'copilot']; // no gemini
-  const { roles, missing } = assignRoles('research', roster, 'codex');
+  const { roles } = assignRoles('research', roster, 'codex');
   // citations preferred list is ['gemini', 'claude', 'copilot']; claude is installed so it takes it
   const cit = roles.find(r => r.angle === 'citations');
   assert.ok(cit, 'citations should fall back to next preferred');
@@ -103,7 +103,7 @@ test('assignRoles missing when auditor not in roster', () => {
   // If ONLY gemini handles citations and nothing else is in preferred:
   // use a stripped roster with none of the citation preferred installed.
   const sparseRoster = ['codex']; // no gemini, claude, copilot
-  const { roles: r2, missing: m2 } = assignRoles('research', sparseRoster, 'something');
+  const { missing: m2 } = assignRoles('research', sparseRoster, 'something');
   // citations preferred: gemini, claude, copilot — none in sparse roster → missing
   assert.ok(m2.some(m => m.angle === 'citations'), 'citations should be in missing');
 });
@@ -220,10 +220,14 @@ test('parseResponse handles non-string input', () => {
 // scoreRebuttalSurvival
 // ---------------------------------------------------------------------------
 
+// STRONG_ARG hits every structural marker (not length): severity=critical,
+// conditions has scenario marker ("when"/"in production"), mitigation has
+// actionable verb ("implement"), counterArg cites concrete code evidence
+// (backticked `function()` reference).
 const STRONG_ARG = {
-  counterArg: 'The authentication flow lacks refresh-token rotation, which means stolen tokens remain valid indefinitely and give attackers persistent access without re-authentication',
-  conditions: 'In production environments where sessions are long-lived and tokens are transmitted over the network',
-  mitigation: 'Implement sliding window refresh-token rotation with immediate invalidation of reused tokens',
+  counterArg: 'The `rotateToken()` call in auth.js:42 never revokes the prior token',
+  conditions: 'when a stolen refresh token is replayed before rotation completes',
+  mitigation: 'Implement immediate revocation in the rotation transaction',
   severity: 'critical',
 };
 
@@ -231,6 +235,16 @@ const WEAK_ARG = {
   counterArg: 'could be better',
   conditions: '',
   mitigation: '',
+  severity: 'low',
+};
+
+// Regression fixture for the length-bias bug dogfood-critique flagged:
+// verbose prose with no structural signal should NOT outscore a concise
+// code-anchored critical finding.
+const VERBOSE_WEAK_ARG = {
+  counterArg: 'This particular aspect of the overall system architecture has a number of considerations that might be worth looking into at some point in the future because it seems like it could potentially matter to somebody somewhere',
+  conditions: 'generally speaking and in various situations that could arise',
+  mitigation: 'someone could think about it more carefully than has been done so far',
   severity: 'low',
 };
 
@@ -265,6 +279,15 @@ test('scoreRebuttalSurvival max score for fully specified critical arg', () => {
 
 test('scoreRebuttalSurvival base score for empty arg', () => {
   assert.equal(scoreRebuttalSurvival(WEAK_ARG), 1);
+});
+
+// M1 regression: dogfood critique (Codex + Gemini consensus) flagged that
+// the old length-based rubric let verbose-but-weak args outscore concise
+// strong args. The structural rubric must NOT exhibit that behaviour.
+test('scoreRebuttalSurvival verbose weak arg does not outscore concise strong arg', () => {
+  const strong = scoreRebuttalSurvival(STRONG_ARG);
+  const verboseWeak = scoreRebuttalSurvival(VERBOSE_WEAK_ARG);
+  assert.ok(strong > verboseWeak, `concise strong (${strong}) must beat verbose weak (${verboseWeak})`);
 });
 
 // ---------------------------------------------------------------------------

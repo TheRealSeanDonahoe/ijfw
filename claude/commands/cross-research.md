@@ -167,6 +167,33 @@ cat .ijfw/cross-audit/request-research-gemini.md | gemini - > .ijfw/cross-audit/
 Both run simultaneously. Wait for both completion notifications before proceeding
 to Phase B. Update the TODO surface to `in_progress` then `completed` per auditor.
 
+### Step 2b — Fire Claude specialist swarm in parallel (caller leg)
+
+**Caller-side = specialist swarm, not single opinion.** The Trident's third leg
+is a parallel dispatch of in-session subagents — research specialists chosen for
+the target's domain. This fires ALONGSIDE Codex + Gemini, not after.
+
+Fire these via the `Agent` tool in the same message (all independent, same
+target) so they run concurrently with the external auditors:
+
+| Specialist | Agent type | Angle |
+|------------|-----------|-------|
+| Codebase exploration | `feature-dev:code-explorer` | mapping existing implementation precedents |
+| Architecture | `feature-dev:code-architect` | patterns and design precedents |
+| Code review | `pr-review-toolkit:code-reviewer` | convention/correctness from the repo's own rules |
+| Reliability | `pr-review-toolkit:silent-failure-hunter` | reliability precedents from current code |
+
+Pick the subset relevant to the research target. Each returns structured
+findings; merge them into ONE composite JSON array matching the research
+schema `{claim, evidence, source, confidence}`, write to:
+
+```
+.ijfw/cross-audit/response-research-caller.md
+```
+
+This file joins `response-research-codex.md` and `response-research-gemini.md`
+as the three Phase A inputs to Phase B synthesis.
+
 **Missing auditor fallback (positive framing only):**
 If `command -v codex` (or `gemini`) fails, surface:
 
@@ -189,9 +216,15 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
   const fs = await import('fs');
   const codex = fs.readFileSync('.ijfw/cross-audit/response-research-codex.md','utf8');
   const gemini = fs.readFileSync('.ijfw/cross-audit/response-research-gemini.md','utf8');
+  // Caller-swarm file is optional — if absent, synthesis runs on the two
+  // external sources. If present, it's the third leg of the Trident.
+  let caller = '';
+  try { caller = fs.readFileSync('.ijfw/cross-audit/response-research-caller.md','utf8'); } catch {}
   // Pass a labeled string, not an unlabeled array — the dispatcher interpolates
-  // priorResponses verbatim, so labels preserve per-auditor provenance in synthesis.
-  const labeled = '### Codex (benchmarks)\n\n' + codex + '\n\n### Gemini (citations)\n\n' + gemini;
+  // priorResponses verbatim, so labels preserve per-source provenance in synthesis.
+  const labeled = '### Codex (benchmarks)\n\n' + codex +
+    '\n\n### Gemini (citations)\n\n' + gemini +
+    (caller ? '\n\n### Caller swarm (observations)\n\n' + caller : '');
   process.stdout.write(m.buildRequest('research', '<target>', 'claude', 'synthesis', labeled));
 })" > .ijfw/cross-audit/request-research-synthesis.md
 ```
@@ -217,7 +250,11 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
   const fs = await import('fs');
   // mergeResponses expects parsed { items } objects, not raw strings.
   // Route each response through parseResponse first.
-  const parsed = ['codex','gemini','synthesis'].map(id => {
+  const ids = ['codex','gemini','caller','synthesis'].filter(id => {
+    try { fs.readFileSync(\`.ijfw/cross-audit/response-research-\${id}.md\`); return true; }
+    catch { return false; }
+  });
+  const parsed = ids.map(id => {
     const raw = fs.readFileSync(\`.ijfw/cross-audit/response-research-\${id}.md\`,'utf8');
     return m.parseResponse('research', raw);
   });

@@ -183,22 +183,39 @@ If `command -v codex` (or `gemini`) fails, surface:
 
 ## Caller perspective — collect in-session
 
-**Before running `compare`**, ask the caller:
+**Caller-side = specialist swarm, not single opinion.** The Trident's third
+leg is a parallel dispatch of in-session specialist subagents — code-review,
+silent-failure hunting, test coverage, type design, etc. — each contributing
+their findings. Claude's unique affordance over Codex/Gemini is parallel
+agent dispatch; the runbook leans into it.
 
-> "What's your strongest counter-argument to the target? (One sentence is fine.
-> This feeds into the merge alongside the external angles.)"
+Fire these in parallel via the `Agent` tool (all independent, same target):
 
-Write the caller's response to:
+| Specialist | Agent type | Angle |
+|------------|-----------|-------|
+| Code review | `pr-review-toolkit:code-reviewer` OR `feature-dev:code-reviewer` | correctness/style/convention |
+| Silent failures | `pr-review-toolkit:silent-failure-hunter` | error-swallowing, inadequate fallbacks |
+| Test coverage | `pr-review-toolkit:pr-test-analyzer` | coverage gaps |
+| Type design | `pr-review-toolkit:type-design-analyzer` | invariants + encapsulation (if typed codebase) |
+
+Pick the subset relevant to the project — for a Node/Bash plugin the baseline
+is code-reviewer + silent-failure-hunter + pr-test-analyzer. Send all agents
+in a single message (multiple Agent tool uses in one block) so they run
+concurrently.
+
+Merge their structured findings into ONE composite JSON array matching the
+critique schema `{counterArg, conditions, mitigation, severity}`, write to:
 
 ```
 .ijfw/cross-audit/response-critique-caller.md
 ```
 
-Format it as a single `{counterArg, conditions, mitigation, severity}` JSON block
-so `parseResponse` can treat it uniformly with the external responses.
+This file joins `response-critique-codex.md`, `response-critique-gemini.md`,
+and the fresh-Claude `response-critique-claude.md` in the final merge. The
+swarm IS the caller's leg of the Trident — not a solo in-session take.
 
-If the caller declines, skip this step and note in the merge output that the
-caller perspective is absent.
+If no specialist surfaces anything, say so explicitly in the caller file;
+don't fabricate findings to fill the slot.
 
 ---
 

@@ -76,7 +76,7 @@ const TEMPLATES = {
 ]`),
     },
     synthesis: {
-      system: `You are a synthesis analyst. You have received research from two independent reviewers (Codex and Gemini). Your job is to find consensus, surface contradictions, flag open questions, and produce a coherent synthesis — not a summary of each. Be rigorous: if two claims conflict, say so; do not average them.`,
+      system: `You are a synthesis analyst. You have received research from THREE independent sources: Codex (benchmarks angle), Gemini (citations angle), and the in-session caller (observations angle). Your job is to find consensus, surface contradictions, flag open questions, and produce a coherent synthesis across all three — not a summary of each. Be rigorous: if two claims conflict, say so; do not average them. Cluster semantically equivalent claims even when the wording differs — that is your unique value over the lexical dispatcher merge.`,
       format: formatContract(`[
   {
     "claim": "synthesised finding",
@@ -241,7 +241,7 @@ function capitalise(s) {
 // parseResponse
 // ---------------------------------------------------------------------------
 
-export function parseResponse(mode, raw) {
+export function parseResponse(_mode, raw) {
   if (typeof raw !== 'string') return { items: [], prose: '' };
 
   // Extract first ```json fence.
@@ -266,15 +266,23 @@ export function parseResponse(mode, raw) {
 // scoreRebuttalSurvival
 // ---------------------------------------------------------------------------
 
+// Deterministic structural rubric — NOT length-based (length bias was a
+// dogfood-critique finding, consensus between Codex + Gemini). Scores by
+// presence of falsifiability signals, actionable mitigation verbs, concrete
+// code-level evidence, and explicit severity tier. Same input → same score.
+const _CONDITION_MARKERS = /\b(when|if|once|under|during|assuming|in ci|in prod|at runtime|in production)\b/i;
+const _MITIGATION_VERBS = /\b(add|implement|replace|route|switch|pin|lock|gate|require|drop|move|rename|enforce|promote|defer|merge|split|refactor|rewrite|extract|parse|validate|sandbox|isolate|audit)\b/i;
+const _CODE_EVIDENCE = /`[^`]+`|\bline \d+|\bcommit [0-9a-f]{6,}|\.(js|md|sh|json|ts|py|mjs|cjs)\b|[A-Za-z_][A-Za-z0-9_.]*\(\)|\bfile:/i;
+
 export function scoreRebuttalSurvival(counterArg) {
   if (!counterArg || typeof counterArg !== 'object') return 1;
   const { conditions = '', mitigation = '', counterArg: arg = '', severity = '' } = counterArg;
 
   let score = 1;
-  if (typeof conditions === 'string' && conditions.trim().length >= 15) score++;
-  if (typeof mitigation === 'string' && mitigation.trim().length >= 15) score++;
-  if (typeof arg === 'string' && arg.length >= 80) score++;
   if (['high', 'critical'].includes(String(severity).toLowerCase())) score++;
+  if (typeof conditions === 'string' && _CONDITION_MARKERS.test(conditions)) score++;
+  if (typeof mitigation === 'string' && _MITIGATION_VERBS.test(mitigation)) score++;
+  if (typeof arg === 'string' && _CODE_EVIDENCE.test(arg)) score++;
 
   return Math.min(5, Math.max(1, score));
 }
@@ -304,10 +312,17 @@ function normaliseClaim(claim) {
 }
 
 function mergeResearch(responses) {
-  // Build per-claim buckets across all auditors.
-  // Key: normalised claim text → array of items from different auditors.
-  const buckets = new Map(); // normKey → [{item, auditorIdx}]
+  // Lexical clustering only — exact normalised text match. Semantic clustering
+  // (paraphrases, opposing directions) is DELEGATED to the Claude synthesis
+  // pass (see research template line: "if two claims conflict, say so"). If
+  // the caller has not yet run Phase B, `synthesisPending` flags that the
+  // consensus here is lexical-only and the authoritative matrix comes from
+  // synthesis. This was M2 in DOGFOOD-CRITIQUE.md — Codex flagged that exact
+  // normalisation misses semantic equivalence; delegating fixes it without
+  // baking a similarity heuristic into the dispatcher.
+  const hasSynthesis = responses.some(r => r && r.items && r.items.some(i => i && i.synthesis === true));
 
+  const buckets = new Map();
   responses.forEach((r, auditorIdx) => {
     const items = r && Array.isArray(r.items) ? r.items : [];
     for (const item of items) {
@@ -320,29 +335,26 @@ function mergeResearch(responses) {
 
   const consensus = [];
   const contested = [];
-  const unique = {}; // auditorIdx → [items]
+  const unique = {};
   const openQuestions = [];
 
   for (const [, entries] of buckets) {
     if (entries.length >= 2) {
-      // Check if confidence or evidence differs across entries.
       const confidences = new Set(entries.map(e => String(e.item.confidence || '').toLowerCase()));
       const evidences = new Set(entries.map(e => String(e.item.evidence || '').toLowerCase().trim()));
       if (confidences.size > 1 || evidences.size > 1) {
-        // Same claim, differing signals — contested.
         contested.push(...entries.map(e => e.item));
       } else {
         consensus.push(entries[0].item);
       }
     } else {
-      // Unique to one auditor.
       const { item, auditorIdx } = entries[0];
       if (!unique[auditorIdx]) unique[auditorIdx] = [];
       unique[auditorIdx].push(item);
     }
   }
 
-  return { consensus, contested, unique, openQuestions };
+  return { consensus, contested, unique, openQuestions, synthesisPending: !hasSynthesis };
 }
 
 function mergeCritique(responses) {
