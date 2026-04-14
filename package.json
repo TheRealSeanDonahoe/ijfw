@@ -1,6 +1,7 @@
 {
   "name": "ijfw",
   "version": "1.0.0",
+  "type": "module",
   "description": "AI efficiency framework. One install. Zero config. It just fucking works. By Sean Donahoe.",
   "author": "Sean Donahoe",
   "license": "MIT",
