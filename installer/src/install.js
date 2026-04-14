@@ -2,33 +2,55 @@
 // Flow: preflight → resolve target → clone/pull → scripts/install.sh → merge marketplace → summary.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync } from 'node:fs';
+import { existsSync, rmSync, mkdirSync, realpathSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir, platform } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { mergeMarketplace, claudeSettingsPath } from './marketplace.js';
 
 const DEFAULT_REPO = 'https://github.com/TradeCanyon/ijfw.git';
 const DEFAULT_BRANCH = 'main';
 
 function parseArgs(argv) {
-  const out = { yes: false, dir: null, noMarketplace: false, branch: DEFAULT_BRANCH, purge: false };
+  const out = { yes: false, dir: null, noMarketplace: false, branch: DEFAULT_BRANCH, branchExplicit: false, purge: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--yes' || a === '-y') out.yes = true;
     else if (a === '--dir') out.dir = argv[++i];
     else if (a === '--no-marketplace') out.noMarketplace = true;
-    else if (a === '--branch') out.branch = argv[++i];
+    else if (a === '--branch') { out.branch = argv[++i]; out.branchExplicit = true; }
     else if (a === '--purge') out.purge = true;
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
   }
   return out;
 }
 
+function latestTagFromGithub() {
+  try {
+    const res = spawnSync('git', ['ls-remote', '--tags', '--refs', '--sort=-v:refname', DEFAULT_REPO], {
+      encoding: 'utf8', timeout: 10_000,
+    });
+    if (res.status !== 0) return null;
+    const first = (res.stdout || '').split('\n')[0] || '';
+    const m = first.match(/refs\/tags\/(v[0-9][^\s]*)$/);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+
+// Pinning to latest tag is the default (audit R2); --branch escape hatch
+// stays available for bleeding-edge users and CI.
+export function resolveBranchOrTag({ branch, branchExplicit, _tagLookup } = {}) {
+  if (branchExplicit) return branch;
+  const lookup = _tagLookup || latestTagFromGithub;
+  const tag = lookup();
+  return tag || branch || DEFAULT_BRANCH;
+}
+
 function printHelp() {
   console.log(`ijfw-install — IJFW installer
 Usage: npx @ijfw/install [--dir <path>] [--branch <name>] [--no-marketplace] [--yes]
   --dir             install location (default: $IJFW_HOME or ~/.ijfw)
-  --branch          git branch (default: main)
+  --branch          git branch or tag (default: latest released tag)
   --no-marketplace  skip merging ~/.claude/settings.json
   --yes             non-interactive
 `);
@@ -95,8 +117,10 @@ async function main() {
   };
   process.on('SIGINT', sigint);
 
+  const ref = resolveBranchOrTag({ branch: opts.branch, branchExplicit: opts.branchExplicit });
   console.log(`IJFW → ${target}`);
-  const action = cloneOrPull(target, opts.branch);
+  console.log(`  resolving IJFW @ ${ref}`);
+  const action = cloneOrPull(target, ref);
   console.log(`  repo ${action}`);
 
   runInstallScript(target);
@@ -114,4 +138,14 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => { console.error(e.message || String(e)); process.exit(1); });
+function isDirectRun() {
+  try {
+    const entry = process.argv[1] && realpathSync(process.argv[1]);
+    const self = fileURLToPath(import.meta.url);
+    return entry === self;
+  } catch { return false; }
+}
+
+if (isDirectRun()) {
+  main().catch((e) => { console.error(e.message || String(e)); process.exit(1); });
+}
