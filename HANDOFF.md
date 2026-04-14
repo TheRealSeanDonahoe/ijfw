@@ -1,6 +1,6 @@
 # IJFW Handoff — 2026-04-14
 
-**Branch:** `main` @ `a3d236e` (pushed)
+**Branch:** `main` @ `38a45f6` (pushed — includes this handoff)
 **Tests:** `bash scripts/check-all.sh` → all checks passed; plugin cache md5 parity OK
 **Phases shipped this session:** 4 · 5 · 6 · 6.2 (two full cross-audit rounds with fixes)
 
