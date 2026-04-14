@@ -11,12 +11,13 @@
 // Consent: reads .ijfw/.automem-consent. If absent or consented=false, exits 0
 // silently. User sets consent via `/ijfw memory consent yes|no|ask`.
 
-import { readFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, appendFileSync, mkdirSync, rmdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { redactSecrets } from '../src/redactor.js';
 import { applyCaps } from '../src/caps.js';
 import { ensureSchemaHeader, SCHEMA_HEADER } from '../src/schema.js';
 import { searchCorpus } from '../src/search-bm25.js';
+import { sanitizeContent } from '../src/sanitizer.js';
 
 const IJFW_DIR = '.ijfw';
 const MEMORY_DIR = join(IJFW_DIR, 'memory');
@@ -44,34 +45,74 @@ function readExistingKnowledge() {
   try { return readFileSync(KNOWLEDGE, 'utf8'); } catch { return ''; }
 }
 
+// Y2 — relative BM25 dedupe. A fixed threshold doesn't generalize: BM25
+// scores scale with corpus size and query length. Use a relative measure:
+// treat it as a duplicate if the top-hit score is within 20% of the max
+// possible score for this query (which we approximate via self-search).
 function isDuplicate(summary, existingText) {
   if (!existingText || !summary) return false;
   const corpus = existingText.split('\n').filter(l => l.trim().length > 0)
     .map((line, i) => ({ id: String(i), text: line }));
   if (corpus.length === 0) return false;
   const r = searchCorpus(summary, corpus, { limit: 1 });
-  return r.length > 0 && r[0].score > 6; // tuned empirically; wave-5 baseline
+  if (r.length === 0) return false;
+  // Self-search gives us the score ceiling for this exact summary string.
+  const self = searchCorpus(summary, [{ id: '_self', text: summary }], { limit: 1 });
+  const ceiling = self.length ? self[0].score : r[0].score;
+  return r[0].score >= ceiling * 0.8;
+}
+
+// C2 / ST5 — file lock around multi-line structured appends. Uses
+// mkdir-based locking (atomic on POSIX + Windows). Retries with backoff
+// up to ~2s. Releases on success or on any throw.
+const LOCK_DIR = join(MEMORY_DIR, '.knowledge.lock');
+function withLock(fn) {
+  const deadline = Date.now() + 2000;
+  let acquired = false;
+  while (!acquired && Date.now() < deadline) {
+    try {
+      mkdirSync(LOCK_DIR);
+      acquired = true;
+    } catch {
+      // Sleep ~30ms (busy-wait via a tiny deopt loop; avoids setTimeout async).
+      const s = Date.now() + 30;
+      while (Date.now() < s) { /* tight wait */ }
+    }
+  }
+  if (!acquired) return fn(); // degrade to no-lock if stuck (better than losing the write)
+  try { return fn(); }
+  finally { try { rmdirSync(LOCK_DIR); } catch { /* ignore */ } }
 }
 
 function appendEntry({ type, summary, content, why, howToApply, tags }) {
   mkdirSync(MEMORY_DIR, { recursive: true });
-  ensureSchemaHeader(KNOWLEDGE);
-  const ts = new Date().toISOString();
-  const tagLine = tags.join(', ');
-  const block = [
-    '',
-    '---',
-    `type: ${type}`,
-    `summary: ${summary}`,
-    `stored: ${ts}`,
-    `tags: [${tagLine}]`,
-    '---',
-    content,
-    why ? `\n**Why:** ${why}` : '',
-    howToApply ? `\n**How to apply:** ${howToApply}` : '',
-    ''
-  ].filter(l => l !== '').join('\n') + '\n';
-  appendFileSync(KNOWLEDGE, block);
+  withLock(() => {
+    ensureSchemaHeader(KNOWLEDGE);
+    const ts = new Date().toISOString();
+    // X2 — sanitize EVERY string that flows into the knowledge file.
+    // redactSecrets handles credentials; sanitizeContent defangs markdown
+    // structure + <system>-style tags + control chars. Both are needed.
+    const safeSummary      = sanitizeContent(summary);
+    const safeContent      = sanitizeContent(content);
+    const safeWhy          = sanitizeContent(why);
+    const safeHowToApply   = sanitizeContent(howToApply);
+    const safeTags         = tags.map(t => sanitizeContent(String(t)).replace(/[^a-zA-Z0-9_-]/g, ''));
+    const tagLine = safeTags.join(', ');
+    const block = [
+      '',
+      '---',
+      `type: ${type}`,
+      `summary: ${safeSummary}`,
+      `stored: ${ts}`,
+      `tags: [${tagLine}]`,
+      '---',
+      safeContent,
+      safeWhy ? `\n**Why:** ${safeWhy}` : '',
+      safeHowToApply ? `\n**How to apply:** ${safeHowToApply}` : '',
+      ''
+    ].filter(l => l !== '').join('\n') + '\n';
+    appendFileSync(KNOWLEDGE, block);
+  });
 }
 
 async function main() {
@@ -90,6 +131,12 @@ async function main() {
   const existing = readExistingKnowledge();
   let stored = 0;
   const storedSummaries = [];
+  // X4 — in-run dedupe. isDuplicate only sees the pre-run snapshot, so
+  // identical feedback lines within one session would both promote.
+  // Track summaries stored in THIS run as an additional blocklist.
+  const thisRunSummaries = new Set();
+  const alreadyStored = (summary) =>
+    thisRunSummaries.has(summary) || isDuplicate(summary, existing);
 
   // 1:1 deterministic promotion of feedback.
   for (const f of feedback) {
@@ -97,7 +144,7 @@ async function main() {
     const rawContext = redactSecrets(f.context || '');
     if (!rawPhrase) continue;
     const summary = rawPhrase.slice(0, 110);
-    if (isDuplicate(summary, existing)) continue;
+    if (alreadyStored(summary)) continue;
     const capped = applyCaps({
       content: rawContext || rawPhrase,
       summary,
@@ -117,6 +164,7 @@ async function main() {
     });
     stored++;
     storedSummaries.push(capped.summary);
+    thisRunSummaries.add(capped.summary);
   }
 
   // 1:1 promotion of signal occurrences — but only if the same error
@@ -130,7 +178,7 @@ async function main() {
   for (const [err, count] of errorCounts) {
     if (count < 2) continue;
     const summary = `Recurring error: ${err.slice(0, 90)}`;
-    if (isDuplicate(summary, existing)) continue;
+    if (alreadyStored(summary)) continue;
     const capped = applyCaps({
       content: err,
       summary,
@@ -147,6 +195,7 @@ async function main() {
     });
     stored++;
     storedSummaries.push(capped.summary);
+    thisRunSummaries.add(capped.summary);
   }
 
   // TODO: LLM-synthesis path (IJFW_AUTOMEM_MODEL). Stub emits a marker

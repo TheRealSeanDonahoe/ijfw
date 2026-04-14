@@ -108,6 +108,48 @@ test('preserves code-like strings that aren\'t secrets', () => {
   assert.equal(redactSecrets(p), p);
 });
 
+test('redacts GitHub OAuth/App/User/Refresh tokens', () => {
+  for (const prefix of ['gho_', 'ghu_', 'ghs_', 'ghr_']) {
+    const out = redactSecrets(`token=${prefix}ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab`);
+    assert.match(out, /\[REDACTED:github\]/, `prefix ${prefix} not redacted`);
+  }
+});
+
+test('redacts AWS temporary (ASIA) access keys', () => {
+  const out = redactSecrets('temp: ASIAIOSFODNN7EXAMPLE');
+  assert.match(out, /\[REDACTED:aws\]/);
+});
+
+test('redacts Google/GCP API keys (AIza...)', () => {
+  const out = redactSecrets('env: GOOGLE_API_KEY=AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz01234567');
+  assert.match(out, /\[REDACTED:gcp\]/);
+  assert.doesNotMatch(out, /AIzaSyAb/);
+});
+
+test('redacts Sentry DSNs', () => {
+  const out = redactSecrets('dsn=https://abc123def456abc123def456abc123de@o12345.ingest.sentry.io/678901');
+  assert.match(out, /\[REDACTED:sentry\]/);
+});
+
+test('redacts Cloudflare API tokens when contextualized', () => {
+  const out = redactSecrets('CF_API_TOKEN=abcdefghijklmnopqrstuvwxyz0123456789ABCD');
+  assert.match(out, /\[REDACTED:cloudflare\]/);
+});
+
+test('does NOT redact bare 40-char hex (commit SHAs) without cloudflare context', () => {
+  const out = redactSecrets('commit abc123def456abc123def456abc123def456abc1');
+  assert.doesNotMatch(out, /REDACTED:cloudflare/);
+});
+
+test('redacts Slack / Discord / Teams webhook URLs', () => {
+  const slack  = redactSecrets('https://hooks.slack.com/services/T01ABCDEF/B02GHIJKL/abcDEFghiJKL1234567890ab');
+  const disco  = redactSecrets('https://discord.com/api/webhooks/1234567890/abcdefghijklmnop_qrstuvwxyz-1234567890');
+  const teams  = redactSecrets('https://tenant.webhook.office.com/webhookb2/abc@def/IncomingWebhook/xyz/token');
+  assert.match(slack, /\[REDACTED:webhook\]/);
+  assert.match(disco, /\[REDACTED:webhook\]/);
+  assert.match(teams, /\[REDACTED:webhook\]/);
+});
+
 test('handles empty and non-string input', () => {
   assert.equal(redactSecrets(''), '');
   assert.equal(redactSecrets(null), '');

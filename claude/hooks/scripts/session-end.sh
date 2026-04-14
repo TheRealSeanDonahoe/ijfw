@@ -83,18 +83,20 @@ if command -v node >/dev/null 2>&1; then
       }
     } catch {}
 
-    // Pricing table (USD per million tokens). Conservative — unknown model = 0.
-    // Hardcoded by design (no proxy/no network rule); update on Anthropic SKU changes.
-    const PRICES = {
-      "claude-opus-4-6":     { in: 15.0, out: 75.0, cr: 1.50, cc: 18.75 },
-      "claude-sonnet-4-6":   { in:  3.0, out: 15.0, cr: 0.30, cc:  3.75 },
-      "claude-haiku-4-5":    { in:  0.8, out:  4.0, cr: 0.08, cc:  1.00 }
-    };
+    // Pricing table (USD per million tokens). Conservative — unknown family = 0.
+    // Hardcoded (no proxy/no network rule). Y3 — match by FAMILY prefix so a
+    // minor bump (4-6 → 4-7) still resolves and we never silently render $0.
+    const FAMILIES = [
+      { prefix: "claude-opus-",   p: { in: 15.0, out: 75.0, cr: 1.50, cc: 18.75 } },
+      { prefix: "claude-sonnet-", p: { in:  3.0, out: 15.0, cr: 0.30, cc:  3.75 } },
+      { prefix: "claude-haiku-",  p: { in:  0.8, out:  4.0, cr: 0.08, cc:  1.00 } }
+    ];
     function cost() {
       if (!model) return 0;
-      const key = String(model).replace(/-\d{8}.*$/, "").replace(/\[.*?\]$/, "");
-      const p = PRICES[key];
-      if (!p) return 0;
+      const normalized = String(model).replace(/-\d{8}.*$/, "").replace(/\[.*?\]$/, "");
+      const fam = FAMILIES.find(f => normalized.startsWith(f.prefix));
+      if (!fam) return 0;
+      const p = fam.p;
       const c = (usage.input_tokens * p.in + usage.output_tokens * p.out
               + usage.cache_read_input_tokens * p.cr + usage.cache_creation_input_tokens * p.cc) / 1e6;
       return Math.round(c * 10000) / 10000;
