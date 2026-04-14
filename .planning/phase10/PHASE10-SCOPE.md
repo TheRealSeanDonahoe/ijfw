@@ -1,15 +1,34 @@
 # Phase 10 — Polish pass for publish
 
 **Theme:** "Crystal clear · professionally polished · publish-ready."
-**Branch (when started):** `phase10/polish-for-publish` off `main`
-**Trigger:** start when user returns from in-the-wild testing of merged P7+P8+P9.
-**Pre-publish gate:** full top-to-bottom cross-audit through Krug + Sutherland + Donahoe principles before any `npm publish`.
+**Branch:** `phase10/polish-for-publish` off `main`
 
-This is the polish pass user explicitly requested before publishing. Goal: anyone picks this up and goes "well holy shit, this just made my life infinitely easier" — and never has to think about where they are in the workflow.
+## Ground rules (user-locked 2026-04-15)
+
+1. **FEATURE FREEZE.** Feature set is complete after P7+P8+P9. No new capabilities in P10. Any new code in P10 is polish (renaming, narration, cleanup, guards, tests) or is explicit bug-fix from audits.
+2. **Crystal clarity EVERYWHERE.** Not just the workflow skill. Every user-facing surface: handoff docs, audit reports, commit messages, cross-run receipts, `ijfw-status` output, hooks, CLI help, skill bodies, command runbooks, planning docs. Consistent Phase / Wave / Step convention through every surface where the user could land.
+3. **Publish gate is Item 4.** A single top-to-bottom 4-way Trident cross-audit through Krug + Sutherland + Donahoe principles across every system. Every HIGH closes before `npm publish`. Medium findings may defer to P11 with explicit ticketed rationale.
+4. **Eat own food at every step.** P10 uses the Phase / Wave / Step convention to plan P10. The audit in Item 4 uses `ijfw cross critique` on P10's own branch. 4th consecutive phase using the loop — proof that the tool audits the tool.
+
+Goal: anyone picks this up and goes "well holy shit, this just made my life infinitely easier" — and never has to think about where they are in the workflow.
 
 ---
 
-## Item 0 — Workflow clarity overhaul (FLAGSHIP)
+## Item 0 — Crystal-clear clarity across every surface (FLAGSHIP)
+
+User confirmed 2026-04-15: "everything we do, from handoffs to audits, is crystal clear, with clarified workflows, good structure, and clear steps across the board." This is NOT just the workflow skill — it is every user-facing surface where the user could possibly land and wonder "where am I?"
+
+Surfaces in scope for Item 0:
+- **Workflow skill** (`claude/skills/ijfw-workflow/SKILL.md`) — Discover/Plan/Execute/Verify/Ship phase output templates
+- **Commit skill** (`claude/skills/ijfw-commit/SKILL.md`) — commit message structure, post-commit narration
+- **Handoff skill** (`claude/skills/ijfw-handoff/SKILL.md`) — handoff doc structure, phase/wave/step summary
+- **Commands** — all `claude/commands/*.md` (ijfw-plan, ijfw-execute, ijfw-verify, ijfw-audit, ijfw-ship, cross-audit, cross-research, cross-critique, status, ijfw, handoff, consolidate, etc.)
+- **CLI output** — `ijfw cross`, `ijfw status`, `ijfw demo`, `ijfw doctor` (future), `ijfw --help`
+- **Receipts + hero line** — `.ijfw/receipts/cross-runs.jsonl` rendered output
+- **Planning docs** — `.planning/phaseN/*.md` structure and section headers
+- **Audit reports** — `SCOPE-AUDIT.md`, `DOGFOOD-CRITIQUE.md`, `PHASE*-COMPLETE.md` templates
+- **Hooks** — any user-visible output from session-start, session-end, pre-compact, pre-tool-use, post-tool-use, pre-prompt
+- **Intent-router nudges** — the one-line nudge text surfaced when an intent fires
 
 User's clearest pain point from P7-P9 session: workflow narration was unclear, naming inconsistent (`§E` style + ad-hoc letters), step transitions silent, "where am I?" required asking. Other tools (GSD, Superpowers, Superbase) feel smoother.
 
@@ -87,19 +106,35 @@ Smaller items that contribute to the "wow" without being individually large:
 
 ---
 
-## Item 4 — Top-to-bottom cross-audit (the publish gate)
+## Item 4 — Fine-tooth principle cross-audit (THE PUBLISH GATE)
 
-This is what the user asked for: "full top-to-bottom cross-audit through Krug + Sutherland + Donahoe principles."
+User-locked 2026-04-15: "do a cross-audit for all the principles across all the different systems as part of phase 10." This is the single publish-blocking gate. Nothing ships until Item 4 runs and every HIGH closes.
 
-**Pattern:** same 4-way Trident as P7-P9, but the target is the entire repo + all user-facing surfaces, audited through three explicit principle lenses. Three audits in parallel:
+**Systems in scope (every one audited through every lens):**
+1. Workflow skill and all subphase narration
+2. Commands (cross-*, ijfw-*, doctor, handoff, status, consolidate, metrics, etc.)
+3. Hooks (session-start, session-end, pre-prompt, pre-/post-tool-use, pre-compact)
+4. CLI (`ijfw` binary: cross, status, demo, doctor, help)
+5. MCP tools (prelude, recall, search, store, prompt_check)
+6. Memory system (auto-memorize, knowledge, handoff, journal, faceted globals)
+7. Installer (`scripts/install.sh` + `installer/` package) including cross-platform rules writing
+8. Cross-dispatcher + orchestrator + receipts
+9. Platform packages (codex/, gemini/, cursor/, windsurf/, copilot/, universal/)
+10. Planning doc templates (scope, audit, plan, dogfood, complete)
 
-- **Krug audit:** "Don't make me think." Walks every command, every error, every empty state, every CLI flag. For each: does the user have to think? If yes, name the thought.
-- **Sutherland audit:** "Smarter not cheaper, costly signals visible, perceived value." Walks every output, every receipt, every hero line. For each: where's the wow? Where's the invisible-cost-made-visible moment?
-- **Donahoe audit:** "It just fucking works, anywhere, for strangers, no config." Walks every install path, every fresh-machine scenario, every platform package. For each: would a stranger get the wow on first install?
+**Pattern:** 4-way Trident (Codex + Gemini + Claude architect swarm + Claude UX swarm), run once per principle lens per system. Three passes of 10 systems = 30 audit runs, orchestrated by the dispatcher:
 
-Each audit produces a structured findings JSON with rebuttal-survival ranking. Merged via `mergeResponses('critique', ...)` per the existing dispatcher. Resulting `.planning/phase10/CROSS-AUDIT-PRINCIPLES.md` is the publish gate — every HIGH must be closed before `npm publish`.
+- **Krug pass — "Don't make me think."** Every surface: does the user have to think? If yes, name the thought. Every error message: is the next action obvious? Every empty state: does the user know what to do? Every flag: is the default the right default?
+- **Sutherland pass — "Smarter not cheaper, costly signals visible, perceived value."** Every output: where's the wow? Every receipt: is the computational cost visible? Every hero line: does it reframe work done into value delivered? Every transition: is the "three AIs reviewed this" moment obvious?
+- **Donahoe pass — "It just fucking works, anywhere, for strangers, no config."** Every install path: does a stranger land on a working tool? Every platform: does it deliver the same core promise? Every dependency: does it fail safe when missing? Every assumption: is it explicit?
 
-This is the formal "polish pass" gate. Pass = ship.
+Each of the 30 runs produces structured findings with rebuttal-survival ranking. Merged per principle lens into three reports; then merged across lenses into a master `.planning/phase10/CROSS-AUDIT-PRINCIPLES.md` with:
+- Consensus findings (≥2 lenses surface the same issue)
+- Per-lens unique findings
+- HIGH severity count per system
+- Ticketed disposition for every finding (close in P10, defer to P11 with rationale, or "by design" with justification)
+
+Publish gate: **zero unresolved HIGH findings**. Pass = ship. Fail = fix or ticket, then re-audit.
 
 ---
 
