@@ -388,29 +388,44 @@ MEM_BUF="$IJFW_DIR/.mem-buf"
 : > "$MEM_BUF"
 
 HAVE_MEMORY=0
+# Prelude mode (W2.4/B2 — Headroom-style lazy loading):
+#   pointer — ~50 tokens. Just "memory available, call prelude".
+#   summary — ~100-200 tokens. 3 recent decisions + last handoff (default).
+#   full    — legacy behavior, inject everything.
+PRELUDE_MODE="${IJFW_PRELUDE_MODE:-summary}"
+case "$PRELUDE_MODE" in
+  pointer|summary|full) ;;
+  *) PRELUDE_MODE="summary" ;;
+esac
+
 if [ -s "$KB_FILE" ] || [ -s "$HANDOFF_FILE" ] || [ -f "$IJFW_DIR/memory/project-journal.md" ]; then
   HAVE_MEMORY=1
-  # Compact managed block — just the top-3 most recent knowledge entries plus
-  # a pointer to the full files. Claude can call ijfw_memory_prelude for more.
-  # Keeps CLAUDE.md contribution under ~500 chars regardless of memory size.
   {
     echo "<ijfw-memory>"
-    echo "Project memory at .ijfw/memory/. Call \`ijfw_memory_prelude\` for full context."
-    if [ -s "$KB_FILE" ]; then
-      RECENT_KB=$(grep -v '^<!-- ijfw' "$KB_FILE" | grep -v '^# knowledge' | grep '^\*\*' | tail -3)
-      if [ -n "$RECENT_KB" ]; then
-        echo ""
-        echo "Recent decisions:"
-        echo "$RECENT_KB"
-      fi
-    fi
-    if [ -s "$HANDOFF_FILE" ]; then
-      LAST_HANDOFF=$(grep -v '^<!-- ijfw' "$HANDOFF_FILE" | grep -v '^$' | head -2)
-      if [ -n "$LAST_HANDOFF" ]; then
-        echo ""
-        echo "Last handoff: $LAST_HANDOFF"
-      fi
-    fi
+    case "$PRELUDE_MODE" in
+      pointer)
+        # ~50 tokens — pure pointer, zero samples. Heaviest savings.
+        echo "Project memory available. Call \`ijfw_memory_prelude\` to see decisions, patterns, handoff."
+        ;;
+      summary|full)
+        echo "Project memory at .ijfw/memory/. Call \`ijfw_memory_prelude\` for full context."
+        if [ -s "$KB_FILE" ]; then
+          RECENT_KB=$(grep -v '^<!-- ijfw' "$KB_FILE" | grep -v '^# knowledge' | grep '^\*\*' | tail -3)
+          if [ -n "$RECENT_KB" ]; then
+            echo ""
+            echo "Recent decisions:"
+            echo "$RECENT_KB"
+          fi
+        fi
+        if [ -s "$HANDOFF_FILE" ]; then
+          LAST_HANDOFF=$(grep -v '^<!-- ijfw' "$HANDOFF_FILE" | grep -v '^$' | head -2)
+          if [ -n "$LAST_HANDOFF" ]; then
+            echo ""
+            echo "Last handoff: $LAST_HANDOFF"
+          fi
+        fi
+        ;;
+    esac
     echo "</ijfw-memory>"
   } > "$MEM_BUF"
 fi

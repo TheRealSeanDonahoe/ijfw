@@ -125,7 +125,47 @@ function checkPrompt(text) {
     }
   }
 
-  return { vague, signals, suggestion };
+  // W2.2/A2 — structured question pack the agent can surface verbatim
+  // when vague. Each question maps to a signal that fired. Keeps to
+  // ≤3 questions (Krug: don't make me answer 10).
+  const rewrite = vague ? buildQuestionPack(signals) : null;
+
+  return { vague, signals, suggestion, rewrite };
 }
 
-export { checkPrompt, RULES, bypassReason };
+// Map signals → clarifying questions, deduped and capped at 3.
+function buildQuestionPack(signals) {
+  const qs = [];
+  const seen = new Set();
+  const add = (q) => { if (!seen.has(q)) { seen.add(q); qs.push(q); } };
+  for (const sig of signals) {
+    if (qs.length >= 3) break;
+    switch (sig) {
+      case 'bare_verb':
+      case 'no_target':
+        add('Which file, function, or line number is the target?');
+        break;
+      case 'unresolved_anaphora':
+        add('What does "this/that" refer to — a file, a symptom, a prior message?');
+        break;
+      case 'abstract_goal':
+        add('What specifically would "done" look like — a metric, a test passing, or observable behavior?');
+        break;
+      case 'scope_plural':
+        add('Which of "all the X" — do you want every instance, or a specific subset?');
+        break;
+      case 'missing_constraint':
+        add('Any constraints I should respect — don\'t touch X, must run in <Y ms, preserve behavior Z?');
+        break;
+      case 'polysemous':
+        add('Which meaning — e.g. "deploy" could mean build, release, push, or run locally?');
+        break;
+    }
+  }
+  if (qs.length === 0) {
+    qs.push('What file, function, or acceptance criterion pins the target?');
+  }
+  return qs.slice(0, 3);
+}
+
+export { checkPrompt, RULES, bypassReason, buildQuestionPack };
