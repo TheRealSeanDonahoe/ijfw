@@ -22,10 +22,11 @@ import { join, resolve, isAbsolute, normalize, basename } from 'path';
 import { homedir } from 'os';
 import { createHash, randomBytes } from 'crypto';
 import { checkPrompt } from './prompt-check.js';
+import { applyCaps, CAP_CONTENT } from './caps.js';
 
 // --- Constants ---
 const SCHEMA_VERSION = 1;
-const MAX_STORE_LENGTH = 5000;
+const MAX_STORE_LENGTH = CAP_CONTENT;
 const MAX_TAGS = 20;
 const MAX_TAG_LEN = 50;
 const MAX_SEARCH_RESULTS = 20;
@@ -643,6 +644,15 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
     .filter(t => typeof t === 'string')
     .slice(0, MAX_TAGS)
     .map(t => sanitizeContent(t).substring(0, MAX_TAG_LEN));
+
+  // Enforce per-field caps before sanitize (audit S1). Oversize content is
+  // already rejected above; why/how/summary are truncated rather than
+  // rejected so structured stores never silently drop the whole entry.
+  const capped = applyCaps({ content, summary, why, how_to_apply });
+  content = capped.content;
+  summary = capped.summary;
+  why = capped.why;
+  how_to_apply = capped.how_to_apply;
 
   // Sanitize ALL text fields — never store raw user/agent text in markdown
   // that gets re-injected into a future LLM context.
