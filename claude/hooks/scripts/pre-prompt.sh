@@ -42,9 +42,10 @@ if [ ! -t 0 ]; then
 fi
 [ -z "$HOOK_STDIN" ] && exit 0
 
-# Resolve detector + intent-router modules.
+# Resolve detector + intent-router + feedback-detector modules.
 DETECTOR=""
 ROUTER=""
+FEEDBACK=""
 for base in \
     "$CLAUDE_PLUGIN_ROOT/../mcp-server/src" \
     "$HOME/.ijfw/mcp-server/src" \
@@ -52,6 +53,7 @@ for base in \
   if [ -f "$base/prompt-check.js" ]; then
     DETECTOR="$base/prompt-check.js"
     [ -f "$base/intent-router.js" ] && ROUTER="$base/intent-router.js"
+    [ -f "$base/feedback-detector.js" ] && FEEDBACK="$base/feedback-detector.js"
     break
   fi
 done
@@ -67,11 +69,18 @@ if [ -n "$ROUTER" ]; then
   ROUTER_CALL="const intent = detectIntent(prompt); if (intent) contextParts.push('<ijfw-intent>\\n' + intent.nudge + '\\n(Detected intent: ' + intent.intent + ' → ' + intent.skill + ')\\n</ijfw-intent>');"
   ROUTER_STATE="intent ? intent.intent : null"
 fi
+FEEDBACK_IMPORT=""
+FEEDBACK_CALL="const feedback = [];"
+if [ -n "$FEEDBACK" ]; then
+  FEEDBACK_IMPORT="import { detectFeedback } from '$FEEDBACK';"
+  FEEDBACK_CALL="const feedback = detectFeedback(prompt);"
+fi
 
 RESULT=$(node --input-type=module -e "
 import { checkPrompt } from '$DETECTOR';
 $ROUTER_IMPORT
-import { writeFileSync, mkdirSync } from 'fs';
+$FEEDBACK_IMPORT
+import { writeFileSync, mkdirSync, appendFileSync } from 'fs';
 let payload = {};
 try { payload = JSON.parse(process.argv[1] || '{}'); } catch {}
 const prompt = payload.prompt || '';
@@ -79,6 +88,18 @@ const prompt = payload.prompt || '';
 const contextParts = [];
 let intent = null;
 $ROUTER_CALL
+$FEEDBACK_CALL
+
+// Persist feedback signals so session-end auto-memorize can synthesize.
+if (feedback && feedback.length) {
+  try {
+    mkdirSync('.ijfw', { recursive: true });
+    for (const f of feedback) {
+      appendFileSync('.ijfw/.session-feedback.jsonl',
+        JSON.stringify({ ts: new Date().toISOString(), ...f }) + '\\n');
+    }
+  } catch {}
+}
 
 const r = checkPrompt(prompt);
 try {
@@ -86,7 +107,8 @@ try {
   writeFileSync('.ijfw/.prompt-check-state', JSON.stringify({
     fired: r.vague === true,
     signals: r.signals || [],
-    intent: $ROUTER_STATE
+    intent: $ROUTER_STATE,
+    feedback_kinds: feedback.map(f => f.kind)
   }));
 } catch {}
 if (r.vague) {
