@@ -22,6 +22,7 @@ export const ROSTER = [
     invoke: 'codex exec',
     note: 'Different training lineage; fast on review tasks.',
     detect: (env) => Boolean(env.CODEX_SESSION_ID || env.CODEX_HOME) || /codex/i.test(env._ || ''),
+    apiFallback: { provider: 'openai', model: 'gpt-4o-mini', authEnv: 'OPENAI_API_KEY', endpoint: 'https://api.openai.com/v1/chat/completions' },
   },
   {
     id: 'gemini',
@@ -31,6 +32,7 @@ export const ROSTER = [
     invoke: 'gemini',
     note: 'Strong on security + architectural patterns.',
     detect: (env) => Boolean(env.GEMINI_CLI || env.GOOGLE_CLOUD_PROJECT_GEMINI) || /gemini-cli/i.test(env._ || ''),
+    apiFallback: { provider: 'google', model: 'gemini-2.0-flash', authEnv: 'GEMINI_API_KEY', endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent' },
   },
   {
     id: 'opencode',
@@ -40,6 +42,7 @@ export const ROSTER = [
     invoke: 'opencode',
     note: 'OSS / local-friendly; good when privacy matters.',
     detect: (env) => Boolean(env.OPENCODE_SESSION || env.OPENCODE_HOME),
+    apiFallback: null,
   },
   {
     id: 'aider',
@@ -49,6 +52,7 @@ export const ROSTER = [
     invoke: 'aider --message',
     note: 'Code-focused peer; terse + diff-aware.',
     detect: (env) => Boolean(env.AIDER_SESSION) || /aider/i.test(env._ || ''),
+    apiFallback: null,
   },
   {
     id: 'copilot',
@@ -58,6 +62,7 @@ export const ROSTER = [
     invoke: 'gh copilot suggest',
     note: 'Convenient if gh CLI is already authenticated.',
     detect: (env) => Boolean(env.GH_COPILOT_TOKEN || env.COPILOT_CLI_SESSION),
+    apiFallback: null,
   },
   {
     id: 'claude',
@@ -67,6 +72,7 @@ export const ROSTER = [
     invoke: 'claude -p',
     note: 'Anthropic; useful when you want a second Claude pass in a fresh session.',
     detect: (env) => Boolean(env.CLAUDECODE || env.CLAUDE_CODE_ENTRYPOINT || env.CLAUDE_PLUGIN_ROOT),
+    apiFallback: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', authEnv: 'ANTHROPIC_API_KEY', endpoint: 'https://api.anthropic.com/v1/messages' },
   },
 ];
 
@@ -93,6 +99,16 @@ export function isInstalled(id) {
   const installed = r.status === 0;
   _installedCache.set(id, installed);
   return installed;
+}
+
+// Check reachability: CLI (PATH probe) and/or API (env key present).
+// Returns { cli: bool, api: bool, any: bool }. Does not touch isInstalled signature.
+export function isReachable(id, env = process.env) {
+  const entry = ROSTER.find(e => e.id === id);
+  if (!entry) return { cli: false, api: false, any: false };
+  const cli = isInstalled(id);
+  const api = Boolean(entry.apiFallback && env[entry.apiFallback.authEnv]);
+  return { cli, api, any: cli || api };
 }
 
 // Returns roster entries with isSelf + installed flags resolved.

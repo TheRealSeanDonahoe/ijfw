@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ROSTER, detectSelf, rosterFor, defaultAuditor, formatRoster, pickAuditors, isInstalled } from './src/audit-roster.js';
+import { ROSTER, detectSelf, rosterFor, defaultAuditor, formatRoster, pickAuditors, isInstalled, isReachable } from './src/audit-roster.js';
 
 test('ROSTER has expected ids', () => {
   const ids = ROSTER.map(e => e.id);
@@ -239,4 +239,85 @@ test('diversity dedupe: codex-caller + only-gemini-installed picks gemini once',
 
   // total picks <= 2 (deduplication, not double-counting)
   assert.ok(r.picks.length <= 2, `picks.length should be ≤2, got ${r.picks.length}`);
+});
+
+// --- Phase 9 Item 1: apiFallback + isReachable ---
+
+test('every ROSTER entry has apiFallback defined (object or null)', () => {
+  for (const e of ROSTER) {
+    assert.ok(
+      e.apiFallback === null || (typeof e.apiFallback === 'object' && e.apiFallback !== null),
+      `${e.id}.apiFallback must be object or null, got: ${JSON.stringify(e.apiFallback)}`
+    );
+  }
+});
+
+test('apiFallback entries have required fields where non-null', () => {
+  for (const e of ROSTER) {
+    if (!e.apiFallback) continue;
+    assert.ok(typeof e.apiFallback.provider === 'string', `${e.id}: apiFallback.provider must be string`);
+    assert.ok(typeof e.apiFallback.model === 'string',    `${e.id}: apiFallback.model must be string`);
+    assert.ok(typeof e.apiFallback.authEnv === 'string',  `${e.id}: apiFallback.authEnv must be string`);
+    // google entries must have an endpoint with {model} placeholder
+    if (e.apiFallback.provider === 'google') {
+      assert.ok(e.apiFallback.endpoint.includes('{model}'), `${e.id}: google endpoint must contain {model}`);
+    }
+  }
+});
+
+test('OSS tools (opencode, aider, copilot) have apiFallback: null', () => {
+  for (const id of ['opencode', 'aider', 'copilot']) {
+    const e = ROSTER.find(r => r.id === id);
+    assert.equal(e.apiFallback, null, `${id} should have apiFallback: null`);
+  }
+});
+
+test('codex, gemini, claude have non-null apiFallback', () => {
+  for (const id of ['codex', 'gemini', 'claude']) {
+    const e = ROSTER.find(r => r.id === id);
+    assert.ok(e.apiFallback !== null, `${id} should have non-null apiFallback`);
+  }
+});
+
+test('isReachable returns {cli, api, any} shape for known id', () => {
+  const r = isReachable('codex', {});
+  assert.equal(typeof r.cli, 'boolean');
+  assert.equal(typeof r.api, 'boolean');
+  assert.equal(typeof r.any, 'boolean');
+});
+
+test('isReachable: api=true when auth env key is set', () => {
+  const codex = ROSTER.find(e => e.id === 'codex');
+  const env = { [codex.apiFallback.authEnv]: 'sk-test' };
+  const r = isReachable('codex', env);
+  assert.equal(r.api, true);
+  assert.equal(r.any, true);
+});
+
+test('isReachable: api=false when auth env key is absent', () => {
+  const r = isReachable('codex', {});
+  assert.equal(r.api, false);
+});
+
+test('isReachable: api=false for OSS tool with null apiFallback', () => {
+  const r = isReachable('opencode', { OPENAI_API_KEY: 'sk-x' });
+  assert.equal(r.api, false);
+});
+
+test('isReachable: returns all-false for unknown id', () => {
+  const r = isReachable('not-a-real-id', { OPENAI_API_KEY: 'x' });
+  assert.equal(r.cli, false);
+  assert.equal(r.api, false);
+  assert.equal(r.any, false);
+});
+
+test('isReachable: any=true when either cli or api is true', () => {
+  const codex = ROSTER.find(e => e.id === 'codex');
+  const env = { [codex.apiFallback.authEnv]: 'sk-test' };
+  // Prime cache so cli=false (not installed)
+  _installedCache.set('codex', false);
+  const r = isReachable('codex', env);
+  _installedCache.delete('codex');
+  assert.equal(r.api, true);
+  assert.equal(r.any, true);
 });

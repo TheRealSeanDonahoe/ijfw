@@ -25,6 +25,11 @@
   "peerDependenciesMeta": {
     "@xenova/transformers": { "optional": true }
   },
+  "files": [
+    "bin/",
+    "src/",
+    "fixtures/"
+  ],
   "keywords": [
     "mcp",
     "memory",
