@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run full check suite
+        run: bash scripts/check-all.sh
+      - name: Installer unit tests
+        working-directory: installer
+        run: node --test test.js test-resilient-parse.js test-tagged-release.js
+      - name: Build installer (smoke)
+        working-directory: installer
+        run: |
+          npm install --no-audit --no-fund --loglevel=error
+          npm run build
+          npm pack --dry-run
+
+  plugin-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate plugin manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('claude/.claude-plugin/plugin.json','utf8'))"
+      - name: Required plugin manifest fields
+        run: |
+          node -e "const m=JSON.parse(require('fs').readFileSync('claude/.claude-plugin/plugin.json','utf8')); for (const k of ['name','version','description']) if(!m[k]){console.error('missing: '+k);process.exit(1);} console.log('ok')"
+
+  benchmark-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Dry-run benchmark fixtures
+        run: |
+          for task in 01-bug-paginator 07-refactor-dedupe 10-explore-ratelimit; do
+            node core/benchmarks/run.js --task "$task" --arm C --epochs 1 --dry-run
+          done

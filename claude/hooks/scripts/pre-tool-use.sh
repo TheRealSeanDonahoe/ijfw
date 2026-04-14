@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# E4 — universal disable switch.
+[ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 # IJFW PreToolUse — strip noise from tool outputs before context injection.
 # Deterministic: regex/pattern matching only. No LLM calls. Zero cost.
 # Defers to RTK or context-mode if they're handling this already.
