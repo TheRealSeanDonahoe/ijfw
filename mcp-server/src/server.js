@@ -23,6 +23,7 @@ import { homedir } from 'os';
 import { createHash, randomBytes } from 'crypto';
 import { checkPrompt } from './prompt-check.js';
 import { applyCaps, CAP_CONTENT } from './caps.js';
+import { ensureSchemaHeader, SCHEMA_HEADER } from './schema.js';
 
 // --- Constants ---
 const SCHEMA_VERSION = 1;
@@ -198,12 +199,14 @@ function readOr(filepath, fallback = '') {
 function appendLine(filepath, line) {
   try {
     if (!existsSync(filepath)) {
-      // First write seeds the schema header. Best-effort atomic.
-      const seed = `<!-- ijfw schema:${SCHEMA_VERSION} -->\n# ${basename(filepath, '.md')}\n${line}\n`;
+      // First write seeds the schema header (audit R1). Best-effort atomic.
+      const seed = `${SCHEMA_HEADER}\n# ${basename(filepath, '.md')}\n${line}\n`;
       const r = atomicWrite(filepath, seed);
       if (!r.ok) return r;
       return { ok: true };
     }
+    // Existing file: migrate if it predates the schema header.
+    try { ensureSchemaHeader(filepath); } catch { /* best-effort; append still runs */ }
     appendFileSync(filepath, line + '\n');
     return { ok: true };
   } catch (err) {
@@ -242,9 +245,10 @@ function appendStructuredToKnowledge({ type, summary, content, why, howToApply, 
 
   try {
     if (!existsSync(filepath)) {
-      const seed = `<!-- ijfw schema:1 -->\n# Knowledge Base\n${block}`;
+      const seed = `${SCHEMA_HEADER}\n# Knowledge Base\n${block}`;
       return atomicWrite(filepath, seed);
     }
+    try { ensureSchemaHeader(filepath); } catch { /* best-effort */ }
     appendFileSync(filepath, block);
     return { ok: true };
   } catch (err) {
