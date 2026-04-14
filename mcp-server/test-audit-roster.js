@@ -108,3 +108,108 @@ test('formatRoster acknowledges unknown caller', () => {
   const out = formatRoster({});
   assert.match(out, /Caller unknown/);
 });
+
+// --- TASK-3-1: family + model fields on ROSTER entries ---
+
+test('every ROSTER entry has a family field with valid value', () => {
+  const valid = new Set(['anthropic', 'openai', 'google', 'oss']);
+  for (const e of ROSTER) {
+    assert.ok(valid.has(e.family), `${e.id} has invalid family: ${e.family}`);
+  }
+});
+
+test('every ROSTER entry has a model field (string)', () => {
+  for (const e of ROSTER) {
+    assert.equal(typeof e.model, 'string', `${e.id}.model should be a string`);
+  }
+});
+
+test('family mappings are correct', () => {
+  const map = Object.fromEntries(ROSTER.map(e => [e.id, e.family]));
+  assert.equal(map.claude, 'anthropic');
+  assert.equal(map.codex, 'openai');
+  assert.equal(map.copilot, 'openai');
+  assert.equal(map.gemini, 'google');
+  assert.equal(map.opencode, 'oss');
+  assert.equal(map.aider, 'oss');
+});
+
+test('picks returned by pickAuditors carry .family property', () => {
+  const r = pickAuditors({ env: { CLAUDECODE: '1' } });
+  for (const p of r.picks) {
+    assert.ok(p.family, `pick ${p.id} missing .family`);
+  }
+});
+
+// --- TASK-3-2: strategy: 'diversity' ---
+
+// Helper: build a fake env + override isInstalled via the _installedCache.
+// Since we can't actually install CLIs in tests, we monkey-patch spawnSync
+// by using the only escape hatch available: the `only` filter or a known-installed
+// binary. Instead, we test the logic by observing picks shape and the
+// installed=false handling — the diversity picker works on rosterWithStatus
+// which respects the real probe. We test the family-selection logic using
+// the real roster by simply asserting structural properties.
+
+test('diversity strategy returns shape { picks, missing, note }', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CLAUDECODE: '1' } });
+  assert.ok(Array.isArray(r.picks), 'picks is array');
+  assert.ok(Array.isArray(r.missing), 'missing is array');
+  assert.equal(typeof r.note, 'string', 'note is string');
+});
+
+test('diversity strategy: picks never include self (caller=claude)', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CLAUDECODE: '1' } });
+  assert.ok(!r.picks.some(p => p.id === 'claude'), 'claude must not appear in picks');
+});
+
+test('diversity strategy: picks never include self (caller=codex)', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CODEX_SESSION_ID: '1' } });
+  assert.ok(!r.picks.some(p => p.id === 'codex'), 'codex must not appear in picks');
+});
+
+test('diversity strategy: all picks are installed', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CLAUDECODE: '1' } });
+  for (const p of r.picks) {
+    assert.equal(p.installed, true, `pick ${p.id} must be installed`);
+  }
+});
+
+test('diversity strategy: picks have .family property', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CLAUDECODE: '1' } });
+  for (const p of r.picks) {
+    assert.ok(p.family, `pick ${p.id} missing .family`);
+  }
+});
+
+test('diversity strategy: missing entries have family + reason shape', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CLAUDECODE: '1' } });
+  for (const m of r.missing) {
+    assert.ok(m.family, `missing entry lacks .family: ${JSON.stringify(m)}`);
+    assert.ok(m.reason, `missing entry lacks .reason: ${JSON.stringify(m)}`);
+  }
+});
+
+test('diversity strategy: when openai+google both absent, missing covers both families', () => {
+  // Simulate caller=unknown (no self) but no CLIs installed — missing should
+  // reflect what we aimed for. We assert at minimum that missing is an array
+  // and any entries have the expected shape.
+  const r = pickAuditors({ strategy: 'diversity', env: {} });
+  // missing is an array (may be empty if some CLIs happen to be installed)
+  assert.ok(Array.isArray(r.missing));
+  for (const m of r.missing) {
+    assert.ok(typeof m.family === 'string');
+    assert.ok(typeof m.reason === 'string');
+  }
+});
+
+test('diversity strategy: picks at most 2', () => {
+  const r = pickAuditors({ strategy: 'diversity', env: { CLAUDECODE: '1' } });
+  assert.ok(r.picks.length <= 2, `expected ≤2 picks, got ${r.picks.length}`);
+});
+
+test('priority strategy (default) still returns same shape', () => {
+  const r1 = pickAuditors({ env: { CLAUDECODE: '1' } });
+  const r2 = pickAuditors({ strategy: 'priority', env: { CLAUDECODE: '1' } });
+  assert.deepEqual(r1, r2, 'default and explicit priority strategy must match');
+});

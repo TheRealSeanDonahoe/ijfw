@@ -191,12 +191,12 @@ agent dispatch; the runbook leans into it.
 
 Fire these in parallel via the `Agent` tool (all independent, same target):
 
-| Specialist | Agent type | Angle |
-|------------|-----------|-------|
-| Code review | `pr-review-toolkit:code-reviewer` OR `feature-dev:code-reviewer` | correctness/style/convention |
-| Silent failures | `pr-review-toolkit:silent-failure-hunter` | error-swallowing, inadequate fallbacks |
-| Test coverage | `pr-review-toolkit:pr-test-analyzer` | coverage gaps |
-| Type design | `pr-review-toolkit:type-design-analyzer` | invariants + encapsulation (if typed codebase) |
+| Specialist | Dispatched via | Angle |
+|------------|---------------|-------|
+| Code reviewer specialist | `Agent` tool | correctness/style/convention |
+| Silent-failure hunter specialist | `Agent` tool | error-swallowing, inadequate fallbacks |
+| Test-coverage analyst specialist | `Agent` tool | coverage gaps |
+| Type-design analyst specialist | `Agent` tool (typed codebase only) | invariants + encapsulation |
 
 Pick the subset relevant to the project — for a Node/Bash plugin the baseline
 is code-reviewer + silent-failure-hunter + pr-test-analyzer. Send all agents

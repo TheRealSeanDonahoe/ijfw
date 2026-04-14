@@ -93,12 +93,12 @@ When invoked, do this in order:
    dispatch of specialist subagents via the `Agent` tool. Fire these in the
    same message as the external bg-bash calls so they run concurrently:
 
-   | Specialist | Agent type | Angle |
-   |------------|-----------|-------|
-   | Code review | `pr-review-toolkit:code-reviewer` OR `feature-dev:code-reviewer` | convention/correctness |
-   | Silent failures | `pr-review-toolkit:silent-failure-hunter` | error-swallowing, fallbacks |
-   | Test coverage | `pr-review-toolkit:pr-test-analyzer` | coverage gaps |
-   | Type design | `pr-review-toolkit:type-design-analyzer` | invariants (typed codebases only) |
+   | Specialist | Dispatched via | Angle |
+   |------------|---------------|-------|
+   | Code reviewer specialist | `Agent` tool | convention/correctness |
+   | Silent-failure hunter specialist | `Agent` tool | error-swallowing, fallbacks |
+   | Test-coverage analyst specialist | `Agent` tool | coverage gaps |
+   | Type-design analyst specialist | `Agent` tool (typed codebases only) | invariants |
 
    Pick the subset relevant to the target. Merge their findings into ONE
    composite JSON array matching the audit schema, write to

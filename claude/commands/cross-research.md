@@ -176,12 +176,12 @@ the target's domain. This fires ALONGSIDE Codex + Gemini, not after.
 Fire these via the `Agent` tool in the same message (all independent, same
 target) so they run concurrently with the external auditors:
 
-| Specialist | Agent type | Angle |
-|------------|-----------|-------|
-| Codebase exploration | `feature-dev:code-explorer` | mapping existing implementation precedents |
-| Architecture | `feature-dev:code-architect` | patterns and design precedents |
-| Code review | `pr-review-toolkit:code-reviewer` | convention/correctness from the repo's own rules |
-| Reliability | `pr-review-toolkit:silent-failure-hunter` | reliability precedents from current code |
+| Specialist | Dispatched via | Angle |
+|------------|---------------|-------|
+| Codebase exploration specialist | `Agent` tool | mapping existing implementation precedents |
+| Architecture specialist | `Agent` tool | patterns and design precedents |
+| Code reviewer specialist | `Agent` tool | convention/correctness from the repo's own rules |
+| Silent-failure hunter specialist | `Agent` tool | reliability precedents from current code |
 
 Pick the subset relevant to the research target. Each returns structured
 findings; merge them into ONE composite JSON array matching the research

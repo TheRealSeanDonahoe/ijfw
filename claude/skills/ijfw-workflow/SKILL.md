@@ -285,6 +285,34 @@ Memory integration: key decisions stored in IJFW memory for cross-session recall
 
 ---
 
+# OUTPUT RULES
+
+Before emitting any "next step" text, scan for forbidden prefixes:
+`gsd:`, `superpowers:`, `hookify:`, `claude-supermemory:`, `feature-dev:`, `pr-review-toolkit:`.
+If found as an action verb (not inside an `Agent(` dispatch or attribution comment),
+rewrite to an IJFW-native equivalent (e.g. "IJFW Plan phase", "code reviewer specialist via Agent tool")
+or halt with: "Rewrite needed — foreign plugin verb detected."
+
+---
+
+# TASK SURFACE
+
+Every phase transition and audit gate requires visible task tracking.
+
+**At every phase boundary**, call `TaskCreate` for the upcoming phase before starting it.
+**At every audit gate**, call `TaskCreate` with the gate name before executing the checklist.
+**At every specialist dispatch** via `Agent(`, call `TaskCreate` with `agent_id` = the specialist role.
+Call `TaskUpdate` to `completed` when the phase, gate, or agent concludes successfully.
+
+Quick mode minimum: 3–5 tasks per cycle (Clarify, Plan, Quick Audit, Execute, Done Check).
+Deep mode minimum: 15 tasks for a full run — one per phase (D1–D6), one per audit gate
+(DISCOVER AUDIT, RESEARCH AUDIT, PLAN AUDIT, TASK MICRO-AUDITs, PHASE AUDITs, SHIP GATE),
+and one per specialist agent dispatch.
+
+Example task IDs: `D3-plan`, `gate-plan-audit`, `agent-code-reviewer`, `D4-execute`, `gate-ship`.
+
+---
+
 # STAGE NAVIGATION
 
 Auto-detect from context:

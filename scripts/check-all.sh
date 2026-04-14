@@ -30,6 +30,7 @@ run "Hook wiring"              "bash claude/hooks/tests/test-wiring.sh"
 run "JSON validity"            "for f in claude/.claude-plugin/plugin.json claude/hooks/hooks.json gemini/.gemini/settings.json cursor/.cursor/mcp.json windsurf/mcp_config.json copilot/.vscode/mcp.json; do node -e \"JSON.parse(require('fs').readFileSync('\$f'))\" || exit 1; done && echo OK"
 run "Line caps"                "bash scripts/check-line-caps.sh"
 run "Positive framing"         "bash scripts/check-positive-framing.sh"
+run "Ownership discipline"     "hits=\$(grep -rn --include='*.md' --include='*.sh' '\b\(gsd\|superpowers\|hookify\|claude-supermemory\|feature-dev\|pr-review-toolkit\):[a-z-]\+' claude/commands/ claude/skills/ claude/hooks/scripts/ 2>/dev/null | grep -v 'Agent(' | grep -v 'absorbed' | grep -v '\bpattern\b'); if [ -n \"\$hits\" ]; then echo \"FAIL: foreign-plugin verb(s) found:\"; echo \"\$hits\"; exit 1; fi; echo OK"
 run "MCP launcher health"      "bash scripts/check-mcp.sh"
 run "Doctor runs cleanly"      "bash scripts/doctor.sh >/dev/null"
 
