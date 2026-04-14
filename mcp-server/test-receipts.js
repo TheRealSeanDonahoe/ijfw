@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { fork } from 'node:child_process';
 import { RECEIPTS_FILE, writeReceipt, readReceipts } from './src/receipts.js';
 import { renderHeroLine } from './src/hero-line.js';
 
@@ -162,4 +164,43 @@ test('renderHeroLine duration ≥1000ms uses seconds unit', () => {
   const r = makeReceipt({ duration_ms: 47000 });
   const out = renderHeroLine([r], []);
   assert.ok(out.includes('47s'), `expected s unit, got: ${out}`);
+});
+
+test('concurrent writers each append exactly once (5 processes)', async () => {
+  const dir = tmpDir();
+  try {
+    // Write a tiny worker script to a temp file that each child will run.
+    const workerPath = path.join(dir, 'worker.mjs');
+    const receiptsPath = new URL('./src/receipts.js', import.meta.url).pathname;
+    fs.writeFileSync(workerPath, [
+      `import { writeReceipt } from ${JSON.stringify(receiptsPath)};`,
+      `const dir = process.argv[2];`,
+      `const stamp = process.argv[3];`,
+      `writeReceipt(dir, { v:1, run_stamp: stamp, mode:'audit', auditors:[], findings:{ items:[] }, duration_ms:0 });`,
+    ].join('\n'));
+
+    const N = 5;
+    await Promise.all(Array.from({ length: N }, (_, i) =>
+      new Promise((resolve, reject) => {
+        const child = fork(workerPath, [dir, `stamp-${i}`], { execArgv: [] });
+        child.on('exit', (code) => code === 0 ? resolve() : reject(new Error(`child ${i} exited ${code}`)));
+        child.on('error', reject);
+      })
+    ));
+
+    const records = readReceipts(dir);
+    assert.equal(records.length, N, `expected ${N} records, got ${records.length}`);
+    const stamps = new Set(records.map(r => r.run_stamp));
+    assert.equal(stamps.size, N, `expected ${N} unique run_stamps, got ${stamps.size}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('renderHeroLine with findings.items shape reports correct count (not 0)', () => {
+  const r = makeReceipt({
+    findings: { items: [{ counterArg: 'a', severity: 'high' }, { counterArg: 'b', severity: 'medium' }] },
+  });
+  const out = renderHeroLine([r], []);
+  assert.ok(out.includes('2 findings'), `expected 2 findings, got: ${out}`);
 });

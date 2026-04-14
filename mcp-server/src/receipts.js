@@ -3,29 +3,19 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 
 export function RECEIPTS_FILE(projectDir) {
   return path.join(projectDir, '.ijfw', 'receipts', 'cross-runs.jsonl');
 }
 
-// Atomic append: write to .tmp then rename to avoid partial-line corruption.
+// Atomic append: O_APPEND is atomic for writes ≤ PIPE_BUF (≥4KB on POSIX).
+// One JSON line is well under that limit, so appendFileSync is safe for
+// concurrent writers without a lock or rename dance.
 export function writeReceipt(projectDir, record) {
   const dest = RECEIPTS_FILE(projectDir);
   const dir = path.dirname(dest);
   fs.mkdirSync(dir, { recursive: true });
-
-  const line = JSON.stringify(record) + '\n';
-
-  // Read existing content (may not exist yet), append line, write atomically.
-  let existing = '';
-  if (fs.existsSync(dest)) {
-    existing = fs.readFileSync(dest, 'utf8');
-  }
-
-  const tmp = dest + '.tmp.' + process.pid + '.' + Date.now();
-  fs.writeFileSync(tmp, existing + line, 'utf8');
-  fs.renameSync(tmp, dest);
+  fs.appendFileSync(dest, JSON.stringify(record) + '\n');
 }
 
 // Read and parse all lines; skip corrupt lines; return array.

@@ -79,7 +79,8 @@ export function detectSelf(env = process.env) {
 }
 
 // Probe whether the auditor's CLI is on PATH. Cached per process.
-const _installedCache = new Map();
+// Exported so tests can prime the cache for deterministic behaviour.
+export const _installedCache = new Map();
 export function isInstalled(id) {
   if (_installedCache.has(id)) return _installedCache.get(id);
   const entry = ROSTER.find(e => e.id === id);
@@ -129,15 +130,17 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
 
     const TARGET_FAMILIES = ['openai', 'google'];
     const picks = [];
+    const picked = new Set();
     const missing = [];
     const nudges = [];
 
     for (const fam of TARGET_FAMILIES) {
       if (fam === callerFamily) {
         // Caller is in this family — pick next-best family (oss, or other non-self)
-        const backfill = eligible.find(e => !picks.includes(e) && e.family !== callerFamily);
+        const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily);
         if (backfill) {
           picks.push(backfill);
+          picked.add(backfill.id);
           nudges.push(`No ${fam}-family auditor outside caller — using ${backfill.id} (${backfill.family}) as stand-in. Install a ${fam === 'openai' ? 'google' : 'openai'}-family auditor for full Trident diversity.`);
         } else {
           missing.push({ family: fam, reason: `no installed auditor in family ${fam}` });
@@ -146,14 +149,21 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
       }
       const candidates = byFamily(fam);
       if (candidates.length > 0) {
-        const pick = candidates.find(e => !picks.includes(e)) || candidates[0];
-        picks.push(pick);
+        const pick = candidates.find(e => !picked.has(e.id));
+        if (pick) {
+          picks.push(pick);
+          picked.add(pick.id);
+        } else {
+          // All family members already picked — leave slot missing
+          missing.push({ family: fam, reason: `all installed auditors in family ${fam} already selected` });
+        }
       } else {
         // No installed member of this family — backfill from oss or any remaining non-self
-        const backfill = eligible.find(e => !picks.includes(e) && e.family !== callerFamily && !TARGET_FAMILIES.includes(e.family));
+        const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily && !TARGET_FAMILIES.includes(e.family));
         missing.push({ family: fam, reason: `no installed auditor in family ${fam}` });
         if (backfill) {
           picks.push(backfill);
+          picked.add(backfill.id);
           nudges.push(`No ${fam}-family auditor installed — using ${backfill.id} (${backfill.family}) as stand-in. Install gemini (google) or codex/copilot (openai) for full Trident lineage diversity.`);
         }
       }
@@ -163,7 +173,10 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
     if (picks.length < 2) {
       for (const e of eligible) {
         if (picks.length >= 2) break;
-        if (!picks.includes(e)) picks.push(e);
+        if (!picked.has(e.id)) {
+          picks.push(e);
+          picked.add(e.id);
+        }
       }
     }
 

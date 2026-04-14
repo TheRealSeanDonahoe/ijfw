@@ -8,6 +8,27 @@ function fmtDuration(ms) {
   return `${Math.round(ms / 1000)}s`;
 }
 
+// Normalize receipt findings into { total, consensus } counts regardless of
+// whether the receipt came from audit/critique (findings.items), research
+// (findings.consensus / findings.contested / findings.unique as arrays), or
+// a legacy numeric shape ({ consensus: N, contested: N, unique: N }).
+function countFindings(f) {
+  if (!f) return { total: 0, consensus: 0 };
+  if (Array.isArray(f.items)) return { total: f.items.length, consensus: 0 };
+  // Array-shape (research output)
+  if (Array.isArray(f.consensus)) {
+    const consensus = f.consensus.length;
+    const contested = Array.isArray(f.contested) ? f.contested.length : 0;
+    const unique = Object.values(f.unique || {}).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0);
+    return { total: consensus + contested + unique, consensus };
+  }
+  // Legacy numeric shape
+  const consensus = typeof f.consensus === 'number' ? f.consensus : 0;
+  const contested = typeof f.contested === 'number' ? f.contested : 0;
+  const unique    = typeof f.unique    === 'number' ? f.unique    : 0;
+  return { total: consensus + contested + unique, consensus };
+}
+
 // renderHeroLine(receipts, sessions?)
 //   receipts — array of cross-runs.jsonl records
 //   sessions — array of sessions.jsonl v3 records (optional, default [])
@@ -24,9 +45,8 @@ export function renderHeroLine(receipts, sessions = []) {
   // Aggregate auditor IDs (unique across all receipts).
   const auditorIds = new Set();
   let totalMs = 0;
-  let consensus = 0;
-  let contested = 0;
-  let unique = 0;
+  let totalFindings = 0;
+  let totalConsensus = 0;
   let receiptsInputTokens = 0;
   let hasReceiptsTokens = true;
 
@@ -37,11 +57,9 @@ export function renderHeroLine(receipts, sessions = []) {
       }
     }
     totalMs += (typeof r.duration_ms === 'number') ? r.duration_ms : 0;
-    if (r.findings && typeof r.findings === 'object') {
-      consensus += r.findings.consensus || 0;
-      contested += r.findings.contested || 0;
-      unique += r.findings.unique || 0;
-    }
+    const counts = countFindings(r.findings);
+    totalFindings += counts.total;
+    totalConsensus += counts.consensus;
     if (r.input_tokens == null) {
       hasReceiptsTokens = false;
     } else {
@@ -49,8 +67,7 @@ export function renderHeroLine(receipts, sessions = []) {
     }
   }
 
-  const totalFindings = consensus + contested + unique;
-  const baseline = `${auditorIds.size} AIs · ${fmtDuration(totalMs)} · ${totalFindings} findings, ${consensus} consensus-critical`;
+  const baseline = `${auditorIds.size} AIs · ${fmtDuration(totalMs)} · ${totalFindings} findings, ${totalConsensus} consensus-critical`;
 
   // Codex U1: only compute delta when all guards pass.
   if (!hasReceiptsTokens || receiptsInputTokens <= 0) {

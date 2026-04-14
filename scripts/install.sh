@@ -18,7 +18,16 @@ set -u
 
 REPO_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LAUNCHER="$REPO_ROOT/mcp-server/bin/ijfw-memory"
-TARGETS=("$@")
+
+# Parse flags and platform targets from args.
+INSTALL_POST_COMMIT_HOOK=0
+TARGETS=()
+for arg in "$@"; do
+  case "$arg" in
+    --post-commit-hook) INSTALL_POST_COMMIT_HOOK=1 ;;
+    *) TARGETS+=("$arg") ;;
+  esac
+done
 [ ${#TARGETS[@]} -eq 0 ] && TARGETS=(claude codex gemini cursor windsurf copilot)
 
 if [ ! -x "$LAUNCHER" ]; then
@@ -192,29 +201,42 @@ done
 echo "Done. Backups (if any): <config>.bak.$TS"
 echo "Verify with: node $REPO_ROOT/mcp-server/test.js"
 
-# --- Post-commit hook ---
+# --- Post-commit hook (opt-in only) ---
 HOOK_MARKER="# IJFW-POST-COMMIT-HOOK"
-HOOK_CONTENT='#!/usr/bin/env bash
-# IJFW-POST-COMMIT-HOOK (v1)
-# Fires a background cross-critique on the new commit. Silent no-op
-# if the ijfw CLI is not installed — never blocks or errors the commit.
-if command -v ijfw >/dev/null 2>&1; then
-  (ijfw cross critique "HEAD~1..HEAD" >/dev/null 2>&1 &) || true
-fi
-exit 0'
-
-if [ -d ".git" ]; then
-  HOOK_FILE=".git/hooks/post-commit"
-  if [ -f "$HOOK_FILE" ] && grep -qF "$HOOK_MARKER" "$HOOK_FILE" 2>/dev/null; then
-    : # already installed — skip
-  elif [ -f "$HOOK_FILE" ]; then
-    # File exists without marker — append IJFW block to preserve user's hooks
-    printf '\n%s\n' "$HOOK_CONTENT" >> "$HOOK_FILE"
-    chmod 755 "$HOOK_FILE"
-    ok "Post-commit auto-critique enabled. Commits now trigger a background Trident review."
-  else
-    printf '%s\n' "$HOOK_CONTENT" > "$HOOK_FILE"
-    chmod 755 "$HOOK_FILE"
-    ok "Post-commit auto-critique enabled. Commits now trigger a background Trident review."
+HOOK_BLOCK='# IJFW-POST-COMMIT-HOOK (v1)
+ijfw_post_commit() {
+  if command -v ijfw >/dev/null 2>&1; then
+    (ijfw cross critique "HEAD~1..HEAD" >/dev/null 2>&1 &) || true
   fi
+}
+ijfw_post_commit
+# IJFW-POST-COMMIT-HOOK-END'
+
+install_post_commit_hook() {
+  if [ ! -d ".git" ]; then
+    note "No .git directory found — skipping post-commit hook."
+    return
+  fi
+  HOOK_FILE=".git/hooks/post-commit"
+  note "Modifying: $(pwd)/$HOOK_FILE"
+  if [ -f "$HOOK_FILE" ] && grep -qF "$HOOK_MARKER" "$HOOK_FILE" 2>/dev/null; then
+    ok "Post-commit hook already installed — no change."
+    return
+  fi
+  if [ -f "$HOOK_FILE" ]; then
+    # Append IJFW block to preserve existing hook content
+    printf '\n%s\n' "$HOOK_BLOCK" >> "$HOOK_FILE"
+  else
+    printf '#!/usr/bin/env bash\n%s\n' "$HOOK_BLOCK" > "$HOOK_FILE"
+  fi
+  chmod 755 "$HOOK_FILE"
+  ok "Post-commit auto-critique enabled. Commits now trigger a background Trident review."
+}
+
+if [ "$INSTALL_POST_COMMIT_HOOK" -eq 1 ]; then
+  echo "[Post-commit hook]"
+  install_post_commit_hook
+  echo
+elif [ -d ".git" ]; then
+  note "Tip: run with --post-commit-hook to enable background Trident critique on every commit."
 fi

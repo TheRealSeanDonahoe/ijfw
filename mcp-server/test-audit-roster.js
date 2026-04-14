@@ -213,3 +213,30 @@ test('priority strategy (default) still returns same shape', () => {
   const r2 = pickAuditors({ strategy: 'priority', env: { CLAUDECODE: '1' } });
   assert.deepEqual(r1, r2, 'default and explicit priority strategy must match');
 });
+
+// --- Fix 3: diversity dedupe — caller=codex, only gemini installed ---
+// We test the deduplication logic using the _installedCache escape hatch:
+// override the module's cache so that only gemini appears installed.
+import { _installedCache } from './src/audit-roster.js';
+
+test('diversity dedupe: codex-caller + only-gemini-installed picks gemini once', () => {
+  // Manually prime the installed cache so test is deterministic.
+  // codex=caller(self), gemini=installed, all others=not installed.
+  const allIds = ['codex', 'gemini', 'opencode', 'aider', 'copilot', 'claude'];
+  for (const id of allIds) _installedCache.set(id, id === 'gemini');
+
+  const r = pickAuditors({ strategy: 'diversity', env: { CODEX_SESSION_ID: '1' } });
+
+  // Restore: clear the overrides so subsequent tests get real probes.
+  for (const id of allIds) _installedCache.delete(id);
+
+  // gemini must appear exactly once
+  const geminiPicks = r.picks.filter(p => p.id === 'gemini');
+  assert.equal(geminiPicks.length, 1, `gemini should appear exactly once, picks: ${JSON.stringify(r.picks.map(p => p.id))}`);
+
+  // codex must never appear (it's self)
+  assert.ok(!r.picks.some(p => p.id === 'codex'), 'codex (self) must not appear in picks');
+
+  // total picks <= 2 (deduplication, not double-counting)
+  assert.ok(r.picks.length <= 2, `picks.length should be ≤2, got ${r.picks.length}`);
+});
