@@ -7,6 +7,7 @@ Active every response. No revert after many turns. No filler drift.
 Off: "ijfw off" / "normal mode".
 
 Current mode: smart (default). Switch: /mode smart|fast|deep|manual
+If `IJFW_TERSE_ONLY` is set, ignore all non-terse rules below (verbosity only).
 
 ## Output Rules
 1. Lead with answer. No preamble.
