@@ -11,10 +11,41 @@ then comparing their response against our own findings.
 
 | Form | Behavior |
 |------|----------|
-| `/cross-audit <target>`            | Pick default auditor (first non-self). Write `.ijfw/cross-audit/request.md`. Tell user to paste into that CLI. |
-| `/cross-audit --with <id> <target>` | Force a specific auditor: `codex`, `gemini`, `opencode`, `aider`, `copilot`, `claude`. |
+| `/cross-audit`                     | **Zero-arg auto-pick.** Detect target from git state (staged → unstaged → last commit). Pick default auditor (first non-self). Generate request. |
+| `/cross-audit <target>`            | Pick default auditor (first non-self). Generate request for the named target. |
+| `/cross-audit --with <id> [target]` | Force a specific auditor: `codex`, `gemini`, `opencode`, `aider`, `copilot`, `claude`. Target optional (auto-detect if omitted). |
 | `/cross-audit list`                | Show the roster with self marker. No request generated. |
 | `/cross-audit compare`             | Read `.ijfw/cross-audit/response.md`, render agreement/new/disputed table, archive. |
+
+## Smart target auto-detection (bare `/cross-audit`)
+
+When invoked without a target, run this detection cascade and use the
+first non-empty result as the target:
+
+1. **Staged changes** — `git diff --cached --name-only` (the user is mid-commit)
+2. **Unstaged changes** — `git diff --name-only`
+3. **Last commit** — `git diff HEAD~1 --name-only`
+4. If all empty: print the roster and ask "what would you like audited?" — don't guess at random files.
+
+Tell the user which step succeeded:
+
+```
+Cross-audit target auto-detected: 3 staged file(s)
+  installer/src/install.js
+  installer/src/marketplace.js
+  installer/test.js
+(Override with /cross-audit <path> or /cross-audit --with <id> <path>.)
+```
+
+If >5 files match, group them in the request body but list all paths so
+the auditor can scope themselves. If a single huge file (>2000 lines),
+include only the diff hunks not the full file, to stay under typical
+context windows.
+
+The natural-language phrase **"cross audit this"** / **"second opinion"**
+fires the intent router (see `mcp-server/src/intent-router.js`) which
+nudges Claude to invoke `/cross-audit` automatically — same auto-detect
+flow runs.
 
 ## Auditor picking
 

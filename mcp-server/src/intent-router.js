@@ -64,14 +64,25 @@ const INTENTS = [
   },
   {
     intent: 'critique',
-    skill:  'ijfw-critique',  // lands in W4.4
+    skill:  'ijfw-critique',
     patterns: [
       /\b(?:should I|what if|is this (?:right|correct|the best))\b/i,
       /\b(?:critique|poke holes|challenge this)\b/i,
       /\b(?:counter[- ]?argument|devil'?s advocate)\b/i,
-      /\bgive me a second opinion\b/i,
     ],
-    nudge: "Intent: critique. Steelman the current plan first, then list 2-3 concrete counter-arguments with the conditions under which each applies. If W4 ijfw-critique skill is installed, use it; otherwise apply the pattern manually.",
+    nudge: "Intent: critique. Steelman the current plan first, then list 2-3 concrete counter-arguments with the conditions under which each applies. Use the ijfw-critique skill.",
+  },
+  {
+    intent: 'cross-audit',
+    skill:  '/cross-audit',
+    patterns: [
+      /\bcross[- ]?audit(?:\s|ing)?\b/i,
+      /\b(?:get|need)\s+(?:a\s+)?second opinion\b/i,
+      /\b(?:have|ask)\s+(?:codex|gemini|opencode|aider|copilot)\s+(?:to\s+)?(?:review|audit|check)\b/i,
+      /\bsecond[- ]model (?:review|opinion|audit)\b/i,
+      /\b(?:peer|adversarial)[- ]?(?:review|audit)\b/i,
+    ],
+    nudge: "Intent: cross-audit. Run /cross-audit (no args = auto-pick staged + recent-change files; --with <id> to force a specific auditor). It writes .ijfw/cross-audit/request.md, you paste into the auditor's CLI, run /cross-audit compare when they reply.",
   },
   {
     intent: 'handoff',
