@@ -28,3 +28,9 @@ Author: Sean Donahoe
 1. Rory Sutherland: position as "smarter" not "cheaper". Wow factor.
 2. Steve Krug: don't make me think. Zero config. Smart defaults.
 3. Sean Donahoe: one install, it just fucking works.
+
+<!-- IJFW-MEMORY-START (managed — do not edit manually) -->
+<ijfw-memory>
+Project memory at .ijfw/memory/. Call `ijfw_memory_prelude` for full context.
+</ijfw-memory>
+<!-- IJFW-MEMORY-END -->

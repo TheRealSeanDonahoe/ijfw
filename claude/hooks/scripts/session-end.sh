@@ -101,7 +101,11 @@ if command -v node >/dev/null 2>&1; then
     // IJFW-constrained-output tokens. Starts at 1.65 (conservative estimate
     // from early benchmarks); W1.2 replaces this with measured value. User
     // can override via IJFW_BASELINE_FACTOR. Readers MUST tolerate absent.
-    const baseFactor = Number(process.env.IJFW_BASELINE_FACTOR) || 1.65;
+    // Baseline factor calibrated against REPORT-001.md: 1.25 is the
+    // measured output-token ratio (Arm A / Arm C on 01-bug-paginator,
+    // sonnet-4-5). Cost savings run higher (~1.7) due to cache-creation
+    // reduction; set IJFW_BASELINE_FACTOR=1.7 for cost-based framing.
+    const baseFactor = Number(process.env.IJFW_BASELINE_FACTOR) || 1.25;
     const baselineOut = Math.round(usage.output_tokens * baseFactor);
     const compression = usage.output_tokens > 0
       ? Math.round((usage.output_tokens / baselineOut) * 10000) / 10000
@@ -191,10 +195,10 @@ if command -v node >/dev/null 2>&1 && [ -f "$METRICS_FILE" ]; then
       const last = JSON.parse(lines[lines.length - 1]);
       const out = last.output_tokens || 0;
       if (out <= 0) return;
-      const baseline = last.baseline_tokens_estimate || Math.round(out * 1.65);
+      const baseline = last.baseline_tokens_estimate || Math.round(out * 1.25);
       const saved = Math.max(0, baseline - out);
       const cost = last.cost_usd || 0;
-      const baseFactor = last.baseline_factor || 1.65;
+      const baseFactor = last.baseline_factor || 1.25;
       const costSaved = cost > 0 && out > 0 ? (cost * (baseFactor - 1) / baseFactor) : 0;
       const fmt = n => n >= 1000 ? (n/1000).toFixed(1) + "k" : String(n);
       process.stdout.write(`IJFW this session: ~${fmt(saved)} tokens saved vs baseline (~$${costSaved.toFixed(3)})\n`);
