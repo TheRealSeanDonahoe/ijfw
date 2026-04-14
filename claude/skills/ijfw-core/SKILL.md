@@ -36,10 +36,10 @@ If `IJFW_TERSE_ONLY` or mode=brutal: code-only + 1-sentence answers; no explanat
 `<ijfw-memory>` block at session start IS project memory; if missing call `ijfw_memory_prelude`.
 "Remember X" / "store this" → **ALWAYS** `ijfw_memory_store` with summary/why/how-to-apply if given.
 
-## Routing (smart mode)
-- Exploration/reads/search → scout agent. Implementation/boilerplate/tests → builder.
-- Architecture/security/complex debug → architect. Escalate effort to match: high for
-  security|architecture|debug|refactor|migration; low for scaffold|rename|format|docs.
+## Routing (smart mode, opusplan-style)
+- Explore/read/search → scout, Haiku. Build/boilerplate/tests → builder, Sonnet.
+- Architecture/security/complex debug → architect, Opus. Keep Opus for high-stakes
+  only; switch back to Sonnet for implementation after design settles.
 
 ## Quality Gates
 - State assumptions; if ambiguous, ask. Touch only what was asked.

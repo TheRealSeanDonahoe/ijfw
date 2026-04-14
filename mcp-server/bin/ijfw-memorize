@@ -1,0 +1,169 @@
+#!/usr/bin/env node
+// IJFW session-end synthesizer (W5.P5.2 / H1).
+// Reads .ijfw/.session-signals.jsonl + .session-feedback.jsonl + transcript
+// payload on stdin (Stop-hook json), produces structured memory entries,
+// and appends them to .ijfw/memory/knowledge.md via the existing store helpers.
+//
+// Deterministic by default: feedback/signals promote 1:1. LLM-based synthesis
+// activates only when IJFW_AUTOMEM_MODEL is set (documented as a wiring point;
+// current build emits a TODO marker instead of calling an LLM).
+//
+// Consent: reads .ijfw/.automem-consent. If absent or consented=false, exits 0
+// silently. User sets consent via `/ijfw memory consent yes|no|ask`.
+
+import { readFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { redactSecrets } from '../src/redactor.js';
+import { applyCaps } from '../src/caps.js';
+import { ensureSchemaHeader, SCHEMA_HEADER } from '../src/schema.js';
+import { searchCorpus } from '../src/search-bm25.js';
+
+const IJFW_DIR = '.ijfw';
+const MEMORY_DIR = join(IJFW_DIR, 'memory');
+const SIGNALS = join(IJFW_DIR, '.session-signals.jsonl');
+const FEEDBACK = join(IJFW_DIR, '.session-feedback.jsonl');
+const CONSENT = join(IJFW_DIR, '.automem-consent');
+const KNOWLEDGE = join(MEMORY_DIR, 'knowledge.md');
+
+function readConsent() {
+  if (!existsSync(CONSENT)) return { consented: null };
+  try { return JSON.parse(readFileSync(CONSENT, 'utf8')); } catch { return { consented: null }; }
+}
+
+function readJsonl(path) {
+  if (!existsSync(path)) return [];
+  try {
+    return readFileSync(path, 'utf8').split('\n').filter(Boolean).map(l => {
+      try { return JSON.parse(l); } catch { return null; }
+    }).filter(Boolean);
+  } catch { return []; }
+}
+
+function readExistingKnowledge() {
+  if (!existsSync(KNOWLEDGE)) return '';
+  try { return readFileSync(KNOWLEDGE, 'utf8'); } catch { return ''; }
+}
+
+function isDuplicate(summary, existingText) {
+  if (!existingText || !summary) return false;
+  const corpus = existingText.split('\n').filter(l => l.trim().length > 0)
+    .map((line, i) => ({ id: String(i), text: line }));
+  if (corpus.length === 0) return false;
+  const r = searchCorpus(summary, corpus, { limit: 1 });
+  return r.length > 0 && r[0].score > 6; // tuned empirically; wave-5 baseline
+}
+
+function appendEntry({ type, summary, content, why, howToApply, tags }) {
+  mkdirSync(MEMORY_DIR, { recursive: true });
+  ensureSchemaHeader(KNOWLEDGE);
+  const ts = new Date().toISOString();
+  const tagLine = tags.join(', ');
+  const block = [
+    '',
+    '---',
+    `type: ${type}`,
+    `summary: ${summary}`,
+    `stored: ${ts}`,
+    `tags: [${tagLine}]`,
+    '---',
+    content,
+    why ? `\n**Why:** ${why}` : '',
+    howToApply ? `\n**How to apply:** ${howToApply}` : '',
+    ''
+  ].filter(l => l !== '').join('\n') + '\n';
+  appendFileSync(KNOWLEDGE, block);
+}
+
+async function main() {
+  if (!existsSync(IJFW_DIR)) return;
+
+  const consent = readConsent();
+  if (consent.consented !== true) {
+    // Silent no-op if consent not granted. Consent is an explicit opt-in.
+    return;
+  }
+
+  const signals = readJsonl(SIGNALS);
+  const feedback = readJsonl(FEEDBACK);
+  if (signals.length === 0 && feedback.length === 0) return;
+
+  const existing = readExistingKnowledge();
+  let stored = 0;
+  const storedSummaries = [];
+
+  // 1:1 deterministic promotion of feedback.
+  for (const f of feedback) {
+    const rawPhrase = redactSecrets(f.phrase || '');
+    const rawContext = redactSecrets(f.context || '');
+    if (!rawPhrase) continue;
+    const summary = rawPhrase.slice(0, 110);
+    if (isDuplicate(summary, existing)) continue;
+    const capped = applyCaps({
+      content: rawContext || rawPhrase,
+      summary,
+      why: `User stated during session: "${rawPhrase}"`,
+      how_to_apply: f.kind === 'correction' ? 'Avoid repeating the corrected pattern.'
+                 : f.kind === 'confirmation' ? 'Keep the approach that was confirmed.'
+                 : f.kind === 'preference'   ? 'Default to this preference on future similar tasks.'
+                 : 'Apply the stated rule consistently.',
+    });
+    appendEntry({
+      type: f.kind === 'preference' ? 'preference' : 'pattern',
+      summary: capped.summary,
+      content: capped.content,
+      why: capped.why,
+      howToApply: capped.how_to_apply,
+      tags: ['auto-memorize', f.kind],
+    });
+    stored++;
+    storedSummaries.push(capped.summary);
+  }
+
+  // 1:1 promotion of signal occurrences — but only if the same error
+  // appears ≥2× in the session (suggests a real blocker worth remembering).
+  const errorCounts = new Map();
+  for (const s of signals) {
+    const key = redactSecrets(s.error || s.fail || '');
+    if (!key) continue;
+    errorCounts.set(key, (errorCounts.get(key) || 0) + 1);
+  }
+  for (const [err, count] of errorCounts) {
+    if (count < 2) continue;
+    const summary = `Recurring error: ${err.slice(0, 90)}`;
+    if (isDuplicate(summary, existing)) continue;
+    const capped = applyCaps({
+      content: err,
+      summary,
+      why: `Hit ${count} times in one session — likely not a fluke.`,
+      how_to_apply: 'Next time this error surfaces, check prior session handoffs before debugging from scratch.',
+    });
+    appendEntry({
+      type: 'observation',
+      summary: capped.summary,
+      content: capped.content,
+      why: capped.why,
+      howToApply: capped.how_to_apply,
+      tags: ['auto-memorize', 'recurring-error'],
+    });
+    stored++;
+    storedSummaries.push(capped.summary);
+  }
+
+  // TODO: LLM-synthesis path (IJFW_AUTOMEM_MODEL). Stub emits a marker
+  // so downstream tooling can detect that a richer synthesis could run.
+  if (process.env.IJFW_AUTOMEM_MODEL && process.env.IJFW_AUTOMEM_MODEL !== 'off') {
+    // Wiring point — Phase 5+ connects this to Anthropic SDK / Ollama.
+    // For now, record the opportunity.
+    try {
+      mkdirSync(IJFW_DIR, { recursive: true });
+      appendFileSync(join(IJFW_DIR, '.automem-llm-queue.jsonl'),
+        JSON.stringify({ ts: new Date().toISOString(), model: process.env.IJFW_AUTOMEM_MODEL, pending: true }) + '\n');
+    } catch {}
+  }
+
+  if (stored > 0) {
+    process.stdout.write(`Stored ${stored} new memor${stored === 1 ? 'y' : 'ies'}: ${storedSummaries.slice(0, 3).join('; ')}${storedSummaries.length > 3 ? '…' : ''}\n`);
+  }
+}
+
+main().catch(() => process.exit(0));
