@@ -62,7 +62,16 @@ function quarantine(filepath, content, reason) {
     if (content != null) {
       writeFileSync(quarantinePath, `<!-- ijfw-quarantine reason=${reason} at=${new Date(ts).toISOString()} -->\n\n${content}`);
     } else {
-      try { renameSync(filepath, quarantinePath); } catch { /* file missing? */ }
+      // Y4 — renameSync can transiently fail on Windows when an indexer or
+      // AV holds a short lock on the file. Retry a few times with 50ms spacing.
+      let renamed = false;
+      for (let i = 0; i < 4 && !renamed; i++) {
+        try { renameSync(filepath, quarantinePath); renamed = true; }
+        catch {
+          const wait = Date.now() + 50;
+          while (Date.now() < wait) { /* busy-wait; sync path */ }
+        }
+      }
     }
     writeFileSync(filepath, SCHEMA_HEADER + '\n\n');
     return 'recovered';

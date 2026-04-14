@@ -70,3 +70,17 @@ test('URL values in JSONC (with trailing comma) survive', () => {
   const parsed = tolerantJsonParse(raw, 'x');
   assert.equal(parsed.repo, 'https://example.com/path');
 });
+
+test('comment-like sequences INSIDE string values are preserved', () => {
+  const raw = '{\n  "regex": "a//b",\n  "blockish": "x/* not a comment */y",\n  "url": "http://x/y"\n}';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.regex, 'a//b');
+  assert.equal(parsed.blockish, 'x/* not a comment */y');
+  assert.equal(parsed.url, 'http://x/y');
+});
+
+test('escaped quotes inside strings do not break tokenizer', () => {
+  const raw = '{\n  // leading comment\n  "quoted": "she said \\"hi\\" // then left"\n}';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.quoted, 'she said "hi" // then left');
+});

@@ -15,13 +15,41 @@
 
 const DEFAULT_MODEL = 'Xenova/all-MiniLM-L6-v2';
 
-// S8 — model integrity pin. HuggingFace publishes SHA256 per file; we pin
-// the model.onnx hash so a supply-chain substitution is detectable. Empty
-// by default (any; used for audit), set via IJFW_VECTORS_MODEL_SHA256 to
-// enforce. When enforced and hash differs, getEmbedder returns unavailable.
-const EXPECTED_SHA256 = process.env.IJFW_VECTORS_MODEL_SHA256 || null;
+// X3/S8 — model integrity pin. When IJFW_VECTORS_MODEL_SHA256 is set, we
+// SHA-256 the loaded model.onnx after download and refuse the embedder if
+// the hash doesn't match. Empty (default) allows any — documented as opt-in
+// in NO_TELEMETRY.md. Implemented in Phase 6 after the audit found the var
+// was read but never enforced.
 
 let _pipelinePromise = null;
+
+async function verifyModelSha(env, modelId) {
+  const expected = process.env.IJFW_VECTORS_MODEL_SHA256;
+  if (!expected) return { ok: true };
+  try {
+    const { createReadStream } = await import('node:fs');
+    const { createHash } = await import('node:crypto');
+    const { join: pjoin } = await import('node:path');
+    // transformers.js caches to env.cacheDir (default ~/.cache/huggingface/).
+    const cacheDir = env.cacheDir || (process.env.HOME ? pjoin(process.env.HOME, '.cache', 'huggingface') : '');
+    if (!cacheDir) return { ok: false, reason: 'no-cache-dir-for-hash-verification' };
+    const modelPath = pjoin(cacheDir, modelId.replace('/', '_'), 'onnx', 'model.onnx');
+    await new Promise((resolve, reject) => {
+      const h = createHash('sha256');
+      const s = createReadStream(modelPath);
+      s.on('error', reject);
+      s.on('data', (c) => h.update(c));
+      s.on('end', () => {
+        const got = h.digest('hex');
+        if (got === expected.toLowerCase()) resolve();
+        else reject(new Error(`sha256 mismatch: expected ${expected}, got ${got}`));
+      });
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: `sha-verify-failed: ${e.message}` };
+  }
+}
 
 async function loadPipeline() {
   if (_pipelinePromise) return _pipelinePromise;
@@ -34,6 +62,9 @@ async function loadPipeline() {
       env.allowRemoteModels = true;
       const model = process.env.IJFW_VECTORS_MODEL || DEFAULT_MODEL;
       const extractor = await pipeline('feature-extraction', model);
+      // X3/S8 — verify pinned SHA256 after load (post-download if remote).
+      const sha = await verifyModelSha(env, model);
+      if (!sha.ok) return { ok: false, reason: sha.reason };
       return { ok: true, extractor, model };
     } catch (e) {
       return { ok: false, reason: e.code === 'ERR_MODULE_NOT_FOUND'
