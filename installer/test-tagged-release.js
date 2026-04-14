@@ -27,3 +27,12 @@ test('falls back to DEFAULT_BRANCH when both missing', () => {
   const got = resolveBranchOrTag({ branchExplicit: false, _tagLookup: () => null });
   assert.ok(got && typeof got === 'string');
 });
+
+test('falls back to main when tag lookup throws (network failure)', () => {
+  const got = resolveBranchOrTag({
+    branch: 'main',
+    branchExplicit: false,
+    _tagLookup: () => { throw new Error('ENOTFOUND github.com'); },
+  });
+  assert.equal(got, 'main');
+});

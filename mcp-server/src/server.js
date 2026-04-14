@@ -649,11 +649,11 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
     .slice(0, MAX_TAGS)
     .map(t => sanitizeContent(t).substring(0, MAX_TAG_LEN));
 
-  // Enforce per-field caps before sanitize (audit S1). Oversize content is
-  // already rejected above; why/how/summary are truncated rather than
-  // rejected so structured stores never silently drop the whole entry.
-  const capped = applyCaps({ content, summary, why, how_to_apply });
-  content = capped.content;
+  // Enforce per-field caps before sanitize (audit S1). content is rejected
+  // above at the MAX_STORE_LENGTH gate so callers aren't silently truncated.
+  // why/how/summary are truncated rather than rejected so structured stores
+  // never silently drop the whole entry over one long field.
+  const capped = applyCaps({ summary, why, how_to_apply });
   summary = capped.summary;
   why = capped.why;
   how_to_apply = capped.how_to_apply;

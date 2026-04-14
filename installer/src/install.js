@@ -38,11 +38,14 @@ function latestTagFromGithub() {
 }
 
 // Pinning to latest tag is the default (audit R2); --branch escape hatch
-// stays available for bleeding-edge users and CI.
+// stays available for bleeding-edge users and CI. Any lookup failure
+// (network down, no tags yet, ls-remote rate-limited) falls back silently
+// to the branch/DEFAULT_BRANCH rather than exploding the install.
 export function resolveBranchOrTag({ branch, branchExplicit, _tagLookup } = {}) {
   if (branchExplicit) return branch;
   const lookup = _tagLookup || latestTagFromGithub;
-  const tag = lookup();
+  let tag = null;
+  try { tag = lookup(); } catch { tag = null; }
   return tag || branch || DEFAULT_BRANCH;
 }
 
