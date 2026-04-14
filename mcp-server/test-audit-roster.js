@@ -321,3 +321,33 @@ test('isReachable: any=true when either cli or api is true', () => {
   assert.equal(r.api, true);
   assert.equal(r.any, true);
 });
+
+// --- Fix 1: API-only diversity picks — no CLIs but API keys set ---
+
+test('diversity picker: node env with no CLIs but OPENAI_API_KEY + GEMINI_API_KEY returns both with preferredSource:api', () => {
+  const allIds = ['codex', 'gemini', 'opencode', 'aider', 'copilot', 'claude'];
+  // No CLIs installed
+  for (const id of allIds) _installedCache.set(id, false);
+
+  const codexEntry = ROSTER.find(e => e.id === 'codex');
+  const geminiEntry = ROSTER.find(e => e.id === 'gemini');
+  const env = {
+    [codexEntry.apiFallback.authEnv]: 'sk-openai-test',
+    [geminiEntry.apiFallback.authEnv]: 'sk-gemini-test',
+  };
+
+  const r = pickAuditors({ strategy: 'diversity', env });
+
+  // Restore cache
+  for (const id of allIds) _installedCache.delete(id);
+
+  // Both codex and gemini should be picked
+  const pickedIds = r.picks.map(p => p.id);
+  assert.ok(pickedIds.includes('codex'), `codex should be picked, got: ${pickedIds}`);
+  assert.ok(pickedIds.includes('gemini'), `gemini should be picked, got: ${pickedIds}`);
+
+  // Both should be annotated with preferredSource: 'api'
+  for (const p of r.picks) {
+    assert.equal(p.preferredSource, 'api', `${p.id} should have preferredSource:'api'`);
+  }
+});

@@ -174,13 +174,10 @@ function _printDemoFindings(picks, auditorResults) {
     const { status, parsed } = auditorResults[i];
     const id = picks[i].id;
     const capitalized = id.charAt(0).toUpperCase() + id.slice(1);
-    if (status !== 'ok' || !parsed) {
+    const items = Array.isArray(parsed?.items) ? parsed.items : [];
+    const hasFindings = (status === 'ok' || status === 'fallback-used') && items.length > 0;
+    if (!hasFindings) {
       console.log(`  ${capitalized}: no findings returned (status: ${status})`);
-      continue;
-    }
-    const items = Array.isArray(parsed.items) ? parsed.items : [];
-    if (items.length === 0) {
-      console.log(`  ${capitalized}: no findings returned`);
       continue;
     }
     for (const item of items) {

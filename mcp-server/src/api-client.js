@@ -95,9 +95,9 @@ function extractText(provider, json) {
 // Main export
 // ---------------------------------------------------------------------------
 
-// runViaApi(pick, mode, angle, target, env, timeoutMs?)
+// runViaApi(pick, mode, angle, target, env, timeoutMs?, abortSignal?)
 // Returns { status: 'ok', raw, model } or { status: 'failed', error, model }.
-export async function runViaApi(pick, mode, angle, target, env = process.env, timeoutMs = DEFAULT_TIMEOUT_MS) {
+export async function runViaApi(pick, mode, angle, target, env = process.env, timeoutMs = DEFAULT_TIMEOUT_MS, abortSignal = null) {
   const fb = pick.apiFallback;
   if (!fb) return { status: 'failed', error: 'no API fallback configured', model: '' };
 
@@ -106,6 +106,10 @@ export async function runViaApi(pick, mode, angle, target, env = process.env, ti
 
   const { system, format } = getTemplate(mode, angle);
   const user = `${format}\n\n## Target\n\n${target}`;
+
+  // Combine caller abort signal with our per-call timeout signal.
+  const timeoutSig = AbortSignal.timeout(timeoutMs);
+  const combinedSignal = abortSignal ? AbortSignal.any([timeoutSig, abortSignal]) : timeoutSig;
 
   let req;
   if (fb.provider === 'openai') {
@@ -117,6 +121,8 @@ export async function runViaApi(pick, mode, angle, target, env = process.env, ti
   } else {
     return { status: 'failed', error: `unknown provider: ${fb.provider}`, model: fb.model };
   }
+  // Override signal to use the combined abort signal.
+  req.options.signal = combinedSignal;
 
   try {
     const res = await fetch(req.url, req.options);

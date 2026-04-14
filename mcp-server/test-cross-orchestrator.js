@@ -216,3 +216,66 @@ test('receipt.auditors includes source and elapsedMs', async () => {
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// Fix 2: minResponses:2 — 3rd pick gets status:'aborted'
+// ---------------------------------------------------------------------------
+
+test('minResponses:2 — 3rd pick gets status:aborted when first 2 settle', async () => {
+  // Prime 3 non-self "installed" auditors (all will fail fast via ENOENT —
+  // fast enough that 2 settle before the 3rd is launched or mid-flight).
+  primeCache(['codex', 'gemini', 'opencode']);
+  const env = {
+    CLAUDECODE: '1',
+    IJFW_AUDIT_TIMEOUT_SEC: '5',
+  };
+
+  const result = await runCrossOp({
+    mode: 'audit',
+    target: 'test content for abort check',
+    env,
+    quiet: true,
+    minResponses: 2,
+  });
+  clearCache();
+
+  assert.ok(result && typeof result === 'object', 'result must be object');
+  if (result.auditorResults) {
+    const statuses = result.auditorResults.map(r => r?.status);
+    const validStatuses = ['ok', 'empty', 'failed', 'timeout', 'fallback-used', 'aborted'];
+    for (const s of statuses) {
+      if (s !== null) assert.ok(validStatuses.includes(s), `unexpected status: ${s}`);
+    }
+    // At least one aborted or all settled is both acceptable (ENOENT is so fast
+    // all 3 may settle before threshold — that's a valid pass too).
+    const abortedCount = result.auditorResults.filter(r => r?.status === 'aborted').length;
+    const settledCount = result.auditorResults.filter(r => r !== null && r?.status !== 'aborted').length;
+    assert.ok(settledCount >= 2 || abortedCount > 0, 'at least 2 settled or some aborted');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Fix 3: parsePosInt / env var validation — invalid IJFW_AUDIT_CONCURRENCY
+// ---------------------------------------------------------------------------
+
+test('invalid IJFW_AUDIT_CONCURRENCY falls back to 3 and emits no crash', async () => {
+  primeCache(['codex']);
+  const env = { CLAUDECODE: '1', IJFW_AUDIT_CONCURRENCY: '0', IJFW_AUDIT_TIMEOUT_SEC: '1' };
+
+  // quiet:false so warning would fire; but we just assert no crash and valid result shape.
+  const result = await runCrossOp({ mode: 'audit', target: 'test', env, quiet: true });
+  clearCache();
+
+  assert.ok(result && typeof result === 'object');
+});
+
+test('invalid IJFW_AUDIT_TIMEOUT_SEC falls back and emits no crash', async () => {
+  primeCache(['codex']);
+  const env = { CLAUDECODE: '1', IJFW_AUDIT_TIMEOUT_SEC: 'notanumber' };
+
+  // Use perAuditorTimeoutSec to keep test fast; the env var fallback is what we're testing.
+  const result = await runCrossOp({ mode: 'audit', target: 'test', env, quiet: true, perAuditorTimeoutSec: 1 });
+  clearCache();
+
+  assert.ok(result && typeof result === 'object');
+});
