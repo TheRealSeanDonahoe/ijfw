@@ -133,18 +133,18 @@ Run one node call per auditor:
 ```bash
 node --input-type=module -e "
 import('./mcp-server/src/cross-dispatcher.js').then(m =>
-  m.buildRequest('research', '<target>', 'codex', 'benchmarks')
-   .then(r => process.stdout.write(r))
+  process.stdout.write(m.buildRequest('research', '<target>', 'codex', 'benchmarks'))
 )" > .ijfw/cross-audit/request-research-codex.md
 ```
 
 ```bash
 node --input-type=module -e "
 import('./mcp-server/src/cross-dispatcher.js').then(m =>
-  m.buildRequest('research', '<target>', 'gemini', 'citations')
-   .then(r => process.stdout.write(r))
+  process.stdout.write(m.buildRequest('research', '<target>', 'gemini', 'citations'))
 )" > .ijfw/cross-audit/request-research-gemini.md
 ```
+
+> **Note:** `buildRequest` is synchronous and returns a string — do NOT `.then()` it. Wrap it in `process.stdout.write(...)` directly.
 
 Replace `<target>` with the detected or specified target string.
 
@@ -189,8 +189,10 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
   const fs = await import('fs');
   const codex = fs.readFileSync('.ijfw/cross-audit/response-research-codex.md','utf8');
   const gemini = fs.readFileSync('.ijfw/cross-audit/response-research-gemini.md','utf8');
-  const req = await m.buildRequest('research', '<target>', 'claude', 'synthesis', [codex, gemini]);
-  process.stdout.write(req);
+  // Pass a labeled string, not an unlabeled array — the dispatcher interpolates
+  // priorResponses verbatim, so labels preserve per-auditor provenance in synthesis.
+  const labeled = '### Codex (benchmarks)\n\n' + codex + '\n\n### Gemini (citations)\n\n' + gemini;
+  process.stdout.write(m.buildRequest('research', '<target>', 'claude', 'synthesis', labeled));
 })" > .ijfw/cross-audit/request-research-synthesis.md
 ```
 
@@ -213,10 +215,13 @@ Once the synthesis response lands, call `mergeResponses` to build the final matr
 node --input-type=module -e "
 import('./mcp-server/src/cross-dispatcher.js').then(async m => {
   const fs = await import('fs');
-  const responses = ['codex','gemini','synthesis'].map(id =>
-    fs.readFileSync(\`.ijfw/cross-audit/response-research-\${id}.md\`,'utf8')
-  );
-  const merged = m.mergeResponses('research', responses);
+  // mergeResponses expects parsed { items } objects, not raw strings.
+  // Route each response through parseResponse first.
+  const parsed = ['codex','gemini','synthesis'].map(id => {
+    const raw = fs.readFileSync(\`.ijfw/cross-audit/response-research-\${id}.md\`,'utf8');
+    return m.parseResponse('research', raw);
+  });
+  const merged = m.mergeResponses('research', parsed);
   process.stdout.write(JSON.stringify(merged, null, 2));
 })"
 ```

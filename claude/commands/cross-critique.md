@@ -125,26 +125,25 @@ Run one node call per auditor:
 ```bash
 node --input-type=module -e "
 import('./mcp-server/src/cross-dispatcher.js').then(m =>
-  m.buildRequest('critique', '<target>', 'codex', 'technical')
-   .then(r => process.stdout.write(r))
+  process.stdout.write(m.buildRequest('critique', '<target>', 'codex', 'technical'))
 )" > .ijfw/cross-audit/request-critique-codex.md
 ```
 
 ```bash
 node --input-type=module -e "
 import('./mcp-server/src/cross-dispatcher.js').then(m =>
-  m.buildRequest('critique', '<target>', 'gemini', 'strategic')
-   .then(r => process.stdout.write(r))
+  process.stdout.write(m.buildRequest('critique', '<target>', 'gemini', 'strategic'))
 )" > .ijfw/cross-audit/request-critique-gemini.md
 ```
 
 ```bash
 node --input-type=module -e "
 import('./mcp-server/src/cross-dispatcher.js').then(m =>
-  m.buildRequest('critique', '<target>', 'claude', 'ux')
-   .then(r => process.stdout.write(r))
+  process.stdout.write(m.buildRequest('critique', '<target>', 'claude', 'ux'))
 )" > .ijfw/cross-audit/request-critique-claude.md
 ```
+
+> **Note:** `buildRequest` is synchronous and returns a string — do NOT `.then()` it. Wrap it in `process.stdout.write(...)` directly.
 
 Replace `<target>` with the detected or specified target string.
 
@@ -218,10 +217,12 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
     try { fs.readFileSync(\`.ijfw/cross-audit/response-critique-\${id}.md\`); return true; }
     catch { return false; }
   });
-  const responses = ids.map(id =>
-    fs.readFileSync(\`.ijfw/cross-audit/response-critique-\${id}.md\`,'utf8')
-  );
-  const merged = m.mergeResponses('critique', responses);
+  // mergeResponses expects parsed { items } objects, not raw strings.
+  const parsed = ids.map(id => {
+    const raw = fs.readFileSync(\`.ijfw/cross-audit/response-critique-\${id}.md\`,'utf8');
+    return m.parseResponse('critique', raw);
+  });
+  const merged = m.mergeResponses('critique', parsed);
   process.stdout.write(JSON.stringify(merged, null, 2));
 })"
 ```
