@@ -15,10 +15,36 @@
 
 import { spawn } from 'node:child_process';
 import * as readline from 'node:readline';
-import { pickAuditors } from './audit-roster.js';
+import { pickAuditors, isReachable } from './audit-roster.js';
 import { loadSwarmConfig } from './swarm-config.js';
 import { buildRequest, parseResponse, mergeResponses } from './cross-dispatcher.js';
 import { writeReceipt } from './receipts.js';
+import { runViaApi } from './api-client.js';
+
+// ---------------------------------------------------------------------------
+// Per-provider timeout defaults (ms). Codex cold-start can take 120s+ (U2).
+// ---------------------------------------------------------------------------
+const PROVIDER_TIMEOUT_MS = {
+  codex:       120_000,
+  gemini:       45_000,
+  anthropic:    60_000,
+  'api-mode':   30_000,
+};
+const DEFAULT_TIMEOUT_MS = 90_000;
+
+function timeoutForPick(pick, resolvedTimeoutSec) {
+  if (resolvedTimeoutSec) return resolvedTimeoutSec * 1000;
+  return PROVIDER_TIMEOUT_MS[pick.id] ?? DEFAULT_TIMEOUT_MS;
+}
+
+// parsePosInt — parse a raw string to a positive integer in [min, max].
+// Returns fallback on non-numeric, NaN, ≤0, or >max.
+function parsePosInt(raw, fallback, min = 1, max = Infinity) {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < min || n > max) return fallback;
+  return Math.floor(n);
+}
 
 // Read one line from stdin. Resolves with trimmed string.
 function readLine(prompt) {
@@ -30,7 +56,7 @@ function readLine(prompt) {
 
 // Emit pre-fire UX string to stderr; handle --confirm interactive gate.
 // Returns true to proceed, false to cancel.
-async function uxGate(picks, missing, confirm) {
+async function uxGate(picks, missing, confirm, quiet = false) {
   const ids = picks.map(p => p.id).join(', ');
   const missingFamilies = [...new Set(
     (missing || [])
@@ -48,16 +74,18 @@ async function uxGate(picks, missing, confirm) {
     return true;
   }
 
-  if (missingFamilies.length > 0) {
-    const missing_label = missingFamilies.join(', ');
-    const hint = missingFamilies.map(f => `${f}-family`).join(' or ');
-    process.stderr.write(
-      `Partial roster: running ${ids}; missing ${missing_label}. Install a ${hint} CLI for full Trident diversity.\n`
-    );
-  } else {
-    process.stderr.write(
-      `Auto-proceeding with ${ids}. Pass --confirm to override on next turn.\n`
-    );
+  if (!quiet) {
+    if (missingFamilies.length > 0) {
+      const missing_label = missingFamilies.join(', ');
+      const hint = missingFamilies.map(f => `${f}-family`).join(' or ');
+      process.stderr.write(
+        `Partial roster: running ${ids}; missing ${missing_label}. Install a ${hint} CLI for full Trident diversity.\n`
+      );
+    } else {
+      process.stderr.write(
+        `Auto-proceeding with ${ids}. Pass --confirm to override on next turn.\n`
+      );
+    }
   }
   return true;
 }
@@ -84,34 +112,64 @@ function angleFor(mode, id) {
   throw new Error(`Unknown mode: ${mode}`);
 }
 
-// Spawn a single external auditor. Returns { stdout, stderr, exitCode } or null on spawn error.
-function fireExternal(pick, request, timeoutMs = 600_000) {
+// spawnCli — single-settlement guard + SIGKILL on timeout or abort signal.
+// Returns { stdout, stderr, exitCode, timedOut, aborted } or null on spawn error.
+function spawnCli(pick, request, timeoutMs, signal = null) {
   return new Promise((resolve) => {
     const parts = pick.invoke.trim().split(/\s+/);
     const bin = parts[0];
     const args = parts.slice(1);
 
-    const ac = new AbortController();
-    const timer = setTimeout(() => { ac.abort(); resolve({ stdout: '', stderr: 'timeout', exitCode: null }); }, timeoutMs);
+    let settled = false;
+    const settle = (val) => { if (settled) return; settled = true; resolve(val); };
+
+    const killAndAbort = () => {
+      if (proc) {
+        proc.kill('SIGKILL');
+        try { proc.stdout.destroy(); } catch { /* ignore */ }
+        try { proc.stderr.destroy(); } catch { /* ignore */ }
+      }
+      clearTimeout(timer);
+      settle({ stdout: '', stderr: 'aborted', exitCode: null, timedOut: false, aborted: true });
+    };
+
+    // Check abort before spawning.
+    if (signal?.aborted) { resolve({ stdout: '', stderr: 'aborted', exitCode: null, timedOut: false, aborted: true }); return; }
+
+    let proc;
+    const timer = setTimeout(() => {
+      if (proc) {
+        proc.kill('SIGKILL');
+        // Destroy stdio streams so the event loop isn't kept alive by open pipes.
+        try { proc.stdout.destroy(); } catch { /* ignore */ }
+        try { proc.stderr.destroy(); } catch { /* ignore */ }
+      }
+      settle({ stdout: '', stderr: 'timeout', exitCode: null, timedOut: true, aborted: false });
+    }, timeoutMs);
 
     let stdout = '';
     let stderr = '';
-    let proc;
+
     try {
-      proc = spawn(bin, args, {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        signal: ac.signal,
-      });
+      proc = spawn(bin, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     } catch {
       clearTimeout(timer);
-      resolve(null);
+      settle(null);
       return;
     }
 
+    // Listen for external abort (runAc).
+    if (signal) signal.addEventListener('abort', killAndAbort, { once: true });
+
     proc.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
     proc.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
-    proc.on('error', () => { clearTimeout(timer); resolve(null); });
-    proc.on('close', (code) => { clearTimeout(timer); resolve({ stdout, stderr, exitCode: code }); });
+    // Single-settlement guard: error + close can both fire on spawn failure.
+    proc.on('error', () => { clearTimeout(timer); settle(null); });
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', killAndAbort);
+      settle({ stdout, stderr, exitCode: code, timedOut: false, aborted: false });
+    });
 
     try {
       proc.stdin.write(request);
@@ -122,21 +180,168 @@ function fireExternal(pick, request, timeoutMs = 600_000) {
   });
 }
 
+// fireExternal — CLI with API-key fallback.
+// Returns { stdout, stderr, exitCode, status, source, elapsedMs }
+// status: 'ok' | 'empty' | 'failed' | 'timeout' | 'fallback-used' | 'aborted' | null (cli normal)
+// source: 'cli' | 'api' | 'none'
+//
+// Timeout → fallback policy: a CLI timeout IS fallback-eligible. A slow CLI
+// gets bypassed by the API when available. API uses its own 30s budget so
+// the overall result is either 'fallback-used' (API succeeded) or the original
+// 'timeout' (both paths exhausted).
+async function fireExternal(pick, request, timeoutMs, env = process.env, signal = null) {
+  const t0 = Date.now();
+  const elapsed = () => Date.now() - t0;
+
+  // Helper: extract mode/angle/target from the request payload for API calls.
+  function extractApiParams() {
+    const modeMatch  = request.match(/^Mode:\s+(\S+)/m);
+    const angleMatch = request.match(/^Angle:\s+(\S+)/m);
+    const mode  = modeMatch  ? modeMatch[1]  : 'audit';
+    const angle = angleMatch ? angleMatch[1] : 'general';
+    const targetMatch = request.match(/## Target\s*\n\n([\s\S]*)$/);
+    const target = targetMatch ? targetMatch[1].trim() : request;
+    return { mode, angle, target };
+  }
+
+  // API-only pick (preferredSource: 'api') — skip spawnCli entirely.
+  if (pick.preferredSource === 'api' && pick.apiFallback && isReachable(pick.id, env).api) {
+    if (signal?.aborted) return { stdout: '', stderr: 'aborted', exitCode: null, status: 'aborted', source: 'none', elapsedMs: elapsed() };
+    const { mode, angle, target } = extractApiParams();
+    const apiResult = await runViaApi(pick, mode, angle, target, env, PROVIDER_TIMEOUT_MS['api-mode'], signal);
+    if (apiResult.status === 'ok') {
+      return { stdout: apiResult.raw, stderr: '', exitCode: 0, status: 'fallback-used', source: 'api', elapsedMs: elapsed() };
+    }
+    return { stdout: '', stderr: apiResult.error, exitCode: null, status: 'failed', source: 'none', elapsedMs: elapsed() };
+  }
+
+  const raw = await spawnCli(pick, request, timeoutMs, signal);
+
+  // Aborted by runAc
+  if (raw && raw.aborted) {
+    return { stdout: '', stderr: 'aborted', exitCode: null, status: 'aborted', source: 'none', elapsedMs: elapsed() };
+  }
+
+  // Explicit timeout — attempt API fallback before giving up.
+  if (raw && raw.timedOut) {
+    if (pick.apiFallback && isReachable(pick.id, env).api) {
+      const { mode, angle, target } = extractApiParams();
+      const apiResult = await runViaApi(pick, mode, angle, target, env, PROVIDER_TIMEOUT_MS['api-mode'], signal);
+      if (apiResult.status === 'ok') {
+        return { stdout: apiResult.raw, stderr: '', exitCode: 0, status: 'fallback-used', source: 'api', elapsedMs: elapsed() };
+      }
+    }
+    return { stdout: '', stderr: 'timeout', exitCode: null, status: 'timeout', source: 'none', elapsedMs: elapsed() };
+  }
+
+  // CLI failed — try API fallback
+  const cliOk = raw !== null && raw.exitCode === 0;
+  if (!cliOk && pick.apiFallback && isReachable(pick.id, env).api) {
+    const { mode, angle, target } = extractApiParams();
+    const apiResult = await runViaApi(pick, mode, angle, target, env, PROVIDER_TIMEOUT_MS['api-mode'], signal);
+
+    if (apiResult.status === 'ok') {
+      return { stdout: apiResult.raw, stderr: '', exitCode: 0, status: 'fallback-used', source: 'api', elapsedMs: elapsed() };
+    }
+    return { stdout: '', stderr: apiResult.error, exitCode: null, status: 'failed', source: 'none', elapsedMs: elapsed() };
+  }
+
+  if (raw === null) {
+    return { stdout: '', stderr: 'spawn error', exitCode: null, status: 'failed', source: 'none', elapsedMs: elapsed() };
+  }
+
+  return { stdout: raw.stdout, stderr: raw.stderr, exitCode: raw.exitCode, status: null, source: 'cli', elapsedMs: elapsed() };
+}
+
+// fanOut — rolling concurrency window; zero-dep semaphore.
+async function fanOut(tasks, concurrency = 3) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  async function worker() {
+    while (next < tasks.length) {
+      const i = next++;
+      results[i] = await tasks[i]();
+    }
+  }
+  const workers = [];
+  for (let w = 0; w < Math.min(concurrency, tasks.length); w++) workers.push(worker());
+  await Promise.all(workers);
+  return results;
+}
+
+// minResponsesFanOut — abort stragglers once minResponses auditors settle.
+// Takes a shared AbortController (runAc) so pending picks get killed on threshold.
+async function minResponsesFanOut(requests, picks, resolvedTimeoutSec, env, concurrency, minResponses, runAc) {
+  const total = requests.length;
+  const results = new Array(total).fill(null);
+  let settledCount = 0;
+  let nextIdx = 0;
+  let done = false;
+
+  return new Promise((resolveAll) => {
+    function check() {
+      if (done) return;
+      if (settledCount >= Math.min(minResponses, total) || settledCount >= total) {
+        done = true;
+        runAc.abort();  // signal remaining in-flight picks to terminate
+        // Fill un-launched slots with aborted sentinel
+        for (let j = 0; j < total; j++) {
+          if (results[j] === null) {
+            results[j] = { stdout: '', stderr: 'aborted', exitCode: null, status: 'aborted', source: 'none', elapsedMs: 0 };
+          }
+        }
+        resolveAll(results);
+      }
+    }
+    function launchNext() {
+      if (done || nextIdx >= total) return;
+      const i = nextIdx++;
+      const { pick, payload } = requests[i];
+      fireExternal(pick, payload, timeoutForPick(pick, resolvedTimeoutSec), env, runAc.signal).then(raw => {
+        results[i] = raw;
+        settledCount++;
+        check();
+        launchNext();
+      });
+    }
+    for (let w = 0; w < Math.min(concurrency, total); w++) launchNext();
+  });
+}
+
+function countItems(p) {
+  if (Array.isArray(p.items)) return p.items.length;
+  if (Array.isArray(p.consensus)) return p.consensus.length + (p.contested || []).length;
+  return 0;
+}
+
 export async function runCrossOp({
   mode,
   target,
   projectDir,
   env,
   runStamp,
-  expand,   // reserved — passed through but unused in current CLI context
+  expand,              // reserved — passed through but unused in current CLI context
   only,
-  confirm,  // reserved — handled by caller (CLI layer)
+  confirm,             // reserved — handled by caller (CLI layer)
+  perAuditorTimeoutSec,
+  minResponses,
+  quiet = false,        // suppress uxGate stderr warnings (used by demo)
 } = {}) {
   projectDir = projectDir ?? process.cwd();
   runStamp   = runStamp   ?? new Date().toISOString();
   env        = env        ?? process.env;
 
   const start = Date.now();
+
+  // Shared abort controller for this run — used by minResponsesFanOut to kill stragglers.
+  const runAc = new AbortController();
+
+  const rawTimeoutSec = env.IJFW_AUDIT_TIMEOUT_SEC;
+  const envTimeoutSec = parsePosInt(rawTimeoutSec, null, 1, 3600);
+  if (rawTimeoutSec !== undefined && rawTimeoutSec !== null && envTimeoutSec === null && !quiet) {
+    process.stderr.write(`IJFW_AUDIT_TIMEOUT_SEC=${rawTimeoutSec} is invalid; using default ${DEFAULT_TIMEOUT_MS / 1000}s.\n`);
+  }
+  const resolvedTimeoutSec = perAuditorTimeoutSec ?? envTimeoutSec ?? null;
 
   // 1. Roster pick (isInstalled cached in audit-roster per U6)
   const { picks, missing, note } = pickAuditors({ strategy: 'diversity', env, only });
@@ -148,10 +353,8 @@ export async function runCrossOp({
   }
 
   // 3. UX gate — emit status line or prompt before firing
-  const proceed = await uxGate(picks, missing, confirm);
-  if (!proceed) {
-    process.exit(0);
-  }
+  const proceed = await uxGate(picks, missing, confirm, quiet);
+  if (!proceed) process.exit(0);
 
   // 4. Swarm config (specialist list; swarm dispatch skipped in CLI context)
   const swarmConfig = loadSwarmConfig(projectDir);
@@ -162,46 +365,87 @@ export async function runCrossOp({
     payload: buildRequest(mode, target, pick.id, angleFor(mode, pick.id), null),
   }));
 
-  // 6. Fire externals in parallel
-  const rawResults = await Promise.all(
-    requests.map(({ pick, payload }) => fireExternal(pick, payload))
-  );
+  // 6. Fan-out with concurrency cap + optional minResponses short-circuit
+  const rawConcurrency = env.IJFW_AUDIT_CONCURRENCY;
+  const concurrencyParsed = rawConcurrency != null ? parsePosInt(rawConcurrency, null, 1, 16) : 3;
+  const concurrency = concurrencyParsed ?? 3;
+  if (rawConcurrency != null && concurrencyParsed === null && !quiet) {
+    process.stderr.write(`IJFW_AUDIT_CONCURRENCY=${rawConcurrency} is invalid; using default 3.\n`);
+  }
+
+  let rawResults;
+  if (minResponses && minResponses < picks.length) {
+    rawResults = await minResponsesFanOut(requests, picks, resolvedTimeoutSec, env, concurrency, minResponses, runAc);
+  } else {
+    const tasks = requests.map(({ pick, payload }) => () =>
+      fireExternal(pick, payload, timeoutForPick(pick, resolvedTimeoutSec), env)
+    );
+    rawResults = await fanOut(tasks, concurrency);
+  }
 
   // 7. Parse each response; classify failures vs empty vs success
   const auditorResults = rawResults.map((raw, i) => {
     const pick = picks[i];
+
     if (raw === null) {
-      return { status: 'failed', stderr: 'spawn error', exitCode: null, parsed: { items: [], prose: `[${pick.id}: spawn failed]` } };
+      return { status: 'failed', source: 'none', stderr: 'spawn error', exitCode: null, elapsedMs: 0, parsed: { items: [], prose: `[${pick.id}: spawn failed]` } };
     }
-    const { stdout, stderr: rawStderr, exitCode } = raw;
+
+    const { stdout, stderr: rawStderr, exitCode, status: rawStatus, source, elapsedMs } = raw;
     const stderrSnip = rawStderr ? rawStderr.slice(0, 500) : '';
+
+    if (rawStatus === 'aborted') {
+      return { status: 'aborted', source: 'none', stderr: stderrSnip, exitCode: null, elapsedMs, parsed: { items: [], prose: `[${pick.id}: aborted]` } };
+    }
+    if (rawStatus === 'timeout') {
+      return { status: 'timeout', source: 'none', stderr: stderrSnip, exitCode: null, elapsedMs, parsed: { items: [], prose: `[${pick.id}: timeout]` } };
+    }
+    if (rawStatus === 'failed') {
+      return { status: 'failed', source: 'none', stderr: stderrSnip, exitCode, elapsedMs, parsed: { items: [], prose: `[${pick.id}: failed]` } };
+    }
+    if (rawStatus === 'fallback-used') {
+      const p = parseResponse(mode, stdout);
+      const itemCount = countItems(p);
+      return { status: itemCount === 0 ? 'empty' : 'fallback-used', source: 'api', stderr: stderrSnip, exitCode: 0, elapsedMs, parsed: p };
+    }
+
+    // CLI path (rawStatus === null → normal exit from spawnCli)
     if (exitCode !== 0 || (stderrSnip && !stdout.trim())) {
-      return { status: 'failed', stderr: stderrSnip, exitCode, parsed: { items: [], prose: `[${pick.id}: exited ${exitCode}]` } };
+      return { status: 'failed', source: source ?? 'none', stderr: stderrSnip, exitCode, elapsedMs, parsed: { items: [], prose: `[${pick.id}: exited ${exitCode}]` } };
     }
     const p = parseResponse(mode, stdout);
-    const itemCount = Array.isArray(p.items) ? p.items.length
-      : Array.isArray(p.consensus) ? p.consensus.length + (p.contested || []).length : 0;
-    return { status: itemCount === 0 ? 'empty' : 'ok', stderr: stderrSnip, exitCode, parsed: p };
+    const itemCount = countItems(p);
+    return { status: itemCount === 0 ? 'empty' : 'ok', source: source ?? 'cli', stderr: stderrSnip, exitCode, elapsedMs, parsed: p };
   });
+
+  // 8. All-timeout guard
+  if (auditorResults.length > 0 && auditorResults.every(r => r.status === 'timeout')) {
+    const currentVal = resolvedTimeoutSec ?? env.IJFW_AUDIT_TIMEOUT_SEC ?? 'default';
+    process.stderr.write(
+      `All auditors timed out — check network or raise IJFW_AUDIT_TIMEOUT_SEC (currently ${currentVal})\n`
+    );
+    return {
+      merged: null, picks, missing, note, auditorResults,
+      allTimedOut: true, duration_ms: Date.now() - start,
+    };
+  }
 
   const parsed = auditorResults.map(r => r.parsed);
 
-  // 8. Merge
+  // 9. Merge
   const merged = mergeResponses(mode, parsed);
 
   const duration_ms = Date.now() - start;
 
-  // 9. Extract findings shape for receipt
+  // 10. Extract findings shape for receipt
   let findings;
   if (mode === 'audit' || mode === 'critique') {
-    // merged is a flat sorted array
     findings = { items: Array.isArray(merged) ? merged : [] };
   } else {
-    // research: { consensus, contested, unique, openQuestions, synthesisPending }
     findings = merged;
   }
 
-  // 10. Write receipt
+  // 11. Write receipt
   const receipt = {
     v: 1,
     timestamp: new Date().toISOString(),
@@ -213,7 +457,11 @@ export async function runCrossOp({
       family: p.family,
       model: p.model || '',
       status: auditorResults[i].status,
-      ...(auditorResults[i].status === 'failed' ? { error: auditorResults[i].stderr, exitCode: auditorResults[i].exitCode } : {}),
+      source: auditorResults[i].source,
+      elapsedMs: auditorResults[i].elapsedMs,
+      ...(['failed', 'timeout'].includes(auditorResults[i].status)
+        ? { error: auditorResults[i].stderr, exitCode: auditorResults[i].exitCode }
+        : {}),
     })),
     findings,
     duration_ms,
@@ -226,5 +474,5 @@ export async function runCrossOp({
 
   writeReceipt(projectDir, receipt);
 
-  return { merged, receipt, picks, missing, note };
+  return { merged, receipt, picks, missing, note, auditorResults };
 }

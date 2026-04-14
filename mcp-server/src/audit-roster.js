@@ -22,6 +22,7 @@ export const ROSTER = [
     invoke: 'codex exec',
     note: 'Different training lineage; fast on review tasks.',
     detect: (env) => Boolean(env.CODEX_SESSION_ID || env.CODEX_HOME) || /codex/i.test(env._ || ''),
+    apiFallback: { provider: 'openai', model: 'gpt-4o-mini', authEnv: 'OPENAI_API_KEY', endpoint: 'https://api.openai.com/v1/chat/completions' },
   },
   {
     id: 'gemini',
@@ -31,6 +32,7 @@ export const ROSTER = [
     invoke: 'gemini',
     note: 'Strong on security + architectural patterns.',
     detect: (env) => Boolean(env.GEMINI_CLI || env.GOOGLE_CLOUD_PROJECT_GEMINI) || /gemini-cli/i.test(env._ || ''),
+    apiFallback: { provider: 'google', model: 'gemini-2.0-flash', authEnv: 'GEMINI_API_KEY', endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent' },
   },
   {
     id: 'opencode',
@@ -40,6 +42,7 @@ export const ROSTER = [
     invoke: 'opencode',
     note: 'OSS / local-friendly; good when privacy matters.',
     detect: (env) => Boolean(env.OPENCODE_SESSION || env.OPENCODE_HOME),
+    apiFallback: null,
   },
   {
     id: 'aider',
@@ -49,6 +52,7 @@ export const ROSTER = [
     invoke: 'aider --message',
     note: 'Code-focused peer; terse + diff-aware.',
     detect: (env) => Boolean(env.AIDER_SESSION) || /aider/i.test(env._ || ''),
+    apiFallback: null,
   },
   {
     id: 'copilot',
@@ -58,6 +62,7 @@ export const ROSTER = [
     invoke: 'gh copilot suggest',
     note: 'Convenient if gh CLI is already authenticated.',
     detect: (env) => Boolean(env.GH_COPILOT_TOKEN || env.COPILOT_CLI_SESSION),
+    apiFallback: null,
   },
   {
     id: 'claude',
@@ -67,6 +72,7 @@ export const ROSTER = [
     invoke: 'claude -p',
     note: 'Anthropic; useful when you want a second Claude pass in a fresh session.',
     detect: (env) => Boolean(env.CLAUDECODE || env.CLAUDE_CODE_ENTRYPOINT || env.CLAUDE_PLUGIN_ROOT),
+    apiFallback: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', authEnv: 'ANTHROPIC_API_KEY', endpoint: 'https://api.anthropic.com/v1/messages' },
   },
 ];
 
@@ -95,6 +101,16 @@ export function isInstalled(id) {
   return installed;
 }
 
+// Check reachability: CLI (PATH probe) and/or API (env key present).
+// Returns { cli: bool, api: bool, any: bool }. Does not touch isInstalled signature.
+export function isReachable(id, env = process.env) {
+  const entry = ROSTER.find(e => e.id === id);
+  if (!entry) return { cli: false, api: false, any: false };
+  const cli = isInstalled(id);
+  const api = Boolean(entry.apiFallback && env[entry.apiFallback.authEnv]);
+  return { cli, api, any: cli || api };
+}
+
 // Returns roster entries with isSelf + installed flags resolved.
 export function rosterWithStatus(env = process.env) {
   const self = detectSelf(env);
@@ -108,14 +124,22 @@ export function rosterWithStatus(env = process.env) {
 //   - note: human-readable advisory (Donahoe trident reminder when only 1)
 export function pickAuditors({ count = 2, env = process.env, only = null, strategy = 'priority' } = {}) {
   const all = rosterWithStatus(env);
+  // Annotate a pick with preferredSource:'api' when reachable only via API key.
+  function annotatePick(e) {
+    const reach = isReachable(e.id, env);
+    if (!reach.cli && reach.api) return { ...e, preferredSource: 'api' };
+    return e;
+  }
+
   if (only) {
     const ids = String(only).split(/[ ,]+/).map(s => s.toLowerCase()).filter(Boolean);
     const picks = ids.map(id => all.find(e => e.id === id)).filter(Boolean);
-    const missing = picks.filter(e => !e.installed);
+    const reachablePicks = picks.filter(e => isReachable(e.id, env).any);
+    const missing = picks.filter(e => !isReachable(e.id, env).any);
     return {
-      picks: picks.filter(e => e.installed),
+      picks: reachablePicks.map(annotatePick),
       missing,
-      note: missing.length ? `Requested but not installed: ${missing.map(e => e.id).join(', ')}.` : '',
+      note: missing.length ? `Requested but not reachable: ${missing.map(e => e.id).join(', ')}.` : '',
     };
   }
 
@@ -124,8 +148,8 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
     const selfEntry = ROSTER.find(e => e.id === selfId);
     const callerFamily = selfEntry ? selfEntry.family : null;
 
-    // Installed non-self entries, grouped by family
-    const eligible = all.filter(e => !e.isSelf && e.installed);
+    // Reachable (CLI or API) non-self entries, grouped by family
+    const eligible = all.filter(e => !e.isSelf && isReachable(e.id, env).any);
     const byFamily = (fam) => eligible.filter(e => e.family === fam);
 
     const TARGET_FAMILIES = ['openai', 'google'];
@@ -139,11 +163,11 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
         // Caller is in this family — pick next-best family (oss, or other non-self)
         const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily);
         if (backfill) {
-          picks.push(backfill);
+          picks.push(annotatePick(backfill));
           picked.add(backfill.id);
           nudges.push(`No ${fam}-family auditor outside caller — using ${backfill.id} (${backfill.family}) as stand-in. Install a ${fam === 'openai' ? 'google' : 'openai'}-family auditor for full Trident diversity.`);
         } else {
-          missing.push({ family: fam, reason: `no installed auditor in family ${fam}` });
+          missing.push({ family: fam, reason: `no reachable auditor in family ${fam}` });
         }
         continue;
       }
@@ -151,20 +175,20 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
       if (candidates.length > 0) {
         const pick = candidates.find(e => !picked.has(e.id));
         if (pick) {
-          picks.push(pick);
+          picks.push(annotatePick(pick));
           picked.add(pick.id);
         } else {
           // All family members already picked — leave slot missing
-          missing.push({ family: fam, reason: `all installed auditors in family ${fam} already selected` });
+          missing.push({ family: fam, reason: `all reachable auditors in family ${fam} already selected` });
         }
       } else {
-        // No installed member of this family — backfill from oss or any remaining non-self
+        // No reachable member of this family — backfill from oss or any remaining non-self
         const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily && !TARGET_FAMILIES.includes(e.family));
-        missing.push({ family: fam, reason: `no installed auditor in family ${fam}` });
+        missing.push({ family: fam, reason: `no reachable auditor in family ${fam}` });
         if (backfill) {
-          picks.push(backfill);
+          picks.push(annotatePick(backfill));
           picked.add(backfill.id);
-          nudges.push(`No ${fam}-family auditor installed — using ${backfill.id} (${backfill.family}) as stand-in. Install gemini (google) or codex/copilot (openai) for full Trident lineage diversity.`);
+          nudges.push(`No ${fam}-family auditor reachable — using ${backfill.id} (${backfill.family}) as stand-in. Install gemini (google) or codex/copilot (openai) for full Trident lineage diversity.`);
         }
       }
     }
@@ -174,32 +198,32 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
       for (const e of eligible) {
         if (picks.length >= 2) break;
         if (!picked.has(e.id)) {
-          picks.push(e);
+          picks.push(annotatePick(e));
           picked.add(e.id);
         }
       }
     }
 
     const baseNote = picks.length === 0
-      ? 'No external auditors installed. Install codex, gemini, opencode, aider, or copilot to use cross-audit.'
+      ? 'No external auditors reachable. Install codex, gemini, opencode, aider, or copilot (or set OPENAI_API_KEY / GEMINI_API_KEY) to use cross-audit.'
       : picks.length < 2
-        ? `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} installed (${picks.map(e => e.id).join(', ')}); install another to triangulate findings.`
+        ? `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} reachable (${picks.map(e => e.id).join(', ')}); install another to triangulate findings.`
         : '';
     const note = [baseNote, ...nudges].filter(Boolean).join(' ');
     return { picks, missing, note };
   }
 
   // Default: priority strategy
-  const eligible = all.filter(e => !e.isSelf && e.installed);
-  const picks = eligible.slice(0, count);
+  const eligible = all.filter(e => !e.isSelf && isReachable(e.id, env).any);
+  const picks = eligible.slice(0, count).map(annotatePick);
   const wantMore = count - picks.length;
   let note = '';
   if (picks.length === 0) {
-    note = 'No external auditors installed. Install codex, gemini, opencode, aider, or copilot to use cross-audit.';
+    note = 'No external auditors reachable. Install codex, gemini, opencode, aider, or copilot (or set OPENAI_API_KEY / GEMINI_API_KEY) to use cross-audit.';
   } else if (picks.length < count) {
-    note = `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} installed (${picks.map(e => e.id).join(', ')}); ${wantMore} short. Install another to triangulate findings — single-reviewer audits miss what overlap would catch.`;
+    note = `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} reachable (${picks.map(e => e.id).join(', ')}); ${wantMore} short. Install another to triangulate findings — single-reviewer audits miss what overlap would catch.`;
   }
-  return { picks, missing: all.filter(e => !e.isSelf && !e.installed), note };
+  return { picks, missing: all.filter(e => !e.isSelf && !isReachable(e.id, env).any), note };
 }
 
 // Returns roster entries, marking self and filtering when requested.
