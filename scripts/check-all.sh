@@ -14,6 +14,7 @@ run() {
 run "MCP server tests"         "node mcp-server/test.js"
 run "Size caps"                "node --test mcp-server/test-size-caps.js"
 run "Schema version"           "node --test mcp-server/test-schema-version.js"
+run "Secret redactor"          "node --test mcp-server/test-redactor.js"
 run "Hook syntax (bash -n)"    "for f in claude/hooks/scripts/*.sh; do bash -n \"\$f\" || exit 1; done && echo OK"
 run "Hook wiring"              "bash claude/hooks/tests/test-wiring.sh"
 run "JSON validity"            "for f in claude/.claude-plugin/plugin.json claude/hooks/hooks.json gemini/.gemini/settings.json cursor/.cursor/mcp.json windsurf/mcp_config.json copilot/.vscode/mcp.json; do node -e \"JSON.parse(require('fs').readFileSync('\$f'))\" || exit 1; done && echo OK"
