@@ -46,7 +46,17 @@ SCAN=(
 EMIT_RE='^[[:space:]]*(echo|printf|cat|console\.(log|error|warn|info)|process\.stdout\.write|process\.stderr\.write)'
 
 VIOLATIONS=0
-for file in "${SCAN[@]}"; do
+
+# Collect claude/commands/*.md into a separate glob-expanded list so the
+# fixed SCAN array stays tidy and new command files are auto-included.
+COMMAND_FILES=()
+for f in claude/commands/*.md; do
+  [ -f "$f" ] && COMMAND_FILES+=("$f")
+done
+
+ALL_SCAN=("${SCAN[@]}" "${COMMAND_FILES[@]}")
+
+for file in "${ALL_SCAN[@]}"; do
   [ -f "$file" ] || continue
   # Only scan lines that emit output (echo/printf/cat <<).
   # Use awk to extract those lines with line numbers, then grep against patterns.
@@ -76,5 +86,5 @@ if [ $VIOLATIONS -gt 0 ]; then
   exit 1
 fi
 
-echo "OK: positive-framing clean across $(echo "${SCAN[@]}" | wc -w | tr -d ' ') user-facing files."
+echo "OK: positive-framing clean across $(echo "${ALL_SCAN[@]}" | wc -w | tr -d ' ') user-facing files."
 exit 0

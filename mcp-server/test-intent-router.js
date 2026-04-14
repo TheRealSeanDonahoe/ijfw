@@ -37,6 +37,33 @@ test('critique → ijfw-critique', () => {
   assert.equal(detectIntent('poke holes in this design').skill, 'ijfw-critique');
 });
 
+test('cross-research phrases → /cross-research', () => {
+  assert.equal(detectIntent('cross research this').skill, '/cross-research');
+  assert.equal(detectIntent("let's cross-research the approach").skill, '/cross-research');
+  assert.equal(detectIntent('dig into GDPR implications from multiple angles').skill, '/cross-research');
+  assert.equal(detectIntent('multi-angle research on caching strategies').skill, '/cross-research');
+  assert.equal(detectIntent('research this from multiple angles').skill, '/cross-research');
+});
+
+test('cross-critique phrases → /cross-critique', () => {
+  assert.equal(detectIntent("let's cross-critique the design").skill, '/cross-critique');
+  assert.equal(detectIntent('adversarial review of the auth flow').skill, '/cross-critique');
+  assert.equal(detectIntent('attack this from all sides').skill, '/cross-critique');
+  assert.equal(detectIntent('stress-test this claim').skill, '/cross-critique');
+});
+
+// Shadow-regression: must match cross-critique, NOT generic critique (ordering test)
+test('shadow-regression: "challenge this from every angle" → /cross-critique not critique', () => {
+  const r = detectIntent('challenge this from every angle');
+  assert.ok(r, 'should match something');
+  assert.equal(r.skill, '/cross-critique', 'cross-critique must shadow generic critique');
+});
+
+// Generic critique still works
+test('generic critique still routes to ijfw-critique', () => {
+  assert.equal(detectIntent('poke holes in this').skill, 'ijfw-critique');
+});
+
 test('cross-audit phrases → /cross-audit', () => {
   assert.equal(detectIntent('we need to cross-audit this').skill, '/cross-audit');
   assert.equal(detectIntent('cross audit the installer').skill, '/cross-audit');
