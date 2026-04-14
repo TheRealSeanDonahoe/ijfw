@@ -34,7 +34,16 @@ SCAN=(
   claude/hooks/scripts/session-end.sh
   claude/hooks/scripts/pre-compact.sh
   claude/hooks/scripts/pre-tool-use.sh
+  mcp-server/src/prompt-check.js
+  core/benchmarks/run.js
+  core/benchmarks/report.js
+  installer/src/install.js
+  installer/src/uninstall.js
+  installer/src/marketplace.js
 )
+
+# Emit-statement matcher: bash echo/printf/cat and JS console.*/process.stdout
+EMIT_RE='^[[:space:]]*(echo|printf|cat|console\.(log|error|warn|info)|process\.stdout\.write|process\.stderr\.write)'
 
 VIOLATIONS=0
 for file in "${SCAN[@]}"; do
@@ -56,7 +65,7 @@ for file in "${SCAN[@]}"; do
         esac
       fi
     done
-  done < <(grep -nE '^[[:space:]]*(echo|printf|cat)' "$file" 2>/dev/null)
+  done < <(grep -nE "$EMIT_RE" "$file" 2>/dev/null)
 done
 
 if [ $VIOLATIONS -gt 0 ]; then

@@ -1,0 +1,1 @@
+{"category":"explore","max_turns":15,"timeout_s":240,"allowed_tools":["Read","Grep","Glob"]}
