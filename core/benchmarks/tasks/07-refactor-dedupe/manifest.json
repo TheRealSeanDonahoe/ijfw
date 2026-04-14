@@ -1,0 +1,1 @@
+{"category":"refactor","max_turns":25,"timeout_s":420,"allowed_tools":["Read","Edit","Bash"]}
