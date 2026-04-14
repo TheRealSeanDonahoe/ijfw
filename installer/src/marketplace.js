@@ -9,12 +9,27 @@ export function claudeSettingsPath() {
   return join(homedir(), '.claude', 'settings.json');
 }
 
+export function tolerantJsonParse(raw, filepath) {
+  try { return JSON.parse(raw); } catch { /* fall through */ }
+  // JSONC recovery: strip // line comments, /* block */ comments, and
+  // trailing commas before } or ]. Best-effort for VS Code / Cursor users.
+  const stripped = raw
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+    .replace(/,(\s*[}\]])/g, '$1');
+  try { return JSON.parse(stripped); }
+  catch (e) {
+    const err = new Error(`settings.json at ${filepath} is not valid JSON or recoverable JSONC: ${e.message}`);
+    err.code = 'IJFW_SETTINGS_UNPARSEABLE';
+    throw err;
+  }
+}
+
 export function mergeMarketplace(settingsPath = claudeSettingsPath()) {
   let settings = {};
   if (existsSync(settingsPath)) {
     const raw = readFileSync(settingsPath, 'utf8');
-    try { settings = JSON.parse(raw); }
-    catch (e) { throw new Error(`settings.json at ${settingsPath} is not valid JSON: ${e.message}`); }
+    settings = tolerantJsonParse(raw, settingsPath);
   } else {
     mkdirSync(dirname(settingsPath), { recursive: true });
   }
