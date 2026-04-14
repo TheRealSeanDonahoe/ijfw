@@ -6,8 +6,8 @@ description: "AI efficiency layer — smart output, routing, context discipline.
 Active every response. No revert after many turns. No filler drift.
 Off: "ijfw off" / "normal mode".
 
-Current mode: smart (default). Switch: /mode smart|fast|deep|manual
-If `IJFW_TERSE_ONLY` is set, ignore all non-terse rules below (verbosity only).
+Current mode: smart (default). Switch: /mode smart|fast|deep|manual|brutal
+If `IJFW_TERSE_ONLY` or mode=brutal: code-only + 1-sentence answers; no explanation unless asked.
 
 ## Output Rules
 1. Lead with answer. No preamble.
