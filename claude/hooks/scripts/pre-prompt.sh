@@ -42,38 +42,62 @@ if [ ! -t 0 ]; then
 fi
 [ -z "$HOOK_STDIN" ] && exit 0
 
-# Resolve prompt-check.js — works whether plugin is cached, dev repo, or HOME-installed.
+# Resolve detector + intent-router modules.
 DETECTOR=""
-for candidate in \
-    "$CLAUDE_PLUGIN_ROOT/../mcp-server/src/prompt-check.js" \
-    "$HOME/.ijfw/mcp-server/src/prompt-check.js" \
-    "$(pwd)/mcp-server/src/prompt-check.js"; do
-  if [ -f "$candidate" ]; then DETECTOR="$candidate"; break; fi
+ROUTER=""
+for base in \
+    "$CLAUDE_PLUGIN_ROOT/../mcp-server/src" \
+    "$HOME/.ijfw/mcp-server/src" \
+    "$(pwd)/mcp-server/src"; do
+  if [ -f "$base/prompt-check.js" ]; then
+    DETECTOR="$base/prompt-check.js"
+    [ -f "$base/intent-router.js" ] && ROUTER="$base/intent-router.js"
+    break
+  fi
 done
 [ -z "$DETECTOR" ] && exit 0
 
-# Run detection. Single node invocation — parses stdin JSON, imports detector,
-# emits structured result. Hook stays under typical 100ms.
+# Single node invocation: intent router first (W2.1), then vague-prompt
+# detector. Emits combined additionalContext. Stays under ~100ms.
+ROUTER_IMPORT=""
+ROUTER_CALL=""
+ROUTER_STATE="null"
+if [ -n "$ROUTER" ]; then
+  ROUTER_IMPORT="import { detectIntent } from '$ROUTER';"
+  ROUTER_CALL="const intent = detectIntent(prompt); if (intent) contextParts.push('<ijfw-intent>\\n' + intent.nudge + '\\n(Detected intent: ' + intent.intent + ' → ' + intent.skill + ')\\n</ijfw-intent>');"
+  ROUTER_STATE="intent ? intent.intent : null"
+fi
+
 RESULT=$(node --input-type=module -e "
 import { checkPrompt } from '$DETECTOR';
+$ROUTER_IMPORT
 import { writeFileSync, mkdirSync } from 'fs';
 let payload = {};
 try { payload = JSON.parse(process.argv[1] || '{}'); } catch {}
 const prompt = payload.prompt || '';
+
+const contextParts = [];
+let intent = null;
+$ROUTER_CALL
+
 const r = checkPrompt(prompt);
-// Persist state for session-end metrics rollup.
 try {
   mkdirSync('.ijfw', { recursive: true });
   writeFileSync('.ijfw/.prompt-check-state', JSON.stringify({
     fired: r.vague === true,
-    signals: r.signals || []
+    signals: r.signals || [],
+    intent: $ROUTER_STATE
   }));
 } catch {}
 if (r.vague) {
+  contextParts.push('<ijfw-prompt-check>\\n' + r.suggestion + '\\nSignals: ' + r.signals.join(', ') + '. Override with leading * or \"ijfw off\".\\n</ijfw-prompt-check>');
+}
+
+if (contextParts.length > 0) {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'UserPromptSubmit',
-      additionalContext: '<ijfw-prompt-check>\\n' + r.suggestion + '\\nSignals: ' + r.signals.join(', ') + '. Override with leading * or \"ijfw off\".\\n</ijfw-prompt-check>'
+      additionalContext: contextParts.join('\\n\\n')
     }
   }));
 }
