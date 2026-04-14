@@ -17,6 +17,29 @@ fi
 INPUT=$(head -c 1048576)
 [ -z "$INPUT" ] && exit 0
 
+# W3.6 / H2 — Signal capture. Deterministically record structured signals
+# (error/stack-trace/retry patterns) into .ijfw/.session-signals.jsonl so
+# auto-memorize (W3.9) can synthesize from them at session end. Best-effort;
+# never blocks the trimmer.
+if [ -n "${INPUT:-}" ]; then
+  SIGNAL_FILE=".ijfw/.session-signals.jsonl"
+  mkdir -p .ijfw 2>/dev/null
+  # First matching line from each pattern family; truncate at 200 chars.
+  FIRST_ERR=$(printf '%s' "$INPUT" | grep -iE '^(ERROR|FATAL|CRITICAL)|(^|[[:space:]])(Error|Exception|Traceback)[[:space:]:]' 2>/dev/null | head -1 | cut -c1-200)
+  FIRST_FAIL=$(printf '%s' "$INPUT" | grep -iE '\b(test(s)? failed|failed with|assertion (failed|error))\b' 2>/dev/null | head -1 | cut -c1-200)
+  if [ -n "$FIRST_ERR" ] || [ -n "$FIRST_FAIL" ]; then
+    TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || TZ=UTC date +"%Y-%m-%dT%H:%M:%SZ")
+    # Encode via node -e to keep JSON valid regardless of quotes/control chars.
+    if command -v node >/dev/null 2>&1; then
+      node -e '
+        const fs = require("fs");
+        const rec = { ts: process.argv[1], error: process.argv[2] || null, fail: process.argv[3] || null };
+        try { fs.appendFileSync(".ijfw/.session-signals.jsonl", JSON.stringify(rec) + "\n"); } catch {}
+      ' "$TS" "$FIRST_ERR" "$FIRST_FAIL" 2>/dev/null
+    fi
+  fi
+fi
+
 # Chain transformations through a single pipeline.
 # Portable across macOS (BSD sed/awk) and Linux (GNU sed/awk) — no cat -s.
 CLEANED=$(printf '%s' "$INPUT" | sed -E '
