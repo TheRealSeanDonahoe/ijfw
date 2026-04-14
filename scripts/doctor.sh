@@ -50,12 +50,16 @@ echo ""
 echo "[Line caps]"
 if bash scripts/check-line-caps.sh >/dev/null 2>&1; then
   ok "skill and rule files under their caps"
+else
+  info "line caps need attention — run: bash scripts/check-line-caps.sh"
 fi
 echo ""
 
 echo "[Positive framing]"
 if bash scripts/check-positive-framing.sh >/dev/null 2>&1; then
   ok "user-facing surfaces clean"
+else
+  info "user-facing surfaces want review — run: bash scripts/check-positive-framing.sh"
 fi
 echo ""
 

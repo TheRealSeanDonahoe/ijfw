@@ -57,3 +57,16 @@ test('tolerantJsonParse handles all three cases', () => {
   assert.deepEqual(tolerantJsonParse('{"a":1,}', 'x'), { a: 1 });
   assert.deepEqual(tolerantJsonParse('// c\n{"a":1}', 'x'), { a: 1 });
 });
+
+test('URL values survive the comment stripper (https:// intact)', () => {
+  const raw = '{\n  "repo": "https://github.com/TradeCanyon/ijfw",\n  "other": "ok"\n}\n';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.repo, 'https://github.com/TradeCanyon/ijfw');
+  assert.equal(parsed.other, 'ok');
+});
+
+test('URL values in JSONC (with trailing comma) survive', () => {
+  const raw = '{\n  "repo": "https://example.com/path",\n}';
+  const parsed = tolerantJsonParse(raw, 'x');
+  assert.equal(parsed.repo, 'https://example.com/path');
+});

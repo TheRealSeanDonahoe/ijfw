@@ -2,10 +2,25 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { redactSecrets } from './src/redactor.js';
 
-test('redacts OpenAI-style sk- keys', () => {
-  const out = redactSecrets('token is sk-proj-ABC123DEF456GHI789JKL012MNO345PQR678');
+test('redacts OpenAI sk-proj- keys', () => {
+  const out = redactSecrets('key is sk-proj-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdef');
   assert.match(out, /\[REDACTED:openai\]/);
-  assert.doesNotMatch(out, /ABC123DEF456/);
+  assert.doesNotMatch(out, /ABCDEFGHIJKLMN/);
+});
+
+test('redacts OpenAI sk- keys (non-proj, ≥32 char floor)', () => {
+  const out = redactSecrets('legacy sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789');
+  assert.match(out, /\[REDACTED:openai\]/);
+});
+
+test('does NOT redact short sk- prose like "sk-learn"', () => {
+  const out = redactSecrets('use sk-learn for ML, also sk-image is fine');
+  assert.equal(out, 'use sk-learn for ML, also sk-image is fine');
+});
+
+test('redacts Anthropic sk-ant- keys', () => {
+  const out = redactSecrets('claude sk-ant-api03-ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+  assert.match(out, /\[REDACTED:anthropic\]/);
 });
 
 test('redacts GitHub ghp_ tokens', () => {
@@ -33,12 +48,54 @@ test('redacts Slack xoxb-/xoxp- tokens', () => {
   assert.match(out, /\[REDACTED:slack\]/);
 });
 
+test('redacts Stripe live + test secret keys', () => {
+  const live = redactSecrets('sk_live_abcdefghijklmnopqrstuvwxyz123456');
+  const testk = redactSecrets('sk_test_abcdefghijklmnopqrstuvwxyz123456');
+  assert.match(live, /\[REDACTED:stripe\]/);
+  assert.match(testk, /\[REDACTED:stripe\]/);
+});
+
+test('redacts npm access tokens', () => {
+  const out = redactSecrets('npm set //registry.npmjs.org/:_authToken=npm_abcdefghijklmnopqrstuvwxyz0123456789AB');
+  assert.match(out, /\[REDACTED:npm\]/);
+});
+
+test('redacts HuggingFace tokens', () => {
+  const out = redactSecrets('export HF_TOKEN=hf_abcdefghijklmnopqrstuvwxyz01234567AB');
+  assert.match(out, /\[REDACTED:huggingface\]/);
+});
+
+test('redacts Azure storage AccountKey', () => {
+  // 88 chars base64 with padding
+  const key = 'A'.repeat(86) + '==';
+  const out = redactSecrets(`DefaultEndpointsProtocol=https;AccountKey=${key};EndpointSuffix=core.windows.net`);
+  assert.match(out, /\[REDACTED:azure\]/);
+});
+
+test('redacts GCP PEM private key blocks', () => {
+  const pem = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC...\n-----END PRIVATE KEY-----';
+  const out = redactSecrets(`config: { "private_key": "${pem.replace(/\n/g, '\\n')}" }`);
+  // The replacement target is the BEGIN..END block; literal \n still splits
+  // only in the prose copy above. For the regex to match the actual PEM
+  // string we need a real multiline case.
+  const out2 = redactSecrets(pem);
+  assert.match(out2, /\[REDACTED:gcp\]/);
+});
+
 test('redacts inline password=/token=/key=/secret= assignments', () => {
-  const out = redactSecrets('db password=hunter2 api_token=xyz12345 api_key=abc secret=shh');
+  const out = redactSecrets('db password=hunter2 api_token=xyz12345 api_key=abc secret=shh client_secret=ZZZ');
   assert.match(out, /password=\[REDACTED\]/);
   assert.match(out, /api_token=\[REDACTED\]/);
   assert.match(out, /api_key=\[REDACTED\]/);
   assert.match(out, /secret=\[REDACTED\]/);
+  assert.match(out, /client_secret=\[REDACTED\]/);
+});
+
+test('redacts JSON-style "clientSecret": "..." values', () => {
+  const out = redactSecrets('{"clientSecret": "super-secret-value-xyz", "other": "ok"}');
+  assert.match(out, /"clientSecret":\s*"\[REDACTED\]"/);
+  assert.doesNotMatch(out, /super-secret-value/);
+  assert.match(out, /"other":\s*"ok"/);
 });
 
 test('leaves ordinary prose alone', () => {
@@ -46,7 +103,7 @@ test('leaves ordinary prose alone', () => {
   assert.equal(redactSecrets(p), p);
 });
 
-test('preserves short code-like strings that aren\'t secrets', () => {
+test('preserves code-like strings that aren\'t secrets', () => {
   const p = 'function foo(bar) { return bar + 1; }';
   assert.equal(redactSecrets(p), p);
 });

@@ -58,3 +58,40 @@ test('non-string inputs become empty', () => {
   assert.equal(r.how_to_apply, '');
   assert.equal(r.summary, '');
 });
+
+test('truncation is codepoint-safe for emoji (no dangling surrogate)', () => {
+  // Fill past the summary cap with a 4-byte emoji so the boundary falls
+  // inside a surrogate pair. Caps are codepoint-counted, so the output
+  // codepoint count must respect the limit and contain no lone surrogate.
+  const content = '🎉'.repeat(200); // 200 codepoints, 400 UTF-16 code units
+  const r = applyCaps({ summary: content });
+  const cps = Array.from(r.summary);
+  assert.ok(cps.length <= CAP_SUMMARY, `got ${cps.length} codepoints`);
+  // No lone surrogates in the output (well-formed UTF-16).
+  for (let i = 0; i < r.summary.length; i++) {
+    const code = r.summary.charCodeAt(i);
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      // High surrogate — next unit must be a low surrogate.
+      const next = r.summary.charCodeAt(i + 1);
+      assert.ok(next >= 0xDC00 && next <= 0xDFFF, `lone high surrogate at ${i}`);
+      i++; // skip low
+    } else {
+      assert.ok(code < 0xDC00 || code > 0xDFFF, `lone low surrogate at ${i}`);
+    }
+  }
+  assert.ok(r.summary.endsWith('…[truncated]'));
+});
+
+test('truncation is codepoint-safe for CJK content', () => {
+  const content = '日本語'.repeat(5000); // 15000 codepoints, 1 UTF-16 unit each
+  const r = applyCaps({ content });
+  const cps = Array.from(r.content);
+  assert.ok(cps.length <= CAP_CONTENT, `got ${cps.length} codepoints`);
+  assert.ok(r.content.endsWith('…[truncated]'));
+});
+
+test('under-cap emoji strings pass through intact', () => {
+  const hello = 'hello 🎉 world';
+  const r = applyCaps({ summary: hello });
+  assert.equal(r.summary, hello);
+});
