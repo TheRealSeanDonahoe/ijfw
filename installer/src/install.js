@@ -136,8 +136,11 @@ async function main() {
   }
 
   console.log('');
-  console.log('IJFW ready. Launch Claude Code and say hi.');
-  console.log('Memory directory preserved across re-runs: ' + join(target, 'memory'));
+  console.log('IJFW ready.');
+  console.log(`  Memory preserved at: ${join(target, 'memory')}`);
+  console.log('  Run `ijfw-install --help` for options.');
+  console.log('  /doctor inside Claude Code to verify health.');
+  console.log('  Privacy: everything local. See NO_TELEMETRY.md.');
   process.exit(0);
 }
 
