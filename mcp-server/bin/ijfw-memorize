@@ -11,7 +11,7 @@
 // Consent: reads .ijfw/.automem-consent. If absent or consented=false, exits 0
 // silently. User sets consent via `/ijfw memory consent yes|no|ask`.
 
-import { readFileSync, existsSync, appendFileSync, mkdirSync, rmdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync, rmdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { redactSecrets } from '../src/redactor.js';
 import { applyCaps } from '../src/caps.js';
@@ -45,43 +45,86 @@ function readExistingKnowledge() {
   try { return readFileSync(KNOWLEDGE, 'utf8'); } catch { return ''; }
 }
 
-// Y2 — relative BM25 dedupe. A fixed threshold doesn't generalize: BM25
-// scores scale with corpus size and query length. Use a relative measure:
-// treat it as a duplicate if the top-hit score is within 20% of the max
-// possible score for this query (which we approximate via self-search).
+// Y2 / R2-D — relative BM25 dedupe. A fixed threshold doesn't generalize:
+// BM25 scores scale with corpus size (IDF depends on N) and query length.
+// Round-1 fix approximated the ceiling via a 1-doc self-corpus, but that
+// produces a DIFFERENT IDF than the N-doc candidate corpus — incomparable
+// scores. R2-D fix: inject a synthetic self-doc INTO the existing corpus
+// so both candidate and ceiling scores share the same IDF denominator.
 function isDuplicate(summary, existingText) {
   if (!existingText || !summary) return false;
-  const corpus = existingText.split('\n').filter(l => l.trim().length > 0)
-    .map((line, i) => ({ id: String(i), text: line }));
-  if (corpus.length === 0) return false;
-  const r = searchCorpus(summary, corpus, { limit: 1 });
-  if (r.length === 0) return false;
-  // Self-search gives us the score ceiling for this exact summary string.
-  const self = searchCorpus(summary, [{ id: '_self', text: summary }], { limit: 1 });
-  const ceiling = self.length ? self[0].score : r[0].score;
-  return r[0].score >= ceiling * 0.8;
+  const lines = existingText.split('\n').filter(l => l.trim().length > 0);
+  if (lines.length === 0) return false;
+  const corpusWithSelf = lines.map((line, i) => ({ id: `e${i}`, text: line }));
+  corpusWithSelf.push({ id: '_self', text: summary });
+  const results = searchCorpus(summary, corpusWithSelf, { limit: 5 });
+  if (results.length === 0) return false;
+  const selfHit = results.find(r => r.id === '_self');
+  const bestExisting = results.find(r => r.id !== '_self');
+  if (!selfHit || !bestExisting) return false;
+  // Duplicate if best existing hit is within 80% of the perfect-match ceiling.
+  return bestExisting.score >= selfHit.score * 0.8;
 }
 
-// C2 / ST5 — file lock around multi-line structured appends. Uses
-// mkdir-based locking (atomic on POSIX + Windows). Retries with backoff
-// up to ~2s. Releases on success or on any throw.
+// C2 / ST5 / R2-C / R2-G — file lock around multi-line structured appends.
+// Uses mkdir-based locking (atomic on POSIX + Windows). On contention:
+//   1. Check lock's mtime; if older than STALE_LOCK_MS, reclaim it (prior
+//      process likely crashed without releasing).
+//   2. Otherwise sleep (not busy-wait) for ~50ms via Atomics.wait on a
+//      shared buffer — sync sleep that doesn't burn CPU.
+//   3. Retry up to ~2s deadline.
+// Always writes the holder's pid to a sidecar file inside the lock dir so
+// crashes are diagnosable.
 const LOCK_DIR = join(MEMORY_DIR, '.knowledge.lock');
+const LOCK_PID_FILE = join(LOCK_DIR, 'pid');
+const STALE_LOCK_MS = 10_000;
+
+// R2-G — sync sleep without busy-wait. Atomics.wait blocks the thread on
+// a SharedArrayBuffer-backed Int32Array. Timeout in ms.
+const _sleepBuf = new Int32Array(new SharedArrayBuffer(4));
+function sleepSync(ms) { Atomics.wait(_sleepBuf, 0, 0, ms); }
+
+function tryReclaimStale() {
+  try {
+    const age = Date.now() - statSync(LOCK_DIR).mtimeMs;
+    if (age > STALE_LOCK_MS) {
+      try { rmdirSync(LOCK_DIR, { recursive: true }); } catch { /* fall through */ }
+      return true;
+    }
+  } catch { /* lock dir may have just been released */ }
+  return false;
+}
+
 function withLock(fn) {
   const deadline = Date.now() + 2000;
   let acquired = false;
   while (!acquired && Date.now() < deadline) {
     try {
       mkdirSync(LOCK_DIR);
+      // Best-effort pid tag inside the lock for diagnostics.
+      try { writeFileSync(LOCK_PID_FILE, String(process.pid)); } catch { /* ignore */ }
       acquired = true;
     } catch {
-      // Sleep ~30ms (busy-wait via a tiny deopt loop; avoids setTimeout async).
-      const s = Date.now() + 30;
-      while (Date.now() < s) { /* tight wait */ }
+      // Contention. Consider reclaiming if stale; otherwise sleep + retry.
+      if (tryReclaimStale()) continue;
+      sleepSync(50);
     }
   }
-  if (!acquired) return fn(); // degrade to no-lock if stuck (better than losing the write)
+  if (!acquired) {
+    // Degrade to no-lock rather than lose the write — record the incident.
+    try {
+      mkdirSync(IJFW_DIR, { recursive: true });
+      appendFileSync(
+        join(IJFW_DIR, '.error.log'),
+        `${new Date().toISOString()} ijfw-memorize: lock acquisition timed out after 2s; proceeding without lock\n`
+      );
+    } catch { /* ignore */ }
+    return fn();
+  }
   try { return fn(); }
-  finally { try { rmdirSync(LOCK_DIR); } catch { /* ignore */ } }
+  finally {
+    try { rmdirSync(LOCK_DIR, { recursive: true }); } catch { /* ignore */ }
+  }
 }
 
 function appendEntry({ type, summary, content, why, howToApply, tags }) {
@@ -215,4 +258,16 @@ async function main() {
   }
 }
 
-main().catch(() => process.exit(0));
+// R2-H — log errors before silent exit so EACCES / EDQUOT / malformed-JSON
+// failures are diagnosable. Hook caller sees exit 0 (never crashes Claude
+// Code); .ijfw/.error.log is the debug trail.
+main().catch((e) => {
+  try {
+    mkdirSync(IJFW_DIR, { recursive: true });
+    appendFileSync(
+      join(IJFW_DIR, '.error.log'),
+      `${new Date().toISOString()} ijfw-memorize: ${e && e.stack ? e.stack : (e && e.message) || String(e)}\n`
+    );
+  } catch { /* last-resort silent */ }
+  process.exit(0);
+});
