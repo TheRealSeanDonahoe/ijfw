@@ -335,6 +335,17 @@ if [ "$SESSION_COUNT" -gt 0 ] || [ "$DECISION_COUNT" -gt 0 ]; then
   echo "Memory loaded ($SESSION_COUNT sessions, $DECISION_COUNT decisions)"
 fi
 
+# W3.11 / H9 — surface one most-recent auto-memorized entry as the
+# "I remember X about this project" moment. Silent when none exist
+# (new install / auto-memorize disabled).
+KB="$IJFW_DIR/memory/knowledge.md"
+if [ -f "$KB" ]; then
+  AUTO_ENTRY=$(grep -B2 'auto-memorize' "$KB" 2>/dev/null | grep '^summary:' | tail -1 | sed 's/^summary:[[:space:]]*//' | cut -c1-110)
+  if [ -n "$AUTO_ENTRY" ]; then
+    echo "Remembered: $AUTO_ENTRY"
+  fi
+fi
+
 if [ -f "$IJFW_DIR/memory/handoff.md" ]; then
   LAST_STATUS=$(grep -A1 "### Status" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//')
   NEXT_STEP=$(grep -A1 "### Next Steps" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//;s/^[0-9]*\. //')
