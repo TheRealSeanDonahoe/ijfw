@@ -103,6 +103,10 @@ Smaller items that contribute to the "wow" without being individually large:
 - **3c — Receipts pruning.** `.ijfw/receipts/cross-runs.jsonl` grows unbounded. Add automatic prune (keep last 100 entries) on each write. Add `--purge-receipts` CLI subcommand for explicit cleanup.
 - **3d — `ijfw doctor`.** New subcommand: probe roster + show which CLIs / API keys are reachable + show install-hint for missing pieces. Single-screen "is it working?" answer.
 - **3e — Clean up install.sh self-run artifacts permanently.** Currently `.gitignore` protects, but `install.sh` could detect "I'm in IJFW's own repo" and skip the platform-rule writes (this is the "don't pollute your own dev tree" rule). Add a `.ijfw-source` marker file at IJFW repo root and have install.sh refuse to install onto its own source.
+- **3f — Cost/budget guard (stranger safety).** Add `IJFW_AUDIT_BUDGET_USD` env var (default `2.00`). When a `runCrossOp` invocation is projected to exceed the budget (sum of known per-provider list prices × approximate token counts), skip that provider with a positive-framed message: `"Skipping Anthropic API call — would exceed $2.00 session budget (currently $1.87). Raise IJFW_AUDIT_BUDGET_USD or use codex/gemini instead."` Prevents surprise bills for strangers trying the demo. Small feature, high trust-building value.
+- **3g — CHANGELOG.md.** Single file at repo root, one section per phase (P0 through P10). Auto-generated initial draft from commit history, then hand-edited for narrative voice. Must read like a product announcement, not a git log.
+- **3h — README rewrite.** Must lead with the 30-second hook: `npm install -g @ijfw/install && ijfw demo` showing the first-run wow. Replace any Phase-6-era "current state" copy with current capabilities. Include: installation, `ijfw demo` output sample, architecture one-pager, "why IJFW vs alternatives" framing (positive, factual — not trash-talk).
+- **3i — PUBLISH-CHECKLIST.md refresh.** Current version is Phase 4-6 era. Add P7-P9 verification steps: check-all.sh green, bin/ijfw executable, fixtures/ in package.json files, test count ≥175, dogfood receipts archived. Each step one-line + one-command.
 
 ---
 
@@ -147,14 +151,20 @@ Publish gate: **zero unresolved HIGH findings**. Pass = ship. Fail = fix or tick
 5. **Item 4** LAST — must audit the polished version, not the in-progress one.
 6. After Item 4 passes: `npm publish` + marketplace PR.
 
-## Out of scope (deferred to P11+)
+## Genuine unshipped features (V1.1+ / P11, not P10)
 
-- Strategic positioning review (Gemini P8 critical: CI/CD-first vs in-IDE) — needs user discussion, not code.
-- New-machine bootstrap dockerized test harness.
-- Uninstall clean-exit dockerized test harness.
-- RTK coexist live-fire test (would need an RTK install).
-- Cross-project audit / search.
-- Team-tier memory.
+These are real features that were deferred during P3-P9. Documenting here so nothing is silently forgotten; they are NOT in P10 because P10 is polish-only.
+
+- **Cross-project audit / search** (from `project_cross_project_search.md` memory) — "search my other IJFW projects for this pattern" via registry of known IJFW dirs. V1.1.
+- **`ijfw import`** — migrate claude-mem / MemPalace / Memorix / RTK memory stores into IJFW format (migration philosophy says we "absorb, not just coexist"). V1.1.
+- **Team-tier memory** — shared memory across teammates. V2.
+- **CI/CD-first positioning** (Gemini P8 strategic flag) — decision for milestone-end review, not a feature.
+
+## Out of scope (deferred to P11+ for other reasons)
+
+- New-machine bootstrap dockerized test harness (infra, not feature)
+- Uninstall clean-exit dockerized test harness (infra)
+- RTK coexist live-fire test (needs an RTK install)
 
 ## Success criteria (publish-blocking)
 
