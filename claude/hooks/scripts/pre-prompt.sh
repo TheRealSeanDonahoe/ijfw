@@ -90,7 +90,13 @@ try {
   }));
 } catch {}
 if (r.vague) {
-  contextParts.push('<ijfw-prompt-check>\\n' + r.suggestion + '\\nSignals: ' + r.signals.join(', ') + '. Override with leading * or \"ijfw off\".\\n</ijfw-prompt-check>');
+  let block = '<ijfw-prompt-check>\\n' + r.suggestion;
+  if (Array.isArray(r.rewrite) && r.rewrite.length) {
+    block += '\\n\\nAsk back:';
+    for (const q of r.rewrite) block += '\\n  • ' + q;
+  }
+  block += '\\nSignals: ' + r.signals.join(', ') + '. Override with leading * or \"ijfw off\".\\n</ijfw-prompt-check>';
+  contextParts.push(block);
 }
 
 if (contextParts.length > 0) {
