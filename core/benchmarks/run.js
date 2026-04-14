@@ -19,7 +19,7 @@ const ARMS = {
 };
 
 function parseArgs(argv) {
-  const out = { task: null, arm: 'C', epochs: 1, dryRun: false, really: false, maxCostUsd: 10, model: null };
+  const out = { task: null, arm: 'C', epochs: 1, dryRun: false, really: false, maxCostUsd: 10, model: null, skillVariant: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--task') out.task = argv[++i];
@@ -29,6 +29,9 @@ function parseArgs(argv) {
     else if (a === '--really') out.really = true;
     else if (a === '--max-cost-usd') out.maxCostUsd = parseFloat(argv[++i]);
     else if (a === '--model') out.model = argv[++i];
+    // A5 — skill-variant: path to a SKILL.md that replaces ijfw-core during this run.
+    // Useful for A/B testing skill rewrites without permanently changing the plugin.
+    else if (a === '--skill-variant') out.skillVariant = argv[++i];
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
   }
   return out;
@@ -41,6 +44,7 @@ Usage: node run.js --task <id> [--arm A|B|C] [--epochs N] [--dry-run | --really]
   --really           actually invoke claude (otherwise refuses)
   --max-cost-usd N   abort if cumulative cost exceeds N (default 10)
   --model M          pass --model to claude (e.g. claude-sonnet-4-6, claude-haiku-4-5)
+  --skill-variant P  swap ijfw-core SKILL.md with file at P for this run (A/B)
 `);
 }
 
@@ -101,7 +105,35 @@ async function main() {
     process.exit(2);
   }
 
+  // A5 — skill-variant swap. Backup the live ijfw-core SKILL.md, copy the
+  // variant into its place for the duration of the run, restore in finally.
+  let skillSwap = null;
+  if (opts.skillVariant) {
+    const fsMod = await import('node:fs');
+    const liveSkill = new URL('../../claude/skills/ijfw-core/SKILL.md', import.meta.url).pathname;
+    if (!fsMod.existsSync(opts.skillVariant)) {
+      console.error(`--skill-variant expects a readable SKILL.md at ${opts.skillVariant}; run cancelled.`);
+      process.exit(2);
+    }
+    const backup = liveSkill + '.bench-backup';
+    fsMod.copyFileSync(liveSkill, backup);
+    fsMod.copyFileSync(opts.skillVariant, liveSkill);
+    skillSwap = { live: liveSkill, backup };
+    console.log(`  skill-variant swapped: ${opts.skillVariant} → live`);
+  }
+  const restore = () => {
+    if (skillSwap) {
+      try {
+        const fsMod = require('node:fs');
+        fsMod.copyFileSync(skillSwap.backup, skillSwap.live);
+        fsMod.unlinkSync(skillSwap.backup);
+      } catch { /* best-effort */ }
+    }
+  };
+  process.once('SIGINT', () => { restore(); process.exit(130); });
+
   let totalCost = 0;
+  try {
   for (let epoch = 0; epoch < opts.epochs; epoch++) {
     if (totalCost >= opts.maxCostUsd) {
       console.error(`ABORT: cumulative cost $${totalCost.toFixed(4)} >= cap $${opts.maxCostUsd}`);
@@ -125,6 +157,15 @@ async function main() {
     };
     const file = writeJsonl(record);
     console.log(`  epoch=${epoch} arm=${opts.arm} cost=$${cost.toFixed(4)} total=$${totalCost.toFixed(4)} → ${file}`);
+  }
+  } finally {
+    if (skillSwap) {
+      const fsMod = await import('node:fs');
+      try {
+        fsMod.copyFileSync(skillSwap.backup, skillSwap.live);
+        fsMod.unlinkSync(skillSwap.backup);
+      } catch { /* best-effort */ }
+    }
   }
 }
 
