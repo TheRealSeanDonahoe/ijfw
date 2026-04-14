@@ -63,6 +63,31 @@ const INTENTS = [
     nudge: "Intent: recall from memory. Call ijfw_memory_recall or ijfw_memory_search before answering from general knowledge.",
   },
   {
+    intent: 'cross-research',
+    skill:  '/cross-research',
+    patterns: [
+      /\bcross[- ]?research(?:\s|ing)?\b/i,
+      /\blet'?s cross[- ]?research\b/i,
+      /\bdig into .+ from multiple angles\b/i,
+      /\bmulti[- ]?angle research\b/i,
+      /\bresearch (?:this|that) from multiple angles\b/i,
+    ],
+    nudge: "Intent: cross-research. Run /cross-research (auto-detects target; no args needed). Two-phase flow: Phase A fans Codex + Gemini in parallel (benchmarks + citations angles), Phase B Claude synthesis consumes their output. All requests auto-fire via background bash — no manual paste required.",
+  },
+  {
+    intent: 'cross-critique',
+    skill:  '/cross-critique',
+    patterns: [
+      /\bcross[- ]?critique(?:\s|ing)?\b/i,
+      /\blet'?s cross[- ]?critique\b/i,
+      /\bstress[- ]?test this claim\b/i,
+      /\badversarial (?:critique|review)\b/i,
+      /\bchallenge this from every angle\b/i,
+      /\battack this from all sides\b/i,
+    ],
+    nudge: "Intent: cross-critique. Run /cross-critique (auto-detects target). Parallel fan-out: Codex → technical weaknesses, Gemini → strategic weaknesses, fresh Claude → UX/adoption weaknesses. Results ranked by rebuttal-survival score. All auditors auto-fire via background bash.",
+  },
+  {
     intent: 'critique',
     skill:  'ijfw-critique',
     patterns: [

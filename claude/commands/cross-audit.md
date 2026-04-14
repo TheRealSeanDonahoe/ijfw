@@ -88,11 +88,29 @@ When invoked, do this in order:
 
 5. **Run** via Bash (`<picks[i].invoke> < .ijfw/cross-audit/request.md > .ijfw/cross-audit/response-<id>.md`). Update TODO to `in_progress` then `completed` per auditor.
 
-6. **Compare** all returned responses together:
-   - Findings agreed by ≥2 auditors → **high confidence**
-   - Findings unique to one → **investigate**
-   - Findings only the caller had → flag for sanity check
-   - Render single merged table with a "consensus" column.
+5a. **Fire Claude specialist swarm in parallel** (caller leg of the Trident).
+   The caller's contribution is NOT a solo in-session opinion — it's a parallel
+   dispatch of specialist subagents via the `Agent` tool. Fire these in the
+   same message as the external bg-bash calls so they run concurrently:
+
+   | Specialist | Agent type | Angle |
+   |------------|-----------|-------|
+   | Code review | `pr-review-toolkit:code-reviewer` OR `feature-dev:code-reviewer` | convention/correctness |
+   | Silent failures | `pr-review-toolkit:silent-failure-hunter` | error-swallowing, fallbacks |
+   | Test coverage | `pr-review-toolkit:pr-test-analyzer` | coverage gaps |
+   | Type design | `pr-review-toolkit:type-design-analyzer` | invariants (typed codebases only) |
+
+   Pick the subset relevant to the target. Merge their findings into ONE
+   composite JSON array matching the audit schema, write to
+   `.ijfw/cross-audit/response-self.md`. This joins the external responses
+   in step 6.
+
+6. **Compare** all returned responses together — external auditors AND the
+   caller's specialist-swarm composite (`response-self.md`):
+   - Findings agreed by ≥2 sources → **high confidence**
+   - Findings unique to one source → **investigate**
+   - Render single merged table with a "consensus" column and a source tag
+     per finding (codex | gemini | self:code-reviewer | self:silent-failure | …).
 
 7. **Archive** all request + response files to `.ijfw/cross-audit/archive/<ts>-<ids>/`.
 
