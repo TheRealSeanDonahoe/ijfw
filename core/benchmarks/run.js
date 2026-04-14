@@ -19,7 +19,7 @@ const ARMS = {
 };
 
 function parseArgs(argv) {
-  const out = { task: null, arm: 'C', epochs: 1, dryRun: false, really: false, maxCostUsd: 10 };
+  const out = { task: null, arm: 'C', epochs: 1, dryRun: false, really: false, maxCostUsd: 10, model: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--task') out.task = argv[++i];
@@ -28,6 +28,7 @@ function parseArgs(argv) {
     else if (a === '--dry-run') out.dryRun = true;
     else if (a === '--really') out.really = true;
     else if (a === '--max-cost-usd') out.maxCostUsd = parseFloat(argv[++i]);
+    else if (a === '--model') out.model = argv[++i];
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
   }
   return out;
@@ -35,10 +36,11 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`ijfw benchmark runner
-Usage: node run.js --task <id> [--arm A|B|C] [--epochs N] [--dry-run | --really] [--max-cost-usd N]
+Usage: node run.js --task <id> [--arm A|B|C] [--epochs N] [--dry-run | --really] [--max-cost-usd N] [--model M]
   --dry-run          validate fixture, do not spawn claude
   --really           actually invoke claude (otherwise refuses)
   --max-cost-usd N   abort if cumulative cost exceeds N (default 10)
+  --model M          pass --model to claude (e.g. claude-sonnet-4-6, claude-haiku-4-5)
 `);
 }
 
@@ -53,11 +55,12 @@ function loadPrompt(taskId) {
   return readFileSync(p, 'utf8');
 }
 
-function runClaude(arm, prompt, manifest) {
+function runClaude(arm, prompt, manifest, model) {
   const armDef = ARMS[arm];
   if (!armDef) throw new Error(`unknown arm: ${arm}`);
   const env = { ...process.env, ...armDef.env };
   const args = ['-p', '--output-format', 'json', '--max-turns', String(manifest.max_turns ?? 20)];
+  if (model) args.push('--model', model);
   const res = spawnSync('claude', args, {
     input: prompt,
     env,
@@ -105,7 +108,7 @@ async function main() {
       process.exit(3);
     }
     const started = Date.now();
-    const result = runClaude(opts.arm, prompt, manifest);
+    const result = runClaude(opts.arm, prompt, manifest, opts.model);
     const durationMs = Date.now() - started;
     const cost = result.total_cost_usd ?? 0;
     totalCost += cost;
@@ -116,6 +119,7 @@ async function main() {
       epoch,
       duration_ms: durationMs,
       cost_usd: cost,
+      model: opts.model || null,
       usage: result.usage ?? null,
       session_id: result.session_id ?? null,
     };
