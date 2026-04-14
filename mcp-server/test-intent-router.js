@@ -33,8 +33,18 @@ test('recall → ijfw_memory_recall', () => {
 
 test('critique → ijfw-critique', () => {
   assert.equal(detectIntent('should I use websockets for this?').skill, 'ijfw-critique');
-  assert.equal(detectIntent('give me a second opinion').skill, 'ijfw-critique');
   assert.equal(detectIntent("play devil's advocate").skill, 'ijfw-critique');
+  assert.equal(detectIntent('poke holes in this design').skill, 'ijfw-critique');
+});
+
+test('cross-audit phrases → /cross-audit', () => {
+  assert.equal(detectIntent('we need to cross-audit this').skill, '/cross-audit');
+  assert.equal(detectIntent('cross audit the installer').skill, '/cross-audit');
+  assert.equal(detectIntent('get a second opinion on the auth flow').skill, '/cross-audit');
+  assert.equal(detectIntent('have gemini review this').skill, '/cross-audit');
+  assert.equal(detectIntent('ask codex to audit the diff').skill, '/cross-audit');
+  assert.equal(detectIntent('do a peer-review pass').skill, '/cross-audit');
+  assert.equal(detectIntent('second-model review please').skill, '/cross-audit');
 });
 
 test('handoff → ijfw-handoff', () => {
