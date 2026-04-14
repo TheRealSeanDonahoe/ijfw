@@ -1,0 +1,64 @@
+# IJFW opinionated .claudeignore — copy to your project root for instant
+# context savings. Claude Code respects this file when scanning directories.
+#
+# Rule of thumb: anything Claude re-scans per session that it can never
+# usefully edit or read selectively belongs here. You can always point at
+# a specific file with Read when you do need it.
+
+# Package managers
+node_modules/
+.pnpm/
+vendor/
+.cargo/
+target/
+.venv/
+venv/
+__pycache__/
+.tox/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.cache/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+coverage/
+.nyc_output/
+
+# Lockfiles (huge, machine-generated, rarely instructive)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
+Cargo.lock
+Gemfile.lock
+poetry.lock
+uv.lock
+composer.lock
+
+# Editor / OS junk
+.DS_Store
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Secrets (belt-and-braces; you should also have .gitignore)
+.env
+.env.*
+!.env.example
+
+# IJFW internals users don't need to re-read
+.ijfw/archive/
+.ijfw/sessions/

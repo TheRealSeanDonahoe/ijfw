@@ -112,6 +112,8 @@ for target in "${TARGETS[@]}"; do
       note "  /plugin marketplace add $REPO_ROOT/claude"
       note "  /plugin install ijfw"
       note "Plugin auto-registers the MCP server — no extra step needed."
+      note ".claudeignore template at $REPO_ROOT/claude/.claudeignore"
+      note "  Copy to your project root for instant context savings."
       ;;
     codex)
       echo "[Codex CLI]"
