@@ -218,14 +218,9 @@ function appendToJournal(entry) {
   return appendLine(journalPath, line);
 }
 
-function appendToKnowledge(entry) {
-  return appendLine(join(MEMORY_DIR, 'knowledge.md'), entry);
-}
-
 // Structured append for decisions/patterns — produces a richer frontmatter block
 // similar to Claude's native auto-memory format: YAML frontmatter plus a body with
 // Why / How-to-apply sections. This is the format users retrieve well from.
-// If structured fields are empty the caller falls back to appendToKnowledge (flat line).
 function appendStructuredToKnowledge({ type, summary, content, why, howToApply, tags }) {
   const filepath = join(MEMORY_DIR, 'knowledge.md');
   const ts = new Date().toISOString();
