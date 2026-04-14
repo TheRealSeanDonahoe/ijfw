@@ -97,8 +97,18 @@ if command -v node >/dev/null 2>&1; then
       return Math.round(c * 10000) / 10000;
     }
 
+    // Baseline factor: average ratio of unconstrained-output tokens to
+    // IJFW-constrained-output tokens. Starts at 1.65 (conservative estimate
+    // from early benchmarks); W1.2 replaces this with measured value. User
+    // can override via IJFW_BASELINE_FACTOR. Readers MUST tolerate absent.
+    const baseFactor = Number(process.env.IJFW_BASELINE_FACTOR) || 1.65;
+    const baselineOut = Math.round(usage.output_tokens * baseFactor);
+    const compression = usage.output_tokens > 0
+      ? Math.round((usage.output_tokens / baselineOut) * 10000) / 10000
+      : null;
+
     const o = {
-      v: 2,
+      v: 3,
       timestamp: process.argv[1],
       session: Number(process.argv[2]),
       mode: process.argv[3],
@@ -112,7 +122,11 @@ if command -v node >/dev/null 2>&1; then
       cache_creation_tokens: usage.cache_creation_input_tokens,
       cost_usd: cost(),
       model: model,
-      // Reserved for Phase 3 #2 — populated by pre-prompt hook via .ijfw/.prompt-check-state.
+      // Phase 4 W1.3 — schema v3.
+      baseline_tokens_estimate: baselineOut,
+      compression_ratio: compression,
+      baseline_factor: baseFactor,
+      // Phase 3 #2 — populated by pre-prompt hook.
       prompt_check_fired: false,
       prompt_check_signals: []
     };
@@ -163,5 +177,29 @@ fi
 
 # Positive-framed status — no jargon, no negatives, no paths.
 echo "Session #$SESSION_NUM saved."
+
+# Savings reframe (W1.3 / C1). Reads the JSONL line we just appended and
+# emits a one-line "IJFW this session: …" so users see the value delivered
+# rather than just a session counter. Entirely silent if the line lacks
+# usage data (e.g. first session, missing transcript_path).
+if command -v node >/dev/null 2>&1 && [ -f "$METRICS_FILE" ]; then
+  node -e '
+    const fs = require("fs");
+    try {
+      const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean);
+      if (!lines.length) return;
+      const last = JSON.parse(lines[lines.length - 1]);
+      const out = last.output_tokens || 0;
+      if (out <= 0) return;
+      const baseline = last.baseline_tokens_estimate || Math.round(out * 1.65);
+      const saved = Math.max(0, baseline - out);
+      const cost = last.cost_usd || 0;
+      const baseFactor = last.baseline_factor || 1.65;
+      const costSaved = cost > 0 && out > 0 ? (cost * (baseFactor - 1) / baseFactor) : 0;
+      const fmt = n => n >= 1000 ? (n/1000).toFixed(1) + "k" : String(n);
+      process.stdout.write(`IJFW this session: ~${fmt(saved)} tokens saved vs baseline (~$${costSaved.toFixed(3)})\n`);
+    } catch {}
+  ' "$METRICS_FILE" 2>/dev/null
+fi
 
 exit 0
