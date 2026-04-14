@@ -1,0 +1,117 @@
+// @ijfw/install — one-command IJFW installer.
+// Flow: preflight → resolve target → clone/pull → scripts/install.sh → merge marketplace → summary.
+
+import { spawnSync } from 'node:child_process';
+import { existsSync, rmSync, mkdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { homedir, platform } from 'node:os';
+import { mergeMarketplace, claudeSettingsPath } from './marketplace.js';
+
+const DEFAULT_REPO = 'https://github.com/TradeCanyon/ijfw.git';
+const DEFAULT_BRANCH = 'main';
+
+function parseArgs(argv) {
+  const out = { yes: false, dir: null, noMarketplace: false, branch: DEFAULT_BRANCH, purge: false };
+  for (let i = 2; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--yes' || a === '-y') out.yes = true;
+    else if (a === '--dir') out.dir = argv[++i];
+    else if (a === '--no-marketplace') out.noMarketplace = true;
+    else if (a === '--branch') out.branch = argv[++i];
+    else if (a === '--purge') out.purge = true;
+    else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
+  }
+  return out;
+}
+
+function printHelp() {
+  console.log(`ijfw-install — IJFW installer
+Usage: npx @ijfw/install [--dir <path>] [--branch <name>] [--no-marketplace] [--yes]
+  --dir             install location (default: $IJFW_HOME or ~/.ijfw)
+  --branch          git branch (default: main)
+  --no-marketplace  skip merging ~/.claude/settings.json
+  --yes             non-interactive
+`);
+}
+
+function preflight() {
+  const issues = [];
+  const [major] = process.versions.node.split('.').map(Number);
+  if (major < 18) issues.push(`Node ${process.versions.node} detected; IJFW wants Node ≥18.`);
+  if (!hasBin('git')) issues.push('git not on PATH — install git, then retry.');
+  if (!hasBin('bash')) issues.push('bash not on PATH — install bash, then retry.');
+  if (platform() === 'win32') issues.push('Native Windows detected — please run from WSL for the best IJFW experience.');
+  return issues;
+}
+
+function hasBin(bin) {
+  const res = spawnSync(bin, ['--version'], { stdio: 'ignore' });
+  return res.status === 0 || res.status === null ? (res.error ? false : true) : false;
+}
+
+function resolveTarget(opt) {
+  if (opt.dir) return resolve(opt.dir);
+  if (process.env.IJFW_HOME) return resolve(process.env.IJFW_HOME);
+  return join(homedir(), '.ijfw');
+}
+
+function cloneOrPull(dir, branch) {
+  if (existsSync(join(dir, '.git'))) {
+    const r = spawnSync('git', ['-C', dir, 'pull', '--ff-only', 'origin', branch], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error(`git pull failed (exit ${r.status}).`);
+    return 'updated';
+  }
+  mkdirSync(dir, { recursive: true });
+  const r = spawnSync('git', ['clone', '--depth', '1', '--branch', branch, DEFAULT_REPO, dir], { stdio: 'inherit' });
+  if (r.status !== 0) throw new Error(`git clone failed (exit ${r.status}).`);
+  return 'cloned';
+}
+
+function runInstallScript(dir) {
+  const script = join(dir, 'scripts', 'install.sh');
+  if (!existsSync(script)) throw new Error(`scripts/install.sh missing at ${script}.`);
+  const env = { ...process.env, IJFW_NONINTERACTIVE: process.env.CI ? '1' : (process.env.IJFW_NONINTERACTIVE ?? '') };
+  const r = spawnSync('bash', ['scripts/install.sh'], { cwd: dir, stdio: 'inherit', env });
+  if (r.status !== 0) throw new Error(`scripts/install.sh exited ${r.status}.`);
+}
+
+async function main() {
+  const opts = parseArgs(process.argv);
+  const issues = preflight();
+  if (issues.length) {
+    console.error('Preflight:');
+    for (const i of issues) console.error('  - ' + i);
+    process.exit(1);
+  }
+
+  const target = resolveTarget(opts);
+  const createdThisRun = !existsSync(target);
+
+  const sigint = () => {
+    if (createdThisRun && existsSync(target)) {
+      try { rmSync(target, { recursive: true, force: true }); } catch { /* best-effort */ }
+    }
+    process.exit(130);
+  };
+  process.on('SIGINT', sigint);
+
+  console.log(`IJFW → ${target}`);
+  const action = cloneOrPull(target, opts.branch);
+  console.log(`  repo ${action}`);
+
+  runInstallScript(target);
+  console.log('  scripts/install.sh complete');
+
+  if (!opts.noMarketplace) {
+    const settingsPath = claudeSettingsPath();
+    mergeMarketplace(settingsPath);
+    console.log(`  marketplace registered in ${settingsPath}`);
+  }
+
+  console.log('');
+  console.log('IJFW ready. Launch Claude Code and say hi.');
+  console.log('Memory directory preserved across re-runs: ' + join(target, 'memory'));
+  process.exit(0);
+}
+
+main().catch((e) => { console.error(e.message || String(e)); process.exit(1); });
