@@ -20,6 +20,7 @@ Render the IJFW status block as a fenced code block. **Compute it deterministica
 8. `.ijfw/index/files.md` → count lines matching `^- \`` = indexed files
 9. `~/.ijfw/memory/global/*.md` → count lines per facet matching this project's namespace `[ns:HASH]`
 10. `.ijfw/.startup-flags` → list any IJFW_NEEDS_* flags
+11. `.ijfw/receipts/cross-runs.jsonl` → parse each line; aggregate via `renderHeroLine` from `mcp-server/src/hero-line.js` (omit the whole "Cross-audit runs" section if the file doesn't exist or has zero lines)
 
 ## Output format (positive framing — never "missing", "warning", "failed")
 
@@ -43,6 +44,11 @@ Project preferences
 Recent decisions
   {top 3 most recent from knowledge.md, one per line, truncated to 100 chars each}
   (omit section if 0)
+
+Cross-audit runs
+  {hero_line from renderHeroLine}
+  Total runs: {N}
+  (omit whole section if receipts file missing or empty)
 
 Pending
   {one line per IJFW_NEEDS_* flag — e.g. "Memory consolidation due (run /consolidate)"}

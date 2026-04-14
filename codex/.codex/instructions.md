@@ -33,3 +33,6 @@ Resume terse after.
 
 ## Prompt Self-Check
 Before answering a short request (<30 tokens) with no file path, function name, or line number: silently check whether ≥2 of these apply — bare action verb (fix/refactor/improve), unresolved "this/that/it" reference, abstract goal (better/cleaner/proper), missing target. If yes, ask one sharpening question (file? symbol? expected behavior?) before guessing. Override: prompt starts with `*` or contains "ijfw off".
+
+## Cross-Audit / Research / Critique
+To cross-audit, cross-research, or cross-critique, run `ijfw cross <mode> <target>`. This is the sole Trident path for Codex (no MCP available in codex/) — the `ijfw` CLI is the only way to fire cross-AI analysis from this context.

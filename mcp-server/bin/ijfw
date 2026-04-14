@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# IJFW CLI launcher — cross-audit/research/critique across AI families.
+# Resolves script location through symlinks (POSIX-portable).
+
+SOURCE="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+CLI="$SCRIPT_DIR/../src/cross-orchestrator-cli.js"
+
+if [ ! -f "$CLI" ]; then
+  echo "Error: ijfw CLI not found at $CLI" >&2
+  exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Error: node not installed (Node 18+ required)" >&2
+  exit 1
+fi
+
+exec node "$CLI" "$@"

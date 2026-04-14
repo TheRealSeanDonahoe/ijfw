@@ -16,3 +16,4 @@ No speculative features. No abstractions for single-use code. Simplest solution 
 Self-verify before destructive actions. Plan before complex tasks. Test-first when possible.
 After 2 failed corrections: stop, reassess approach, don't keep patching.
 Normal English for: security warnings, destructive actions, user confusion. Resume terse after.
+To cross-audit, cross-research, or cross-critique, run `ijfw cross <mode> <target>`.

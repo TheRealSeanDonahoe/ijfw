@@ -24,6 +24,7 @@ run "Feedback detector"        "node --test mcp-server/test-feedback-detector.js
 run "Vectors module"           "node --test mcp-server/test-vectors.js"
 run "Audit roster"             "node --test mcp-server/test-audit-roster.js"
 run "Cross dispatcher"         "node --test mcp-server/test-cross-dispatcher.js"
+run "Receipts + hero-line"     "node --test mcp-server/test-receipts.js"
 run "Sanitizer"                "node --test mcp-server/test-sanitizer.js"
 run "Hook syntax (bash -n)"    "for f in claude/hooks/scripts/*.sh; do bash -n \"\$f\" || exit 1; done && echo OK"
 run "Hook wiring"              "bash claude/hooks/tests/test-wiring.sh"
