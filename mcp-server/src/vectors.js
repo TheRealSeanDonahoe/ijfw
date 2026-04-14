@@ -15,6 +15,12 @@
 
 const DEFAULT_MODEL = 'Xenova/all-MiniLM-L6-v2';
 
+// S8 — model integrity pin. HuggingFace publishes SHA256 per file; we pin
+// the model.onnx hash so a supply-chain substitution is detectable. Empty
+// by default (any; used for audit), set via IJFW_VECTORS_MODEL_SHA256 to
+// enforce. When enforced and hash differs, getEmbedder returns unavailable.
+const EXPECTED_SHA256 = process.env.IJFW_VECTORS_MODEL_SHA256 || null;
+
 let _pipelinePromise = null;
 
 async function loadPipeline() {

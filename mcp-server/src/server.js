@@ -24,6 +24,7 @@ import { createHash, randomBytes } from 'crypto';
 import { checkPrompt } from './prompt-check.js';
 import { applyCaps, CAP_CONTENT } from './caps.js';
 import { ensureSchemaHeader, SCHEMA_HEADER } from './schema.js';
+import { searchCorpus } from './search-bm25.js';
 
 // --- Constants ---
 const SCHEMA_VERSION = 1;
@@ -443,44 +444,52 @@ function searchAcrossProjects(query, limit) {
 }
 
 // --- Search ---
+// P5.1 / H4 — BM25 ranking over line-level docs. Source tags and line
+// numbers preserved so callers get the same output shape; scoring is
+// BM25 (IDF + TF + length-normalized) with per-source boost. Team tier
+// ranks first via a score bump for ties.
 function searchMemory(query, limit = 10, scope = 'project') {
   limit = Math.min(Math.max(1, limit | 0), MAX_SEARCH_RESULTS);
   if (scope === 'all') return searchAcrossProjects(query, limit);
-  const results = [];
-  const queryLower = String(query).toLowerCase();
-  const keywords = queryLower.split(/\s+/).filter(w => w.length > 2);
-  if (keywords.length === 0) return results;
 
-  // Source order matters for ranking: team first (shared, authoritative),
-  // then personal knowledge, then journal/handoff/global/native.
   const sources = [
-    { name: 'team', content: readTeamKnowledge() },
-    { name: 'knowledge', content: readKnowledgeBase() },
-    { name: 'journal', content: readOr(join(MEMORY_DIR, 'project-journal.md')) },
-    { name: 'handoff', content: readHandoff() },
-    { name: 'global', content: readGlobalKnowledge() },
-    { name: 'claude-native', content: readNativeClaudeMemory() }
+    { name: 'team',          content: readTeamKnowledge(),                          boost: 1.25 },
+    { name: 'knowledge',     content: readKnowledgeBase(),                          boost: 1.15 },
+    { name: 'journal',       content: readOr(join(MEMORY_DIR, 'project-journal.md')), boost: 1.0  },
+    { name: 'handoff',       content: readHandoff(),                                boost: 1.1  },
+    { name: 'global',        content: readGlobalKnowledge(),                        boost: 0.95 },
+    { name: 'claude-native', content: readNativeClaudeMemory(),                     boost: 0.95 },
   ];
 
-  for (const source of sources) {
-    if (!source.content) continue;
-    const lines = source.content.split('\n');
+  const docs = [];
+  const meta = new Map();
+  for (const src of sources) {
+    if (!src.content) continue;
+    const lines = src.content.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (line.trim().length === 0) continue;
-      const score = keywords.filter(k => line.toLowerCase().includes(k)).length;
-      if (score > 0) {
-        results.push({
-          source: source.name,
-          line: i + 1,
-          content: line.trim().substring(0, 200),
-          score
-        });
-      }
+      const id = `${src.name}:${i + 1}`;
+      docs.push({ id, text: line });
+      meta.set(id, { source: src.name, line: i + 1, boost: src.boost });
     }
   }
-  results.sort((a, b) => b.score - a.score);
-  return results.slice(0, limit);
+  if (docs.length === 0) return [];
+
+  const ranked = searchCorpus(query, docs, { limit: limit * 3 });
+  if (ranked.length === 0) return [];
+
+  const boosted = ranked.map(r => {
+    const m = meta.get(r.id);
+    return {
+      source: m.source,
+      line: m.line,
+      content: (r.snippet || '').substring(0, 200),
+      score: r.score * (m.boost || 1),
+    };
+  });
+  boosted.sort((a, b) => b.score - a.score);
+  return boosted.slice(0, limit);
 }
 
 // --- MCP Tool Definitions ---

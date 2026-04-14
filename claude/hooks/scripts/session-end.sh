@@ -242,6 +242,26 @@ fi
 # appended here so /doctor can surface it next startup. Per-hook hooks
 # redirect their stderr to this file if they choose; this block just
 # ensures the file exists and is rotated weekly.
+# P5.2 / H1 — invoke auto-memorize synthesizer. Silent if consent not set.
+# Resolve the binary: plugin cache first, HOME-installed second, dev repo third.
+MEMORIZE=""
+for candidate in \
+    "$CLAUDE_PLUGIN_ROOT/../mcp-server/bin/ijfw-memorize" \
+    "$HOME/.ijfw/mcp-server/bin/ijfw-memorize" \
+    "$(pwd)/mcp-server/bin/ijfw-memorize"; do
+  if [ -x "$candidate" ]; then MEMORIZE="$candidate"; break; fi
+done
+if [ -n "$MEMORIZE" ]; then
+  MEMO_OUT=$("$MEMORIZE" 2>/dev/null)
+  if [ -n "$MEMO_OUT" ]; then
+    echo "$MEMO_OUT"
+  fi
+  # Clear the signal files so next session starts fresh (ran or not — only
+  # clear after the synthesizer had its chance).
+  [ -f "$IJFW_DIR/.session-signals.jsonl" ]  && : > "$IJFW_DIR/.session-signals.jsonl"
+  [ -f "$IJFW_DIR/.session-feedback.jsonl" ] && : > "$IJFW_DIR/.session-feedback.jsonl"
+fi
+
 HOOK_LOG="$HOME/.ijfw/logs/hooks.log"
 mkdir -p "$HOME/.ijfw/logs" 2>/dev/null
 touch "$HOOK_LOG" 2>/dev/null
