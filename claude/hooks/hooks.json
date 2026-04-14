@@ -38,8 +38,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-tool-use.sh",
-            "timeout": 3000
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-tool-use.sh",
+            "timeout": 5000
           }
         ]
       }
@@ -49,8 +49,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-tool-use.sh",
-            "timeout": 5000
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-tool-use.sh",
+            "timeout": 3000
           }
         ]
       }
