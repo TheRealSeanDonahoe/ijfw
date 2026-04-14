@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ijfw-memory": {
+      "command": "/Users/seandonahoe/dev/ijfw/mcp-server/bin/ijfw-memory",
+      "args": [],
+      "env": {}
+    }
+  }
+}

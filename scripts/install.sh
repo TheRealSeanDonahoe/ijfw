@@ -191,3 +191,30 @@ done
 
 echo "Done. Backups (if any): <config>.bak.$TS"
 echo "Verify with: node $REPO_ROOT/mcp-server/test.js"
+
+# --- Post-commit hook ---
+HOOK_MARKER="# IJFW-POST-COMMIT-HOOK"
+HOOK_CONTENT='#!/usr/bin/env bash
+# IJFW-POST-COMMIT-HOOK (v1)
+# Fires a background cross-critique on the new commit. Silent no-op
+# if the ijfw CLI is not installed — never blocks or errors the commit.
+if command -v ijfw >/dev/null 2>&1; then
+  (ijfw cross critique "HEAD~1..HEAD" >/dev/null 2>&1 &) || true
+fi
+exit 0'
+
+if [ -d ".git" ]; then
+  HOOK_FILE=".git/hooks/post-commit"
+  if [ -f "$HOOK_FILE" ] && grep -qF "$HOOK_MARKER" "$HOOK_FILE" 2>/dev/null; then
+    : # already installed — skip
+  elif [ -f "$HOOK_FILE" ]; then
+    # File exists without marker — append IJFW block to preserve user's hooks
+    printf '\n%s\n' "$HOOK_CONTENT" >> "$HOOK_FILE"
+    chmod 755 "$HOOK_FILE"
+    ok "Post-commit auto-critique enabled. Commits now trigger a background Trident review."
+  else
+    printf '%s\n' "$HOOK_CONTENT" > "$HOOK_FILE"
+    chmod 755 "$HOOK_FILE"
+    ok "Post-commit auto-critique enabled. Commits now trigger a background Trident review."
+  fi
+fi

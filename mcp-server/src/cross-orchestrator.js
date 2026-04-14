@@ -14,10 +14,53 @@
 // ESM, zero external deps.
 
 import { spawn } from 'node:child_process';
+import * as readline from 'node:readline';
 import { pickAuditors } from './audit-roster.js';
 import { loadSwarmConfig } from './swarm-config.js';
 import { buildRequest, parseResponse, mergeResponses } from './cross-dispatcher.js';
 import { writeReceipt } from './receipts.js';
+
+// Read one line from stdin. Resolves with trimmed string.
+function readLine(prompt) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+    rl.question(prompt, (answer) => { rl.close(); resolve(answer.trim()); });
+  });
+}
+
+// Emit pre-fire UX string to stderr; handle --confirm interactive gate.
+// Returns true to proceed, false to cancel.
+async function uxGate(picks, missing, confirm) {
+  const ids = picks.map(p => p.id).join(', ');
+  const missingFamilies = [...new Set(
+    (missing || [])
+      .map(m => m.family || m.id)
+      .filter(Boolean)
+  )];
+
+  if (confirm) {
+    process.stderr.write(`Confirm combo: ${ids}? [y/N] `);
+    const answer = await readLine('');
+    if (answer.toLowerCase() !== 'y') {
+      process.stderr.write('Cancelled.\n');
+      return false;
+    }
+    return true;
+  }
+
+  if (missingFamilies.length > 0) {
+    const missing_label = missingFamilies.join(', ');
+    const hint = missingFamilies.map(f => `${f}-family`).join(' or ');
+    process.stderr.write(
+      `Partial roster: running ${ids}; missing ${missing_label}. Install a ${hint} CLI for full Trident diversity.\n`
+    );
+  } else {
+    process.stderr.write(
+      `Auto-proceeding with ${ids}. Pass --confirm to override on next turn.\n`
+    );
+  }
+  return true;
+}
 
 // Angle assignments per mode per auditor family/id.
 const AUDIT_ANGLE = () => 'general';
@@ -96,32 +139,38 @@ export async function runCrossOp({
   // 1. Roster pick (isInstalled cached in audit-roster per U6)
   const { picks, missing, note } = pickAuditors({ strategy: 'diversity', env, only });
 
-  // 2. Swarm config (specialist list; swarm dispatch skipped in CLI context)
+  // 2. UX gate — emit status line or prompt before firing
+  const proceed = await uxGate(picks, missing, confirm);
+  if (!proceed) {
+    process.exit(0);
+  }
+
+  // 3. Swarm config (specialist list; swarm dispatch skipped in CLI context)
   const swarmConfig = loadSwarmConfig(projectDir);
 
-  // 3. Build request payloads for each external pick
+  // 4. Build request payloads for each external pick
   const requests = picks.map(pick => ({
     pick,
     payload: buildRequest(mode, target, pick.id, angleFor(mode, pick.id), null),
   }));
 
-  // 4. Fire externals in parallel
+  // 5. Fire externals in parallel
   const rawResults = await Promise.all(
     requests.map(({ pick, payload }) => fireExternal(pick, payload))
   );
 
-  // 5. Parse each response
+  // 6. Parse each response
   const parsed = rawResults.map((raw, i) => {
     if (raw === null) return { items: [], prose: `[${picks[i].id}: no response or timeout]` };
     return parseResponse(mode, raw);
   });
 
-  // 6. Merge
+  // 7. Merge
   const merged = mergeResponses(mode, parsed);
 
   const duration_ms = Date.now() - start;
 
-  // 7. Extract findings shape for receipt
+  // 8. Extract findings shape for receipt
   let findings;
   if (mode === 'audit' || mode === 'critique') {
     // merged is a flat sorted array
@@ -131,7 +180,7 @@ export async function runCrossOp({
     findings = merged;
   }
 
-  // 8. Write receipt
+  // 9. Write receipt
   const receipt = {
     v: 1,
     timestamp: new Date().toISOString(),
