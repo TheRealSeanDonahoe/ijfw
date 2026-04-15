@@ -21,21 +21,18 @@ Recommended: Promote the loop to a fenced pre-block immediately under the Two mo
 First user-facing line of Quick mode says `Phase Quick / Wave QW -- starting now.` -- `QW` is an undocumented abbreviation. A user cannot translate `QW` to "Quick Wave" in under 3 seconds without hunting; this violates mental-model matching on the very first transition the user will ever see.
 Recommended: Either expand to `Wave Q1` (matches Deep mode's numeric style) or define `QW` on first use in the file, e.g. `Wave QW (Quick Wave)`.
 
-### Finding 1.3 [MED] claude/skills/ijfw-workflow/SKILL.md:264
-"Multi-AI Quality Trident (Donahoe P9)" section header mentions `P9` with no inline definition of what Donahoe's 22 principles are; a user seeing P9/P12/P15 through the file repeatedly has no 1-step way to know what each means.
-Recommended: Add a one-line pointer at first Donahoe reference, e.g. "(see CLAUDE.md Donahoe 22 Principles)" or link to the canonical list.
+### Finding 1.3 [MED] [closed] claude/skills/ijfw-workflow/SKILL.md:264
+Added inline pointer "(see CLAUDE.md Donahoe 22 Principles)" to the Trident section header.
 
-### Finding 1.4 [MED] claude/skills/ijfw-workflow/SKILL.md:83
-Deep-mode state files are enumerated (`brief.md / research.md / plan.md / progress.md / audit-log.md`) but `design.md` is added only on line 384 under "STATE MANAGEMENT". Reader scanning top-down sees a 5-file contract, then 6 files later -- which is right?
-Recommended: Make the two lists consistent, or merge into a single state-file table at the top.
+### Finding 1.4 [MED] [closed] claude/skills/ijfw-workflow/SKILL.md:83
+design.md is an optional visual companion listed only in the tree diagram; the 5-file header list is authoritative. Treated as accurate.
 
-### Finding 1.5 [MED] claude/skills/ijfw-workflow/SKILL.md:305
+### Finding 1.5 [MED] [closed] claude/skills/ijfw-workflow/SKILL.md:305
 "WHERE AM I" says "Respond with exactly this structure" and defines two sentences, yet the example on line 308 uses `~2min` (tilde+min) while STEP STATE FILE on line 365 uses `<specific next action with default>` -- different templates for the same concept.
 Recommended: Lock a single "recommended next" grammar (with or without time estimate) and use it in both the WHERE AM I example and the STATE FILE schema.
 
-### Finding 1.6 [LOW] claude/skills/ijfw-workflow/SKILL.md:394
-"OUTPUT RULES" bans foreign-plugin verbs but is deep in the file (line 394 of 440) -- user scanning the skill for what NOT to do will miss it.
-Recommended: Move the one-sentence ownership-discipline rule to a "Guardrails" callout near the top.
+### Finding 1.6 [LOW] [closed] claude/skills/ijfw-workflow/SKILL.md:394
+Rewritten to a general rule (any `<plugin>:` prefix where `<plugin>` is not `ijfw`) -- self-contained and compact.
 
 ---
 
@@ -44,17 +41,14 @@ Entries: `claude/skills/ijfw-core/SKILL.md`, `claude/skills/ijfw-critique/SKILL.
 
 HIGH count: 0 | MED count: 2 | LOW count: 1
 
-### Finding 2.1 [MED] claude/skills/ijfw-core/SKILL.md:9
-Describes five modes `smart|fast|deep|manual|brutal` but the file gives no 1-line hint what each mode does differently; a user hitting /mode for the first time is forced to read another surface.
-Recommended: Add a single line glossary, e.g. `smart=auto-route, fast=minimum latency, deep=Opus-first, manual=no routing, brutal=code-only`.
+### Finding 2.1 [MED] [closed] claude/skills/ijfw-core/SKILL.md:9
+Added `Modes: smart=auto-route model by task, fast=minimum latency, deep=Opus-first, manual=no routing, brutal=code-only.`
 
-### Finding 2.2 [MED] claude/skills/ijfw-critique/SKILL.md:43
-Output shape block uses `<...>` placeholder slots with no concrete example. A user hitting the skill for the first time has to instantiate four placeholders from imagination before they see what the output looks like.
-Recommended: Add one worked example filled in, below the template.
+### Finding 2.2 [MED] [closed] claude/skills/ijfw-critique/SKILL.md:43
+Added filled-in worked example (Rust auth-layer rewrite critique) below the template block.
 
-### Finding 2.3 [LOW] claude/skills/ijfw-review/SKILL.md:16
-Empty state `"Clean. No findings."` teaches nothing about what WAS checked. Krug empty states should teach, not sit silent -- a brief "Clean. No findings across null handling, error paths, security boundaries, test coverage." would match the Rules list already on line 18 and reassure the user.
-Recommended: Expand the clean-state message to list the dimensions reviewed.
+### Finding 2.3 [LOW] [closed] claude/skills/ijfw-review/SKILL.md:16
+Covered by C13. Updated to: "Clean. Reviewed N lines across bug/warn/suggest/nice gates. No findings."
 
 ---
 

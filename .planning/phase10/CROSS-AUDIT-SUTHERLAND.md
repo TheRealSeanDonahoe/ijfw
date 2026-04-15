@@ -35,22 +35,13 @@ Canonical: `claude/skills/ijfw-workflow/SKILL.md`
   -- Action: After each micro-audit, emit "N-point task audit cleared" (or
      specify which of the principles applied) so the user sees the rigor.
 
-- Finding 1.3 -- `claude/skills/ijfw-workflow/SKILL.md:264-276` -- Trident
-  offer reads "Cross-audit ready. Review in Gemini, Codex, or another AI."
-  This is a to-do for the user, not a framing of value. A Sutherland-lens
-  copy says what the Trident prevents, not what it is.
+- Finding 1.3 [closed] -- `claude/skills/ijfw-workflow/SKILL.md:264-276` -- Trident
+  Closed: Rewritten to "Trident stands ready -- 2 more models will independently challenge this. Consensus findings jump to high-priority; lone flags become watch-items. Fire now?" (C14 closed).
   -- Severity: MED
-  -- Action: Rewrite to "Trident stands ready -- 2 more models will
-     independently challenge this. Consensus findings jump to high-priority;
-     lone flags become watch-items. Fire now?"
 
-- Finding 1.4 -- `claude/skills/ijfw-workflow/SKILL.md:300-310` -- WHERE AM I
-  response template gives position but no indicator of cumulative work.
-  "Phase Deep / Wave 4 / Step 4.2" is navigation; Sutherland expects also a
-  scoreboard ("12 tasks shipped, 3 audit gates cleared so far").
+- Finding 1.4 [closed] -- `claude/skills/ijfw-workflow/SKILL.md:300-310` -- WHERE AM I
+  Closed: Added optional "Progress so far: <N> tasks shipped, <M> audit gates cleared." line to the WHERE AM I section.
   -- Severity: LOW
-  -- Action: Optional progress-so-far line appended to the "where am I"
-     response.
 
 ---
 
@@ -70,29 +61,17 @@ Sampled: ijfw-critique, ijfw-compress, ijfw-review.
      assumptions, 3 angles (operational + social + correctness). Verdict
      confidence: med/high." Shows the audit cost behind the verdict.
 
-- Finding 2.2 -- `claude/skills/ijfw-compress/SKILL.md:21` -- Reports
-  "Compressed: 1,847 -> 923 tokens (50% saved)". This is textbook
-  Sutherland -- value reframed as savings. Good baseline.
+- Finding 2.2 [closed] -- `claude/skills/ijfw-compress/SKILL.md:21`
+  Closed: Extended to "50% saved (approx $0.01-0.02 per session at Sonnet input pricing)".
   -- Severity: LOW
-  -- Action: Extend to include dollar/minute conversion where known, e.g.
-     "50% saved (approx $0.02 per session at Sonnet input pricing)". Makes
-     the costly signal quantitatively vivid.
 
-- Finding 2.3 -- `claude/skills/ijfw-review/SKILL.md:16` -- Empty-state
-  message "Clean. No findings." is terse but undersells the review pass.
-  A successful no-findings review is still work; Sutherland says name it.
+- Finding 2.3 [closed] -- `claude/skills/ijfw-review/SKILL.md:16`
+  Closed: Updated to "Clean. Reviewed N lines across bug/warn/suggest/nice gates. No findings." (C13 closed).
   -- Severity: MED
-  -- Action: "Clean. Reviewed N lines against bug/warn/suggest/nice gates.
-     No findings." Same length, signals the check was thorough.
 
-- Finding 2.4 -- `[no-file-ref]` -- Several on-demand skills declare
-  `<!-- IJFW: narration-not-applicable -->` (legitimate escape hatch per
-  10A-sk.3). A skill that legitimately does not narrate can still emit a
-  one-line completion receipt -- today they are silent on success. This is
-  commoditization: looks like every other plugin.
+- Finding 2.4 [closed] -- `[no-file-ref]`
+  Closed: Accepted as `[no-file-ref]` pattern -- skills with narration-not-applicable are silent by design; deferred to convention doc.
   -- Severity: LOW (auto-downgraded from MED)
-  -- Action: Allow non-narrating skills a single closing "done: <one-line
-     summary of what changed>" without forcing full Phase/Wave/Step.
 
 ---
 

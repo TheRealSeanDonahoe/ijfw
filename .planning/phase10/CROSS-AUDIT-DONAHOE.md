@@ -43,9 +43,9 @@ candidates for a copy-the-pattern reference when fixing the rest.
 
 | # | Sev | Surface | Finding | Recommended action |
 |---|-----|---------|---------|--------------------|
-| 1.1 | MED | `claude/skills/ijfw-workflow/SKILL.md:83-88` | `.ijfw/projects/<name>/` state layout assumes project lives on a writeable filesystem. Stranger running Claude Code inside a read-only container or sandbox hits silent write failures. | Add a one-line fallback note: if `.ijfw/` is not writeable, surface "IJFW state will persist in-session only -- rerun from a writeable directory to save across sessions." |
-| 1.2 | MED | `claude/skills/ijfw-workflow/SKILL.md:264-275` | Multi-AI Quality Trident block ("Cross-audit ready. Review in Gemini, Codex, or another AI.") assumes the stranger has any of those CLIs reachable. No degradation path. | Add: "If no external AI is reachable, fall back to self-audit via Agent-dispatched specialist swarm (security, code-review, reliability)." |
-| 1.3 | LOW | `claude/skills/ijfw-workflow/SKILL.md:392-400` | Output Rules block forbids foreign plugin verbs -- correct. But only lists six prefixes; new plugin families (`frontend-design:`, `ui-ux-pro-max:`, `claude-api:`) will bypass the static list. | Restate as a general rule ("any `<plugin>:` prefix where `<plugin>` is not `ijfw`") rather than enumerating six. |
+| 1.1 [closed] | MED | `claude/skills/ijfw-workflow/SKILL.md:83-88` | Added fallback note: "if `.ijfw/` is not writeable, state persists in-session only. Rerun from a writeable directory to save across sessions." |
+| 1.2 [closed] | MED | `claude/skills/ijfw-workflow/SKILL.md:264-275` | Added: "If no external AI is reachable, fall back to Agent-dispatched specialist swarm (security, code-review, reliability)." (C14 closed). |
+| 1.3 [closed] | LOW | `claude/skills/ijfw-workflow/SKILL.md:392-400` | Restated as general rule: "any `<plugin>:` prefix where `<plugin>` is not `ijfw`". |
 | 1.4 | LOW | `claude/skills/ijfw-workflow/SKILL.md:315-321` | Mid-step ping convention is documented well but the 30-second threshold is author-tuned. Strangers on slower networks / machines may see fewer pings than expected. | None required -- document only. |
 
 ---
@@ -58,8 +58,8 @@ candidates for a copy-the-pattern reference when fixing the rest.
 
 | # | Sev | Surface | Finding | Recommended action |
 |---|-----|---------|---------|--------------------|
-| 2.1 | MED | `claude/skills/ijfw-core/SKILL.md:40-42` | `<ijfw-memory>` block presence is treated as a MUST-have; if missing, "call `ijfw_memory_prelude`". Stranger in a non-Claude platform without the MCP tool installed sees this instruction, has no tool to call, and no recovery path. | Reframe: "If neither block nor tool is available, check `.ijfw/memory/knowledge.md` directly -- it is plain markdown." |
-| 2.2 | LOW | `claude/skills/ijfw-core/SKILL.md:38-42` | Memory section says "ALWAYS store" with no size cap mentioned; stranger could hit the MCP server's 5000-char limit with no warning visible here. | Cross-reference the 5000-char cap from `server.js:616` in a one-line note. |
+| 2.1 [closed] | MED | `claude/skills/ijfw-core/SKILL.md:40-42` | Added: "If neither block nor tool is available, check `.ijfw/memory/knowledge.md` directly -- it is plain markdown." |
+| 2.2 [closed] | LOW | `claude/skills/ijfw-core/SKILL.md:38-42` | Added: "content cap is 5000 chars; summarise before storing if needed." |
 | 2.3 | LOW | `claude/skills/ijfw-compress/SKILL.md:17` | "cp <file> <file>.original.md" is a POSIX command -- fine -- but no recovery if `cp` is aliased / not available on PowerShell strangers. | None required; `narration-not-applicable` hatch already in place. |
 | 2.4 | LOW | `claude/skills/ijfw-critique/SKILL.md:11-14` | Four-step critique pattern is strong. No ASCII / positive-framing violation observed. | None. |
 
