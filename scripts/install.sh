@@ -56,6 +56,24 @@ ok()   { printf "  [ok] %s\n" "$1"; }
 note() { printf "  [--] %s\n" "$1"; }
 info() { printf "  -- %s\n" "$1"; }
 
+# ANSI colors. Skip if NO_COLOR is set or stdout is not a TTY.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'; C_DIM=$'\033[2m'
+  C_CYAN=$'\033[36m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'; C_WHITE=$'\033[97m'
+else
+  C_RESET=; C_BOLD=; C_DIM=; C_CYAN=; C_GREEN=; C_YELLOW=; C_WHITE=
+fi
+
+# Native-path display: Git Bash sees /d/... style paths but users think in
+# backslashes. Use cygpath -w when available to render native Windows form.
+native_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -w "$1" 2>/dev/null || printf '%s' "$1"
+  else
+    printf '%s' "$1"
+  fi
+}
+
 # Runtime detection: "is this platform actually installed on the user's box?"
 # True -> the platform goes in "Live now" -- configs fire immediately.
 # False -> "Standing by" -- configs are pre-staged and auto-activate on install.
@@ -267,27 +285,43 @@ for target in "${TARGETS[@]}"; do
   fi
 done
 
-# --- Tight summary (Sutherland / Krug / Donahoe) ---
-join_dot() { local IFS=' '; local out=""; for x in "$@"; do out="${out:+$out  .  }$x"; done; printf '%s' "$out"; }
+# --- Polished summary (Homebrew + rustup aesthetic) ---
+NATIVE_REPO="$(native_path "$REPO_ROOT")"
+NATIVE_LOG="$(native_path "$LOGFILE")"
 
 echo
-echo "IJFW  ->  $REPO_ROOT"
+printf '  %s+----------------------------------------+%s\n'   "$C_BOLD$C_CYAN" "$C_RESET"
+printf '  %s|%s                                        %s|%s\n' "$C_BOLD$C_CYAN" "$C_RESET" "$C_BOLD$C_CYAN" "$C_RESET"
+printf '  %s|%s  %sIJFW%s  %sIt just f*cking works.%s       %s|%s\n' "$C_BOLD$C_CYAN" "$C_RESET" "$C_BOLD$C_CYAN" "$C_RESET" "$C_DIM" "$C_RESET" "$C_BOLD$C_CYAN" "$C_RESET"
+printf '  %s|%s                                        %s|%s\n' "$C_BOLD$C_CYAN" "$C_RESET" "$C_BOLD$C_CYAN" "$C_RESET"
+printf '  %s+----------------------------------------+%s\n'   "$C_BOLD$C_CYAN" "$C_RESET"
+echo
+printf '  %sInstalled at%s  %s\n' "$C_DIM" "$C_RESET" "$NATIVE_REPO"
 echo
 if [ ${#LIVE[@]} -gt 0 ]; then
-  echo "  Live now:      $(join_dot "${LIVE[@]}")"
+  printf '  %s==> LIVE NOW (%d)%s\n' "$C_BOLD$C_GREEN" "${#LIVE[@]}" "$C_RESET"
+  for p in "${LIVE[@]}"; do
+    printf '      %so%s  %s\n' "$C_GREEN" "$C_RESET" "$p"
+  done
+  echo
 fi
 if [ ${#STANDBY[@]} -gt 0 ]; then
-  echo "  Standing by:   $(join_dot "${STANDBY[@]}")  (auto-activate on install)"
+  printf '  %s==> STANDING BY (%d)%s  %sauto-activate on install%s\n' "$C_BOLD$C_YELLOW" "${#STANDBY[@]}" "$C_RESET" "$C_DIM" "$C_RESET"
+  for p in "${STANDBY[@]}"; do
+    printf '      %so%s  %s\n' "$C_YELLOW" "$C_RESET" "$p"
+  done
+  echo
 fi
 if [ ${#LIVE[@]} -eq 0 ] && [ ${#STANDBY[@]} -eq 0 ]; then
-  echo "  No platforms matched -- pass a target, e.g. bash scripts/install.sh claude"
+  printf '  %sNo platforms matched.%s  Pass a target, e.g. %sbash scripts/install.sh claude%s\n' "$C_YELLOW" "$C_RESET" "$C_BOLD" "$C_RESET"
+  echo
 fi
-# Only surface the Claude next-step if Claude was a target (it usually is).
 for t in "${TARGETS[@]}"; do
   if [ "$t" = "claude" ]; then
+    printf '  %s==> ONE MORE STEP%s  %sinside Claude Code%s\n' "$C_BOLD$C_WHITE" "$C_RESET" "$C_DIM" "$C_RESET"
+    printf '      %s/plugin marketplace add%s %s\n' "$C_BOLD" "$C_RESET" "$NATIVE_REPO${NATIVE_REPO:+\\}claude"
+    printf '      %s/plugin install ijfw%s\n' "$C_BOLD" "$C_RESET"
     echo
-    echo "  One more step: /plugin marketplace add $REPO_ROOT/claude"
-    echo "                 /plugin install ijfw"
     break
   fi
 done
@@ -332,7 +366,9 @@ elif [ -d ".git" ]; then
   note "Tip: background Trident critique on every commit -- run with --post-commit-hook to enable."
 fi
 
-# Closer: one hero line + where the details live.
-echo
-echo "  It just fucking works.    (full log: $LOGFILE)"
-echo
+# Closer: PS wrapper sets IJFW_SKIP_CLOSER=1 so it can print after running
+# its own Merge-Marketplace step (keeps warnings above the closer, not below).
+if [ "${IJFW_SKIP_CLOSER:-0}" != "1" ]; then
+  printf '  %sFull log%s   %s\n' "$C_DIM" "$C_RESET" "$NATIVE_LOG"
+  echo
+fi

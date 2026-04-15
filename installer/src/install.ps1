@@ -92,10 +92,14 @@ function Invoke-InstallScript($target) {
   Push-Location $target
   try {
     $env:IJFW_NONINTERACTIVE = if ($env:CI -or $Yes) { "1" } else { "" }
+    # Let the PS wrapper own the final closer so Merge-Marketplace output
+    # lands above it. Bash skips its "Full log" line when this is set.
+    $env:IJFW_SKIP_CLOSER = "1"
     & $gitBash "./scripts/install.sh"
     if ($LASTEXITCODE -ne 0) { throw "scripts/install.sh exited $LASTEXITCODE." }
   } finally {
     Pop-Location
+    Remove-Item Env:\IJFW_SKIP_CLOSER -ErrorAction SilentlyContinue
   }
 }
 
@@ -122,13 +126,11 @@ function Merge-Marketplace {
       $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
       $backup = "$settingsPath.bak.marketplace.$ts"
       Copy-Item -LiteralPath $settingsPath -Destination $backup -Force
+      Write-Host "  ==> HEADS UP" -ForegroundColor Yellow -NoNewline
+      Write-Host "  your Claude settings.json is not valid JSON/JSONC" -ForegroundColor DarkGray
+      Write-Host "      Backed up to $backup" -ForegroundColor DarkGray
+      Write-Host "      The two /plugin commands above still complete the install." -ForegroundColor DarkGray
       Write-Host ""
-      Write-Host "  [--] Could not auto-merge marketplace entry into $settingsPath" -ForegroundColor Yellow
-      Write-Host "  [--] Your existing file looks like it is not valid JSON/JSONC." -ForegroundColor Yellow
-      Write-Host "  [--] Original saved as: $backup"
-      Write-Host "  [--] Finish in Claude Code with two commands:"
-      Write-Host "  [--]   /plugin marketplace add $target\claude"
-      Write-Host "  [--]   /plugin install ijfw"
       return $false
     }
   }
@@ -163,3 +165,7 @@ if (-not $NoMarketplace) {
   # Best-effort: returns $true on success, prints its own message on fallback.
   [void](Merge-Marketplace)
 }
+
+$log = Join-Path $env:USERPROFILE ".ijfw\install.log"
+Write-Host "  Full log   $log" -ForegroundColor DarkGray
+Write-Host ""
