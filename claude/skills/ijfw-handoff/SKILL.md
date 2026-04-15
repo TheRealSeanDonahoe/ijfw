@@ -9,22 +9,30 @@ Generate a structured handoff for session continuity.
 
 Capture in .ijfw/memory/handoff.md:
 
-```markdown
-## Handoff: <timestamp>
+```
+Handoff: <timestamp>
+====================
 
-### Status
+Status
+------
+| Phase N | Wave NA | Step N.M | <done/in-progress/blocked> |
+
 <What's done. What's in progress. What percentage complete.>
 
-### Decisions
+Decisions
+---------
 <Key decisions made this session with rationale. 1 line each.>
 
-### Modified Files
+Modified Files
+--------------
 <Files created/edited with brief description of changes.>
 
-### Next Steps
+Next Steps
+----------
 <Ordered list. What to do first when resuming.>
 
-### Blockers
+Blockers
+--------
 <Open questions, missing info, external dependencies.>
 ```
 
