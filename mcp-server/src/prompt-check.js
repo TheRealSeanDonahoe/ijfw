@@ -12,7 +12,7 @@
  *   - Positive framing in any user-visible suggestion.
  */
 
-// 7-rule vagueness taxonomy from research §3.
+// 7-rule vagueness taxonomy from research (rule 3).
 const RULES = [
   {
     id: 'bare_verb',
@@ -108,7 +108,7 @@ function checkPrompt(text) {
   }
 
   // Fire only when ≥2 signals tripped AND prompt is short AND no target found.
-  // Threshold tuned for low false-positive rate per research §UX.
+  // Threshold tuned for low false-positive rate per research (UX section).
   const short = tokens.length < 30;
   const noTarget = signals.includes('no_target');
   const vague = signals.length >= 2 && short && noTarget;

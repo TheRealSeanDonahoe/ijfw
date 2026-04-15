@@ -37,6 +37,12 @@ run "Positive framing"         "bash scripts/check-positive-framing.sh"
 run "Ownership discipline"     "hits=\$(grep -rn --include='*.md' --include='*.sh' '\b\(gsd\|superpowers\|hookify\|claude-supermemory\|feature-dev\|pr-review-toolkit\):[a-z-]\+' claude/commands/ claude/skills/ claude/hooks/scripts/ 2>/dev/null | grep -v 'Agent(' | grep -v 'absorbed' | grep -v '\bpattern\b'); if [ -n \"\$hits\" ]; then echo \"FAIL: foreign-plugin verb(s) found:\"; echo \"\$hits\"; exit 1; fi; echo OK"
 run "MCP launcher health"      "bash scripts/check-mcp.sh"
 run "Doctor runs cleanly"      "bash scripts/doctor.sh >/dev/null"
+run "Banned chars (section-sign, box-heavy, emoji)" \
+  "hits=\$(perl -lne 'if (/[\x{00a7}\x{2501}]|[\x{1F000}-\x{1FFFF}]/) { print \"\$ARGV:\$.: \$_\" }' claude/commands/*.md claude/skills/*/SKILL.md mcp-server/src/*.js claude/hooks/scripts/*.sh 2>/dev/null); if [ -n \"\$hits\" ]; then echo \"FAIL: banned chars found:\"; echo \"\$hits\"; exit 1; fi; echo OK"
+run "Narration-pattern check (WARN only)" \
+  "bash -c 'warn=0; for f in claude/skills/*/SKILL.md; do if grep -q \"IJFW: narration-not-applicable\" \"\$f\"; then continue; fi; if ! grep -q \"Phase\" \"\$f\" || ! grep -q \"Wave\" \"\$f\"; then echo \"WARN: \$f missing Phase/Wave narration\"; warn=\$((warn+1)); fi; done; echo \"narration-pattern: \$warn skill(s) without Phase/Wave (warnings, not failures)\"'"
+run "Foreign-plugin verb (action position)" \
+  "hits=\$(grep -rn -E '\b(gsd|superpowers|hookify|claude-supermemory|feature-dev|pr-review-toolkit):[a-z-]+' claude/commands/ claude/skills/ claude/hooks/scripts/ 2>/dev/null | grep -v 'Agent(' | grep -v '<!--' | grep -v 'absorbed' | grep -v 'detect' | grep -v 'migration'); if [ -n \"\$hits\" ]; then echo \"FAIL: foreign-plugin verb(s) at action position:\"; echo \"\$hits\"; exit 1; fi; echo OK"
 
 echo ""
 if [ $FAILED -gt 0 ]; then
