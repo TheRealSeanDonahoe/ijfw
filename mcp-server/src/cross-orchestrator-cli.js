@@ -25,28 +25,27 @@ function printFindings(mode, merged) {
       console.log('  No findings returned.');
       return;
     }
-    // Table header
-    console.log(`\n  ${'Sev'.padEnd(8)} ${'Location'.padEnd(20)} Issue`);
-    console.log(`  ${'-'.repeat(70)}`);
-    for (const item of items) {
-      const sev = String(item.severity || '').padEnd(8);
-      const loc = String(item.location || '').padEnd(20).slice(0, 20);
-      const issue = String(item.issue || '').slice(0, 50);
-      console.log(`  ${sev} ${loc} ${issue}`);
-    }
+    console.log('');
+    items.forEach((item, i) => {
+      const sev = item.severity ? ` [${item.severity}]` : '';
+      const loc = item.location ? ` | ${item.location}` : '';
+      const issue = String(item.issue || '');
+      console.log(`  Step 1.${i + 1} --${sev}${loc} -- ${issue}`);
+    });
     return;
   }
 
   if (mode === 'research') {
-    const { consensus = [], contested = [], unique = {}, synthesisPending } = merged || {};
-    console.log(`\n  Consensus (${consensus.length}), Contested (${contested.length}), Unique per auditor`);
-    if (synthesisPending) console.log('  Note: synthesis pass pending — lexical match only.');
-    for (const item of consensus.slice(0, 5)) {
-      console.log(`  [consensus] ${String(item.claim || '').slice(0, 80)}`);
-    }
-    for (const item of contested.slice(0, 3)) {
-      console.log(`  [contested] ${String(item.claim || '').slice(0, 80)}`);
-    }
+    const { consensus = [], contested = [], synthesisPending } = merged || {};
+    console.log('');
+    console.log(`  Consensus: ${consensus.length}  |  Contested: ${contested.length}`);
+    if (synthesisPending) console.log('  Note: synthesis pass pending -- lexical match only.');
+    consensus.slice(0, 5).forEach((item, i) => {
+      console.log(`  Step 1.${i + 1} -- [consensus] ${String(item.claim || '')}`);
+    });
+    contested.slice(0, 3).forEach((item, i) => {
+      console.log(`  Step 2.${i + 1} -- [contested] ${String(item.claim || '')}`);
+    });
     return;
   }
 
@@ -56,13 +55,12 @@ function printFindings(mode, merged) {
       console.log('  No counter-arguments returned.');
       return;
     }
-    console.log(`\n  ${'Sev'.padEnd(8)} Counter-argument`);
-    console.log(`  ${'-'.repeat(70)}`);
-    for (const item of items) {
-      const sev = String(item.severity || '').padEnd(8);
-      const arg = String(item.counterArg || '').slice(0, 60);
-      console.log(`  ${sev} ${arg}`);
-    }
+    console.log('');
+    items.forEach((item, i) => {
+      const sev = item.severity ? ` [${item.severity}]` : '';
+      const arg = String(item.counterArg || '');
+      console.log(`  Step 1.${i + 1} --${sev} ${arg}`);
+    });
   }
 }
 
@@ -143,12 +141,20 @@ Examples:
 async function cmdStatus(projectDir) {
   const receipts = readReceipts(projectDir);
   if (receipts.length === 0) {
-    console.log("Ready. Run `ijfw cross` to see your first hero line.");
+    console.log('Phase 10 / Wave 10A -- Step 1.1 -- Ready');
+    console.log('Recommended next: `ijfw cross audit <file>`. Say no/alt to override.');
     return;
   }
   const hero = renderHeroLine(receipts);
+  const last = receipts[receipts.length - 1];
+  const mode = last?.mode || 'cross';
+  const ts = last?.timestamp ? last.timestamp.slice(0, 10) : '';
+  console.log(`Phase 10 / Wave 10A -- Step 1.${receipts.length} -- ${mode}${ts ? ' (' + ts + ')' : ''}`);
+  console.log('--');
   console.log(hero);
-  console.log(`\nTotal runs: ${receipts.length}`);
+  console.log('--');
+  console.log(`Total runs: ${receipts.length}`);
+  console.log('Recommended next: `ijfw cross audit <file>`. Say no/alt to override.');
 }
 
 // ---------------------------------------------------------------------------
