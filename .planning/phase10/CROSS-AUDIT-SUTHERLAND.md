@@ -423,7 +423,7 @@ Canonical: `README.md`, `CHANGELOG.md`, `PUBLISH-CHECKLIST.md`.
      plus a specialist swarm -- at every cross-audit. Consensus findings
      jump to high-priority; blind spots never get a free pass."
 
-- Finding 10.4 -- `CHANGELOG.md:33-42` -- P8 entry ("Trident Enforced,
+- Finding 10.4 [closed] -- `CHANGELOG.md:33-42` -- P8 entry ("Trident Enforced,
   Visible, Everywhere") is correctly Sutherland-themed but the bullet
   list underneath reads "Enforces / Ships / Records / Makes / Adds". Pure
   feature verbs. Value-framing is in the theme line, not the bullets.

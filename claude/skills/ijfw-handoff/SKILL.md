@@ -37,7 +37,7 @@ Blockers
 ```
 
 Rules:
-- Max 30 lines. This loads at next SessionStart — keep it lean.
+- Max 30 lines. This loads at next SessionStart -- keep it lean.
 - Specific file paths, function names, line numbers.
 - Present tense for current state, imperative for next steps.
 - No filler. Every line must help the next session start faster.

@@ -74,7 +74,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | K7.2 | MED  | claude/hooks/scripts/pre-prompt.sh:123                      | Vague-prompt override syntax buried at end of long string. |
 | K8.2 | MED  | installer/README.md:13                                      | "That's it" claim contradicts 20 lines of options below. |
 | K8.3 | MED  | scripts/install.sh:22                                       | Inside-repo self-guard exits 0 -- stranger thinks install succeeded. |
-| K10.3| MED  | README.md:20                                                | Demo output block hard-codes version string. |
+| K10.3| MED [closed] | README.md:20                                                | Demo output block hard-codes version string. |
 | K10.4| MED [closed] | PUBLISH-CHECKLIST.md:66                                     | Ambiguous pass condition for HIGH-finding grep. |
 | K1.6 | LOW  | claude/skills/ijfw-workflow/SKILL.md:394                    | OUTPUT RULES guardrail buried near EOF. |
 | K2.3 | LOW  | claude/skills/ijfw-review/SKILL.md:16                       | Covered by C13. |
@@ -109,7 +109,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | S7.3 | MED  | claude/hooks/scripts/post-tool-use.sh:95-114                | Trim pipeline silent; emit one-line `[ijfw] trimmed N lines -> head/tail/signals`. |
 | S8.2 | MED  | scripts/install.sh:206                                      | Covered by C17. |
 | S9.2 | MED  | universal/ijfw-rules.md:6-15                                | No line quantifying the saving; add "Typical session: 30-50% fewer output tokens vs default". |
-| S10.4| MED  | CHANGELOG.md:33-42                                          | P8 bullets use feature verbs; rewrite benefit-first. |
+| S10.4| MED [closed] | CHANGELOG.md:33-42                                          | P8 bullets use feature verbs; rewrite benefit-first. |
 | S1.4 | LOW  | claude/skills/ijfw-workflow/SKILL.md:300-310                | Optional progress-so-far line on WHERE AM I. |
 | S2.2 | LOW  | claude/skills/ijfw-compress/SKILL.md:21                     | Add dollar/minute conversion to savings line. |
 | S2.4 | LOW  | [no-file-ref]                                               | Non-narrating skills silent on success; allow one-line completion receipt. |
@@ -152,7 +152,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | D8.8  | MED  | scripts/install.sh:222                                          | Covered by C17. |
 | D9.3  | MED  | universal/ijfw-rules.md:13                                      | Em-dash (covered by C10). |
 | D9.4  | MED  | copilot/copilot-instructions.md                                 | Likely same em-dash issue; grep-replace across all platform rules. |
-| D10.4 | MED  | README.md:3                                                     | "7 platforms" ambiguous; tighten to "6 native platforms + universal paste-anywhere rules". |
+| D10.4 | MED [closed] | README.md:3                                                     | "7 platforms" ambiguous; tighten to "6 native platforms + universal paste-anywhere rules". |
 | D1.3  | LOW  | claude/skills/ijfw-workflow/SKILL.md:392-400                    | Foreign-plugin-verb ban enumerates six prefixes; restate as general rule. |
 | D1.4  | LOW  | claude/skills/ijfw-workflow/SKILL.md:315-321                    | Mid-step ping threshold author-tuned; document only. |
 | D2.2  | LOW  | claude/skills/ijfw-core/SKILL.md:38-42                          | Cross-reference 5000-char cap. |

@@ -13,6 +13,6 @@ Severity: [bug] | [warn] | [suggest] | [nice]
 Rules:
 - Lead with bugs. Then warnings. Then suggestions.
 - No praise for meeting baseline expectations.
-- If no issues: "Clean. No findings." (two words, not a paragraph)
+- If no issues: "Clean. Reviewed N lines across bug/warn/suggest/nice gates. No findings."
 - Max 10 findings unless asked for exhaustive review.
 - Check: null handling, error paths, security boundaries, test coverage.

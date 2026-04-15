@@ -4,7 +4,7 @@ name: ijfw-metrics
 description: "Internal session metrics tracking. Auto-triggered at session boundaries. Tracks tokens, agent usage, efficiency gains. View with /ijfw-status."
 ---
 
-# IJFW Metrics — Internal Tracking
+# IJFW Metrics -- Internal Tracking
 
 Lightweight metrics captured at session boundaries via hooks.
 Zero per-turn cost. All tracking happens in the Stop hook.
@@ -46,8 +46,8 @@ From the JSONL log, compute:
 - Average turns per session
 - Agent distribution (% scout vs builder vs architect)
 - Estimated token savings from model routing:
-  - scout turns × (opus_price - haiku_price) = routing savings
-  - builder turns × (opus_price - sonnet_price) = routing savings
+  - scout turns x (opus_price - haiku_price) = routing savings
+  - builder turns x (opus_price - sonnet_price) = routing savings
 
 **Quality:**
 - Sessions with handoff generated (continuity metric)

@@ -220,7 +220,7 @@ Recommended: Change to `npm install -g @ijfw/install && ijfw install && ijfw dem
 "MCP server (5 tools): recall, store, search, status, prelude" -- but the actual server exposes 7 tools (per server.js lines 464-552: recall, store, search, status, prelude, prompt_check, metrics). CLAUDE.md says `<=8 tools`. The README misrepresents a user-visible feature count at the headline spec line.
 Recommended: Update to "7 tools" and list all; or simplify to "shared via stdio, zero deps" without an exact count.
 
-### Finding 10.3 [MED] README.md:20
+### Finding 10.3 [MED] [closed] README.md:20
 Demo Output block shows `IJFW v1.0.0` but `installer/package.json` / actual released version may differ. A user copies the header verbatim and the demo they run looks different.
 Recommended: Mark the demo output as `# sample output` and drop the version string, or template it from package.json.
 
