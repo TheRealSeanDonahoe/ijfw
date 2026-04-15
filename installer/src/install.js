@@ -1,4 +1,4 @@
-// @ijfw/install — one-command IJFW installer.
+// @ijfw/install -- one-command IJFW installer.
 // Flow: preflight → resolve target → clone/pull → scripts/install.sh → merge marketplace → summary.
 
 import { spawnSync } from 'node:child_process';
@@ -50,7 +50,7 @@ export function resolveBranchOrTag({ branch, branchExplicit, _tagLookup } = {}) 
 }
 
 function printHelp() {
-  console.log(`ijfw-install — IJFW installer
+  console.log(`ijfw-install -- IJFW installer
 Usage: npx @ijfw/install [--dir <path>] [--branch <name>] [--no-marketplace] [--yes]
   --dir             install location (default: $IJFW_HOME or ~/.ijfw)
   --branch          git branch or tag (default: latest released tag)
@@ -136,9 +136,9 @@ async function main() {
   }
 
   console.log('');
-  console.log('IJFW ready -- 7 platforms configured, memory preserved, existing configs merged.');
-  console.log(`  Memory at ${join(target, 'memory')}.`);
-  console.log('  Run `ijfw demo` to see what just changed.');
+  console.log('IJFW now active across 7 platforms -- one memory layer, all your AIs, zero config.');
+  console.log('  Run `ijfw demo` to see the Trident in action.');
+  console.log('  Run `ijfw doctor` to confirm which auditors are reachable.');
   console.log('  Privacy: everything stays local. See NO_TELEMETRY.md.');
   process.exit(0);
 }

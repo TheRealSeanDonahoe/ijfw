@@ -90,6 +90,8 @@ State is stored in `.ijfw/projects/<project-name>/`:
 - `progress.md` -- where we are (updated during Execution)
 - `audit-log.md` -- all audit findings
 
+Note: if `.ijfw/` is not writeable (read-only container or sandbox), state persists in-session only. Rerun from a writeable directory to save across sessions.
+
 ## Phase 1: DISCOVER
 
 Phase Deep / Wave 1 -- starting now.
@@ -264,16 +266,17 @@ Full audit against the original brief.
 - [ ] Donahoe P4: Any bloat? Cut.
 - [ ] Donahoe P5: Any configuration that should be automatic?
 
-### Multi-AI Quality Trident (Donahoe P9)
+### Multi-AI Quality Trident (Donahoe P9 -- see CLAUDE.md Donahoe 22 Principles)
 
 For critical work, generate a cross-audit document:
 1. Summarise what was built, key decisions, risk areas
 2. Generate specific verification questions (testable, not vague)
 3. Store in IJFW memory via ijfw_memory_store
 
-Offer: "Cross-audit ready. Review in Gemini, Codex, or another AI."
+Offer: "Trident stands ready -- 2 more models will independently challenge this. Consensus findings jump to high-priority; lone flags become watch-items. Fire now?"
+If no external AI is reachable, fall back to Agent-dispatched specialist swarm (security, code-review, reliability).
 If MCP memory shared: other agent says "review latest IJFW audit" -- done.
-Disagreements between AIs → flag, don't auto-resolve → present to user.
+Disagreements between AIs -- flag, don't auto-resolve -- present to user.
 
 Use `/cross-audit` to generate the document explicitly.
 
@@ -311,6 +314,8 @@ Respond with exactly this structure:
 Example: "Phase Deep / Wave 4 / Step 4.2 -- executing the auth module with the security specialist. Recommended next: run the task micro-audit when the agent responds (~2min)."
 
 Never leave the user wondering where they are. Always include the recommended next action -- no open menus.
+
+Optional: if cumulative progress is useful context, append one line: "Progress so far: <N> tasks shipped, <M> audit gates cleared."
 
 ---
 
@@ -395,11 +400,7 @@ Memory integration: key decisions stored in IJFW memory for cross-session recall
 
 # OUTPUT RULES
 
-Before emitting any "next step" text, scan for forbidden prefixes:
-`gsd:`, `superpowers:`, `hookify:`, `claude-supermemory:`, `feature-dev:`, `pr-review-toolkit:`.
-If found as an action verb (not inside an `Agent(` dispatch or attribution comment),
-rewrite to an IJFW-native equivalent (e.g. "IJFW Plan phase", "code reviewer specialist via Agent tool")
-or halt with: "Rewrite needed -- foreign plugin verb detected."
+Before emitting any "next step" text, scan for foreign plugin prefixes -- any `<plugin>:` prefix where `<plugin>` is not `ijfw`. If found as an action verb (not inside an `Agent(` dispatch or attribution comment), rewrite to an IJFW-native equivalent (e.g. "IJFW Plan phase", "code reviewer specialist via Agent tool") or halt with: "Rewrite needed -- foreign plugin verb detected."
 
 ---
 

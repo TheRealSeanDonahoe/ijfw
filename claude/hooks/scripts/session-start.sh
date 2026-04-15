@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# E4 — universal disable switch.
+# E4 -- universal disable switch.
 [ "${IJFW_DISABLE:-}" = "1" ] && exit 0
-# IJFW SessionStart — emits banner first, runs detection async, never crashes Claude Code.
+# IJFW SessionStart -- emits banner first, runs detection async, never crashes Claude Code.
 #
 # Hardened against:
 #   - blocking on slow probes (banner emits within ~10ms, probes finish in background)
-#   - bash 4+ syntax (uses files instead of arrays — works on macOS bash 3.2)
-#   - python3 dependency (replaced with node -e everywhere — node is guaranteed)
+#   - bash 4+ syntax (uses files instead of arrays -- works on macOS bash 3.2)
+#   - python3 dependency (replaced with node -e everywhere -- node is guaranteed)
 #   - migration race on parallel session-start (mkdir-atomic lock)
 #   - migration double-import on crash (.migrated written FIRST, in lock)
 #   - non-portable shell (POSIX case instead of [[ ]])
@@ -16,7 +16,7 @@
 #   - silent feature loss (sqlite3/python3 missing → positive-framed actionable line)
 #   - jargon in user-facing output (no "effort", no JSONL, no file paths)
 
-# No `set -e` — hooks must NEVER crash Claude Code. Each section guards itself.
+# No `set -e` -- hooks must NEVER crash Claude Code. Each section guards itself.
 
 IJFW_DIR=".ijfw"
 IJFW_GLOBAL="$HOME/.ijfw"
@@ -26,7 +26,7 @@ MIGRATION_LOCK="$IJFW_DIR/.migration.lock"
 # --- Pre-flight: .ijfw must be a directory if it exists ---
 if [ -e "$IJFW_DIR" ] && [ ! -d "$IJFW_DIR" ]; then
   cat <<'EOF'
-[ijfw] A file named ".ijfw" exists in this project — IJFW needs that name for its directory. Rename or remove the file, then start a new session.
+[ijfw] A file named ".ijfw" exists in this project -- IJFW needs that name for its directory. Rename or remove the file, then start a new session.
 EOF
   exit 0
 fi
@@ -66,7 +66,7 @@ if [ "$EFFORT" = "medium" ]; then
   UPGRADED_EFFORT="Upgraded thinking depth"
 fi
 
-# --- Routing detection (sync but cheap — env vars + file checks only, no network) ---
+# --- Routing detection (sync but cheap -- env vars + file checks only, no network) ---
 ROUTING=""
 case "${OPENROUTER_API_KEY:-}" in ?*) ROUTING="multi-model routing" ;; esac
 case "${ANTHROPIC_BASE_URL:-}" in
@@ -75,14 +75,14 @@ esac
 if [ -f "$HOME/.claude-code-router/config.json" ]; then
   [ -z "$ROUTING" ] && ROUTING="smart routing"
 fi
-# Portable claude-code-router process check (no `pgrep -f` — busybox lacks it)
+# Portable claude-code-router process check (no `pgrep -f` -- busybox lacks it)
 if [ -d /proc ] && grep -lq "claude-code-router" /proc/*/cmdline 2>/dev/null; then
   [ -z "$ROUTING" ] && ROUTING="smart routing"
 fi
 
 # --- Async local-model probes (background; banner doesn't wait) ---
 # Writes results to $DETECTION_FILE; consumer is the next session's banner.
-# Current session shows whatever the previous session wrote — eventually consistent,
+# Current session shows whatever the previous session wrote -- eventually consistent,
 # but the banner is instant and never blocks.
 {
   if curl -sf --max-time 0.5 --connect-timeout 0.5 \
@@ -127,7 +127,7 @@ fi
 # mkdir is atomic on POSIX → safe lock without flock dependency.
 # .migrated is written FIRST so a crash mid-import doesn't double-import next run.
 if [ ! -f "$MIGRATED_FLAG" ] && mkdir "$MIGRATION_LOCK" 2>/dev/null; then
-  # Write the flag first — if we crash, next run sees we already attempted.
+  # Write the flag first -- if we crash, next run sees we already attempted.
   # Failed imports leave individual signals but don't replay.
   echo "schema=1" > "$MIGRATED_FLAG"
   echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)" >> "$MIGRATED_FLAG"
@@ -186,7 +186,7 @@ if [ ! -f "$MIGRATED_FLAG" ] && mkdir "$MIGRATION_LOCK" 2>/dev/null; then
     fi
   fi
 
-  # --- Memorix (JSON) — node -e replaces python3 ---
+  # --- Memorix (JSON) -- node -e replaces python3 ---
   for MX in ".memorix" "node_modules/.memorix"; do
     [ -f "$MX/memories.json" ] || continue
     # Use node -e: no cold-start overhead, and we already require node for MCP.
@@ -235,7 +235,7 @@ if [ ! -f "$MIGRATED_FLAG" ] && mkdir "$MIGRATION_LOCK" 2>/dev/null; then
     fi
   fi
 
-  # --- MemPalace flag (deferred — needs Python parser) ---
+  # --- MemPalace flag (deferred -- needs Python parser) ---
   if [ -d "$HOME/.mempalace" ]; then
     echo "IJFW_MIGRATE_MEMPALACE=1" >> "$IJFW_DIR/.startup-flags"
     echo "Memory palace ready for enrichment" >> "$MIGRATION_MSGS_FILE"
@@ -305,11 +305,11 @@ if [ -f "$IJFW_DIR/memory/project-journal.md" ]; then
   [ -z "$DECISION_COUNT" ] && DECISION_COUNT=0
 fi
 
-# --- BANNER (positive framing only — no jargon, no paths, no "effort") ---
+# --- BANNER (positive framing only -- no jargon, no paths, no "effort") ---
 # Captured to buffer so we can emit it via JSON hookSpecificOutput envelope.
 BANNER_BUF="$IJFW_DIR/.banner-buf"
 {
-# C5 — visible mode indicator. IJFW_MODE overrides; default "smart".
+# C5 -- visible mode indicator. IJFW_MODE overrides; default "smart".
 CUR_MODE="${IJFW_MODE:-smart}"
 if [ -n "$ROUTING_STR" ]; then
   printf '[ijfw] %s mode%s\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')" "$ROUTING_STR"
@@ -335,7 +335,7 @@ if [ "$SESSION_COUNT" -gt 0 ] || [ "$DECISION_COUNT" -gt 0 ]; then
   printf '[ijfw] Memory loaded (%s sessions, %s decisions)\n' "$SESSION_COUNT" "$DECISION_COUNT"
 fi
 
-# W3.11 / H9 — surface one most-recent auto-memorized entry as the
+# W3.11 / H9 -- surface one most-recent auto-memorized entry as the
 # "I remember X about this project" moment. Silent when none exist
 # (new install / auto-memorize disabled).
 KB="$IJFW_DIR/memory/knowledge.md"
@@ -353,12 +353,12 @@ if [ -f "$IJFW_DIR/memory/handoff.md" ]; then
   [ -n "$NEXT_STEP" ] && printf '[ijfw] Next: %s\n' "$NEXT_STEP"
 fi
 
-# Codebase index — MVP text index at .ijfw/index/files.md.
+# Codebase index -- MVP text index at .ijfw/index/files.md.
 # Build in background so session-start stays fast (<100ms). Results appear
 # in banner from session 2 onwards via the text file's existence.
 INDEX_FILE="$IJFW_DIR/index/files.md"
 INDEXER_SCRIPT=""
-# Candidate paths for the indexer — works whether plugin is installed globally
+# Candidate paths for the indexer -- works whether plugin is installed globally
 # or running from the dev repo.
 for candidate in \
     "$CLAUDE_PLUGIN_ROOT/../scripts/build-codebase-index.sh" \
@@ -432,7 +432,7 @@ printf '[ijfw] Ready.\n'
 
 # The banner above was buffered; we'll emit it via hookSpecificOutput.additionalContext
 # along with the memory injection. Claude Code's SessionStart hook injects JSON's
-# additionalContext into the agent's starting context — plain stdout alone goes to
+# additionalContext into the agent's starting context -- plain stdout alone goes to
 # the user's terminal, NOT the agent. Without the JSON envelope, stored memory is
 # invisible to the LLM.
 
@@ -442,10 +442,10 @@ MEM_BUF="$IJFW_DIR/.mem-buf"
 : > "$MEM_BUF"
 
 HAVE_MEMORY=0
-# Prelude mode (W2.4/B2 — Headroom-style lazy loading):
-#   pointer — ~50 tokens. Just "memory available, call prelude".
-#   summary — ~100-200 tokens. 3 recent decisions + last handoff (default).
-#   full    — legacy behavior, inject everything.
+# Prelude mode (W2.4/B2 -- Headroom-style lazy loading):
+#   pointer -- ~50 tokens. Just "memory available, call prelude".
+#   summary -- ~100-200 tokens. 3 recent decisions + last handoff (default).
+#   full    -- legacy behavior, inject everything.
 PRELUDE_MODE="${IJFW_PRELUDE_MODE:-summary}"
 case "$PRELUDE_MODE" in
   pointer|summary|full) ;;
@@ -458,7 +458,7 @@ if [ -s "$KB_FILE" ] || [ -s "$HANDOFF_FILE" ] || [ -f "$IJFW_DIR/memory/project
     echo "<ijfw-memory>"
     case "$PRELUDE_MODE" in
       pointer)
-        # ~50 tokens — pure pointer, zero samples. Heaviest savings.
+        # ~50 tokens -- pure pointer, zero samples. Heaviest savings.
         echo "Project memory available. Call \`ijfw_memory_prelude\` to see decisions, patterns, handoff."
         ;;
       summary|full)
@@ -484,15 +484,15 @@ if [ -s "$KB_FILE" ] || [ -s "$HANDOFF_FILE" ] || [ -f "$IJFW_DIR/memory/project
   } > "$MEM_BUF"
 fi
 
-# CLAUDE.md management runs regardless of memory state — we want to auto-generate
+# CLAUDE.md management runs regardless of memory state -- we want to auto-generate
 # a project context file on session 1 of a new project even if no memory exists yet.
 if true; then
   # Belt-and-suspenders: inject memory into CLAUDE.md at a managed section.
-  # Claude Code ALWAYS loads CLAUDE.md — this is the one guaranteed visibility
+  # Claude Code ALWAYS loads CLAUDE.md -- this is the one guaranteed visibility
   # path. We use markers so we never touch user-authored content; only the
   # region between markers is rewritten each session.
   CLAUDE_MD="CLAUDE.md"
-  MARK_START="<!-- IJFW-MEMORY-START (managed — do not edit manually) -->"
+  MARK_START="<!-- IJFW-MEMORY-START (managed -- do not edit manually) -->"
   MARK_END="<!-- IJFW-MEMORY-END -->"
 
   # Build the managed block.
@@ -504,17 +504,17 @@ if true; then
 
   # Skip CLAUDE.md injection if user's existing file is already near the
   # Claude Code performance threshold (~40k chars). In that case, memory is
-  # still accessible via the ijfw_memory_prelude MCP tool — just not preloaded.
+  # still accessible via the ijfw_memory_prelude MCP tool -- just not preloaded.
   CLAUDE_MD_SIZE=0
   [ -f "$CLAUDE_MD" ] && CLAUDE_MD_SIZE=$(wc -c < "$CLAUDE_MD" 2>/dev/null | tr -d ' ')
   [ -z "$CLAUDE_MD_SIZE" ] && CLAUDE_MD_SIZE=0
   if [ "$CLAUDE_MD_SIZE" -gt 35000 ]; then
-    # Large CLAUDE.md — strip any prior IJFW block and skip this session's inject.
+    # Large CLAUDE.md -- strip any prior IJFW block and skip this session's inject.
     if grep -q "$MARK_START" "$CLAUDE_MD" 2>/dev/null; then
       node -e '
         const fs = require("fs");
         const file = process.argv[1];
-        const startM = "<!-- IJFW-MEMORY-START (managed — do not edit manually) -->";
+        const startM = "<!-- IJFW-MEMORY-START (managed -- do not edit manually) -->";
         const endM = "<!-- IJFW-MEMORY-END -->";
         const src = fs.readFileSync(file, "utf8");
         const re = new RegExp(startM.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[\\s\\S]*?" + endM + "\\n?", "m");
@@ -523,7 +523,7 @@ if true; then
       ' "$CLAUDE_MD" 2>/dev/null
     fi
   elif [ ! -f "$CLAUDE_MD" ]; then
-    # No CLAUDE.md yet — auto-generate a rich initial one from repo scan.
+    # No CLAUDE.md yet -- auto-generate a rich initial one from repo scan.
     # Everything below is deterministic (no LLM calls) so there's no risk of
     # hallucinated "facts" about the project. We only report what files exist.
     AUTOGEN_STACK="$PROJECT_TYPE"
@@ -569,17 +569,17 @@ if true; then
         printf '%s' "$AUTOGEN_CONFIG"
         echo ""
       fi
-      echo "<!-- Auto-generated by IJFW from repo scan. Edit freely — IJFW only touches the managed block below. -->"
+      echo "<!-- Auto-generated by IJFW from repo scan. Edit freely -- IJFW only touches the managed block below. -->"
       echo ""
       echo "$MANAGED_BLOCK"
     } > "$CLAUDE_MD" 2>/dev/null
   elif grep -q "$MARK_START" "$CLAUDE_MD" 2>/dev/null; then
-    # Marker exists — replace the block atomically via temp file.
+    # Marker exists -- replace the block atomically via temp file.
     node -e '
       const fs = require("fs");
       const file = process.argv[1];
       const block = process.argv[2];
-      const startM = "<!-- IJFW-MEMORY-START (managed — do not edit manually) -->";
+      const startM = "<!-- IJFW-MEMORY-START (managed -- do not edit manually) -->";
       const endM = "<!-- IJFW-MEMORY-END -->";
       const src = fs.readFileSync(file, "utf8");
       const re = new RegExp(startM.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[\\s\\S]*?" + endM, "m");
@@ -588,7 +588,7 @@ if true; then
       fs.renameSync(file + ".tmp", file);
     ' "$CLAUDE_MD" "$MANAGED_BLOCK" 2>/dev/null
   else
-    # User has CLAUDE.md but no marker — append block at end, preserving user content.
+    # User has CLAUDE.md but no marker -- append block at end, preserving user content.
     {
       echo ""
       echo "$MANAGED_BLOCK"
@@ -603,11 +603,11 @@ fi
 #     hookSpecificOutput.additionalContext. Claude Code only consumes JSON
 #     here; plain stdout is silently dropped in session-start hooks.
 if [ -t 1 ]; then
-  # Interactive terminal — show plain banner.
+  # Interactive terminal -- show plain banner.
   [ -s "$BANNER_BUF" ] && cat "$BANNER_BUF"
   [ -s "$MEM_BUF" ] && { echo ""; cat "$MEM_BUF"; }
 elif command -v node >/dev/null 2>&1; then
-  # Claude Code / MCP client — emit JSON envelope.
+  # Claude Code / MCP client -- emit JSON envelope.
   # Three output fields with different destinations:
   #   - systemMessage     → rendered visibly to the user's terminal (the banner)
   #   - additionalContext → injected into agent context (the memory for recall)
@@ -626,7 +626,7 @@ elif command -v node >/dev/null 2>&1; then
     process.stdout.write(JSON.stringify(out));
   ' "$BANNER_BUF" "$MEM_BUF" 2>/dev/null
 else
-  # Fallback with neither TTY nor node — plain banner so something surfaces.
+  # Fallback with neither TTY nor node -- plain banner so something surfaces.
   [ -s "$BANNER_BUF" ] && cat "$BANNER_BUF"
 fi
 
