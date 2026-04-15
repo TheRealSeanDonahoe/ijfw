@@ -16,3 +16,8 @@ dist/
 .cursor/
 .windsurfrules
 .github/copilot-instructions.md
+
+# Local dev-tree guard (Sean only) -- prevents install.sh from targeting the
+# IJFW source checkout itself. Must NOT be tracked or user clones will refuse
+# to install. Recreate locally with: touch .ijfw-source
+.ijfw-source
