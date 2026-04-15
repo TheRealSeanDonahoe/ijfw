@@ -42,9 +42,30 @@
 
 ---
 
+### R3 — Auto-swarm dispatcher
+
+**What:** Workflow skill automatically decides shared-branch vs worktree-isolated parallelism per Wave, based on file-overlap analysis of sub-wave declared file lists.
+
+**Why:** Wave 10A executed as a 13-agent shared-branch swarm because a human (operator-in-the-loop) eyeballed that the sub-wave file lists were disjoint. This works for hand-authored plans up to ~5 waves and gets fragile past that. As plans scale (portfolio audits in R1 hit N projects × M lenses = hundreds of parallel targets), the "is this safe to shared-branch?" check must be mechanical. Also: worktree isolation is the right default for untrusted or LLM-generated sub-wave plans where file declarations may be wrong.
+
+**Scope sketch:**
+- At Execute-phase entry, workflow skill parses the PLAN's per-sub-wave `Files:` declarations.
+- Compute pairwise file-set intersection across all in-wave sub-waves.
+- Emit a dispatch manifest: `Wave NA: shared-branch, K agents.` or `Wave NA: worktree (N overlapping), M shared.`
+- If any sub-wave omits a `Files:` declaration → worktree by default (safety).
+- Surface the manifest to the user one sentence before dispatch; accept override (`--all-worktree` / `--all-shared`).
+- Post-dispatch: on worktree runs, auto-merge branches in sub-wave dependency order; surface conflicts via the workflow's existing audit-gate narration.
+- Estimated effort: 1.5-2 days.
+
+**Why V1.1 (not deferred):** This is infrastructure that R1 depends on. Cross-project audit across N projects is by-construction a swarm job. Shipping R1 without R3 means R1 ships with the same eyeball-the-file-list brittleness that Wave 10A leaned on — acceptable for 13 agents, not for N×M portfolio runs.
+
+**Blockers:** none. Lives entirely in `claude/skills/ijfw-workflow/SKILL.md` + a small helper in `mcp-server/src/dispatch-planner.js`.
+
+---
+
 ## V1.2 — "Work with teammates"
 
-### R3 — Team-tier memory
+### R4 — Team-tier memory
 
 **What:** Shared memory across teammates. Project-tier stays private; team-tier lives at `~/.ijfw/team/<team-id>/` and syncs via a chosen backend (git repo, S3, local NAS).
 
