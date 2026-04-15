@@ -144,6 +144,10 @@ Options for ijfw cross:
   --confirm     Prompt for confirmation before firing
   --expand      Include extended swarm when available
 
+Environment:
+  IJFW_AUDIT_BUDGET_USD   Session spend cap (default $2.00). Enforces on 2nd+ calls;
+                          first-call cost is always allowed.
+
 Examples:
   ijfw demo
   ijfw cross audit README.md
