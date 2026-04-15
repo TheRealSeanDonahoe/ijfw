@@ -709,7 +709,7 @@ function handlePrelude({ detail_level = 'summary' } = {}) {
   const TM_LINES = detail_level === 'full' ? 200 : detail_level === 'standard' ? 60 : 20;
 
   const parts = ['<ijfw-memory>'];
-  parts.push('Project memory hydrated. Treat as background context — no further recall needed unless the user asks something not covered here.');
+  parts.push('Project memory hydrated. Treat as background context -- no further recall needed unless the user asks something not covered here.');
   parts.push('');
 
   // Team knowledge first — shared decisions/patterns/stack rank above personal.
@@ -763,7 +763,7 @@ function handlePrelude({ detail_level = 'summary' } = {}) {
 
   const text = parts.join('\n');
   if (text.length < 60) {
-    return { text: 'Fresh project — no memory stored yet. Proceed normally.' };
+    return { text: 'Fresh project -- no memory stored yet. Proceed normally.' };
   }
   return { text };
 }
@@ -893,7 +893,7 @@ function handleStatus() {
   }
   if (hasGlobal) parts.push('Project preferences loaded');
 
-  return { text: parts.join('\n') || 'Fresh project — no memory yet.' };
+  return { text: parts.join('\n') || 'Fresh project -- no memory yet.' };
 }
 
 // --- MCP Protocol Handler (JSON-RPC 2.0 over stdio) ---

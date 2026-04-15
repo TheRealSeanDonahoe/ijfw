@@ -6,7 +6,7 @@ allowed-tools: ["Read", "Write", "Bash", "Grep"]
 Stress-test any target against three adversarial perspectives simultaneously.
 Solves "a single reviewer's blind spots." Unlike cross-audit (which reviews for
 correctness/security/ops/maint), cross-critique hunts for the hardest counter-arguments
-to your position — then ranks them by how likely each argument is to survive a
+to your position -- then ranks them by how likely each argument is to survive a
 rebuttal. High-survival counter-args are the ones worth acting on first.
 
 ## Subcommands
@@ -24,9 +24,9 @@ rebuttal. High-survival counter-args are the ones worth acting on first.
 When invoked without a target, run this detection cascade and use the first
 non-empty result:
 
-1. **Staged changes** — `git diff --cached --name-only`
-2. **Unstaged changes** — `git diff --name-only`
-3. **Last commit** — `git diff HEAD~1 --name-only`
+1. **Staged changes** -- `git diff --cached --name-only`
+2. **Unstaged changes** -- `git diff --name-only`
+3. **Last commit** -- `git diff HEAD~1 --name-only`
 4. If all empty: print the roster and ask "what would you like critiqued?"
 
 Report which step succeeded:
@@ -42,9 +42,9 @@ use the diff hunks rather than the full file.
 
 The natural-language phrase **"challenge this from every angle"** / **"adversarial
 critique"** fires the intent router (`mcp-server/src/intent-router.js`), which
-nudges Claude to invoke `/cross-critique` automatically — same auto-detect flow runs.
+nudges Claude to invoke `/cross-critique` automatically -- same auto-detect flow runs.
 
-## Default flow — Donahoe Trident (don't make me think)
+## Default flow -- Donahoe Trident (don't make me think)
 
 Caller holds one perspective (UX/adoption lens). Two external auditors cover the
 other two angles (technical and strategic) independently, in parallel, so no
@@ -76,7 +76,7 @@ When invoked, do this in order:
    Run cross-critique:
      [A] codex only (technical angle)
      [B] gemini only (strategic angle)
-     [C] Both + claude ux — recommended (Donahoe Trident)
+     [C] Both + claude ux -- recommended (Donahoe Trident)
      [D] Cancel / pick custom
    ```
 
@@ -85,7 +85,7 @@ When invoked, do this in order:
 4. **If only one external auditor installed:**
 
    > "Only `<id>` is installed locally. The full Trident covers technical,
-   > strategic, and UX angles in one pass — install one more auditor
+   > strategic, and UX angles in one pass -- install one more auditor
    > (opencode, aider, etc.) to unlock complete angle coverage."
 
    Then offer to run the partial two-angle flow (external + claude ux).
@@ -111,14 +111,14 @@ Critique role assignment is mode-aware via `assignRoles('critique', roster, self
 - `codex` → `technical` angle (implementation weaknesses, edge cases, failure modes)
 - `gemini` → `strategic` angle (market, adoption, sustainability, risk)
 - `claude` (fresh session via `claude -p`) → `ux` angle (cognitive load, onboarding, discoverability)
-- Caller's own perspective is collected in-session and merged at the end — the
+- Caller's own perspective is collected in-session and merged at the end -- the
   caller does NOT occupy one of the three external slots.
 
 ---
 
-## Wave A — Parallel fan-out — all three angles at once
+## Wave A -- Parallel fan-out -- all three angles at once
 
-### Step A.1 — Generate requests via the dispatcher
+### Step A.1 -- Generate requests via the dispatcher
 
 Run one node call per auditor:
 
@@ -143,13 +143,13 @@ import('./mcp-server/src/cross-dispatcher.js').then(m =>
 )" > .ijfw/cross-audit/request-critique-claude.md
 ```
 
-> **Note:** `buildRequest` is synchronous and returns a string — do NOT `.then()` it. Wrap it in `process.stdout.write(...)` directly.
+> **Note:** `buildRequest` is synchronous and returns a string -- do NOT `.then()` it. Wrap it in `process.stdout.write(...)` directly.
 
 Replace `<target>` with the detected or specified target string.
 
-### Step A.2 — Fire all three auditors in background
+### Step A.2 -- Fire all three auditors in background
 
-**Auto-fire is required.** Do NOT stop at "request written — paste it into Codex."
+**Auto-fire is required.** Do NOT stop at "request written -- paste it into Codex."
 Only fall back to human paste when `command -v <auditor>` fails AND the roster
 probe returns the auditor as missing.
 
@@ -167,25 +167,25 @@ cat .ijfw/cross-audit/request-critique-gemini.md | gemini - > .ijfw/cross-audit/
 cat .ijfw/cross-audit/request-critique-claude.md | claude -p > .ijfw/cross-audit/response-critique-claude.md
 ```
 
-All three run simultaneously — there is no staged dependency between them. Wait for
+All three run simultaneously -- there is no staged dependency between them. Wait for
 all three completion notifications before running `compare`. Update the TODO surface
 to `in_progress` then `completed` per auditor.
 
 **Missing auditor fallback (positive framing only):**
 If `command -v codex` (or `gemini`) fails, surface:
 
-> "Codex isn't installed locally — paste `request-critique-codex.md` into
+> "Codex isn't installed locally -- paste `request-critique-codex.md` into
 > https://platform.openai.com/playground and save the response as
 > `.ijfw/cross-audit/response-critique-codex.md`, then re-run
 > `/cross-critique compare`."
 
 ---
 
-## Wave A (caller leg) — Collect in-session perspective
+## Wave A (caller leg) -- Collect in-session perspective
 
 **Caller-side = specialist swarm, not single opinion.** The Trident's third
-leg is a parallel dispatch of in-session specialist subagents — code-review,
-silent-failure hunting, test coverage, type design, etc. — each contributing
+leg is a parallel dispatch of in-session specialist subagents -- code-review,
+silent-failure hunting, test coverage, type design, etc. -- each contributing
 their findings. Claude's unique affordance over Codex/Gemini is parallel
 agent dispatch; the runbook leans into it.
 
@@ -198,7 +198,7 @@ Fire these in parallel via the `Agent` tool (all independent, same target):
 | Test-coverage analyst specialist | `Agent` tool | coverage gaps |
 | Type-design analyst specialist | `Agent` tool (typed codebase only) | invariants + encapsulation |
 
-Pick the subset relevant to the project — for a Node/Bash plugin the baseline
+Pick the subset relevant to the project -- for a Node/Bash plugin the baseline
 is code-reviewer + silent-failure-hunter + pr-test-analyzer. Send all agents
 in a single message (multiple Agent tool uses in one block) so they run
 concurrently.
@@ -212,19 +212,19 @@ critique schema `{counterArg, conditions, mitigation, severity}`, write to:
 
 This file joins `response-critique-codex.md`, `response-critique-gemini.md`,
 and the fresh-Claude `response-critique-claude.md` in the final merge. The
-swarm IS the caller's leg of the Trident — not a solo in-session take.
+swarm IS the caller's leg of the Trident -- not a solo in-session take.
 
 If no specialist surfaces anything, say so explicitly in the caller file;
 don't fabricate findings to fill the slot.
 
 ---
 
-## Wave B — Compare — score, rank, render
+## Wave B -- Compare -- score, rank, render
 
 Run compare automatically once all auditor completion notifications arrive, or
 when the user runs `/cross-critique compare` explicitly.
 
-### Step B.1 — Score each counter-arg via `scoreRebuttalSurvival`
+### Step B.1 -- Score each counter-arg via `scoreRebuttalSurvival`
 
 ```bash
 node --input-type=module -e "
@@ -249,11 +249,11 @@ list sorted descending by score (1=low, 5=high). The rubric is deterministic:
 condition specificity, mitigation existence, evidence link, severity, independence
 from caller context.
 
-### Step B.2 — Render ranked counter-arg table
+### Step B.2 -- Render ranked counter-arg table
 
 ```
-## Cross-critique results — <target>
-Auditors: codex (technical) · gemini (strategic) · claude/fresh (ux) · caller
+## Cross-critique results -- <target>
+Auditors: codex (technical) -- gemini (strategic) -- claude/fresh (ux) -- caller
 
 | Rank | Counter-argument | Angle | Survival | Conditions | Mitigation |
 |------|-----------------|-------|----------|------------|------------|
@@ -269,7 +269,7 @@ Auditors: codex (technical) · gemini (strategic) · claude/fresh (ux) · caller
 Survival score 5 = survives most rebuttals under realistic conditions.
 Survival score 1 = dissolves under the first reasonable objection.
 
-### Step B.3 — Archive
+### Step B.3 -- Archive
 
 Move all request, response, and merge files to:
 
@@ -287,7 +287,7 @@ Move all request, response, and merge files to:
 
 ## Notes
 
-- All three external auditors fire in parallel — there is no Phase A / Phase B
+- All three external auditors fire in parallel -- there is no Phase A / Phase B
   staging. The caller's own perspective is always collected in-session, not via
   background bash.
 - Output is ranked by rebuttal survival score, not raw severity. A high-severity
@@ -297,5 +297,5 @@ Move all request, response, and merge files to:
   context from influencing the external critique.
 - `audit-roster.js` detection is conservative: if the caller cannot be identified,
   all options are shown rather than guessing.
-- Positive framing throughout: no "missing auditor error" — "install to unlock the
+- Positive framing throughout: no "missing auditor error" -- "install to unlock the
   full Trident."

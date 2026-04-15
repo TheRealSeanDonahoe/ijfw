@@ -1,9 +1,9 @@
 ---
 name: ijfw-status
-description: "Show IJFW state — mode, routing, memory, recent activity, codebase index, settings. Use when you want the at-a-glance banner you'd otherwise get at session start."
+description: "Show IJFW state -- mode, routing, memory, recent activity, codebase index, settings. Use when you want the at-a-glance banner you'd otherwise get at session start."
 ---
 
-Render the IJFW status block as a fenced code block. **Compute it deterministically** from filesystem state — never invent values.
+Render the IJFW status block as a fenced code block. **Compute it deterministically** from filesystem state -- never invent values.
 
 <!--
 CURRENT STEP STATE SCHEMA
@@ -29,7 +29,7 @@ any transition even if the step is brief.
 Read `.ijfw/state/current-step.json`. If present and valid, prepend to the status block:
 
 ```
-Phase {phase} / Wave {wave} · Step {step} — {label}
+Phase {phase} / Wave {wave} -- Step {step} -- {label}
 Recommended next: {recommended_next}. Say no/alt to override.
 ```
 
@@ -54,7 +54,7 @@ If the file is absent: prepend `No active workflow session. Start one with: /ijf
 10. `.ijfw/.startup-flags` → list any IJFW_NEEDS_* flags
 11. `.ijfw/receipts/cross-runs.jsonl` → parse each line; aggregate via `renderHeroLine` from `mcp-server/src/hero-line.js` (omit the whole "Cross-audit runs" section if the file doesn't exist or has zero lines)
 
-## Output format (positive framing — never "missing", "warning", "failed")
+## Output format (positive framing -- never "missing", "warning", "failed")
 
 ```
 --- IJFW Status ---
@@ -83,7 +83,7 @@ Cross-audit runs
   (omit whole section if receipts file missing or empty)
 
 Pending
-  {one line per IJFW_NEEDS_* flag — e.g. "Memory consolidation due (run /consolidate)"}
+  {one line per IJFW_NEEDS_* flag -- e.g. "Memory consolidation due (run /consolidate)"}
   (omit section if no flags)
 ---
 ```
@@ -93,7 +93,7 @@ Pending
 - ALL counts are real reads from disk. No fabrication.
 - Sections with zero values are OMITTED entirely (don't show "0 entries").
 - Truncate decision lines at 100 chars with `…` if longer.
-- If `.ijfw/` doesn't exist: render `Fresh project — no IJFW state yet. Memory will start accumulating from your next "remember X" or stored decision.`
+- If `.ijfw/` doesn't exist: render `Fresh project -- no IJFW state yet. Memory will start accumulating from your next "remember X" or stored decision.`
 - Do NOT use jargon like "JSONL", "SQLite", file paths, or "MCP". User-facing only.
 - Do NOT include load times, check marks, or framework details. Just facts.
 - Use the fenced code block (triple backticks) so the output renders as visible chrome regardless of Claude Code's hook output handling.

@@ -11,7 +11,7 @@
 #
 # Safety:
 #   - Backs up existing configs to <config>.bak.<timestamp> before modifying.
-#   - Never prompts — merge is always the safe default.
+#   - Never prompts -- merge is always the safe default.
 #   - Shows what was added/kept at the end.
 
 set -u
@@ -19,7 +19,7 @@ set -u
 REPO_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [ -f "$REPO_ROOT/.ijfw-source" ]; then
-  printf "Running inside IJFW source repo — skipping platform-rule writes to protect your dev tree. Run outside the repo to install.\n"
+  printf "Running inside IJFW source repo -- skipping platform-rule writes to protect your dev tree. Run outside the repo to install.\n"
   exit 0
 fi
 LAUNCHER="$REPO_ROOT/mcp-server/bin/ijfw-memory"
@@ -45,7 +45,7 @@ fi
 
 TS=$(date +%Y%m%d-%H%M%S)
 
-# S6 — prune backups older than 30 days from common config dirs.
+# S6 -- prune backups older than 30 days from common config dirs.
 for d in "$HOME/.codex" "$HOME/.gemini" "$HOME/.codeium/windsurf" ".vscode" ".cursor"; do
   [ -d "$d" ] || continue
   find "$d" -maxdepth 2 -name '*.bak.*' -type f -mtime +30 -print 2>/dev/null \
@@ -54,7 +54,7 @@ done
 
 ok()   { printf "  ✓ %s\n" "$1"; }
 note() { printf "  → %s\n" "$1"; }
-info() { printf "  · %s\n" "$1"; }
+info() { printf "  -- %s\n" "$1"; }
 
 backup() {
   local path="$1"
@@ -76,7 +76,7 @@ merge_json() {
     let doc = {};
     if (fs.existsSync(path)) {
       try { doc = JSON.parse(fs.readFileSync(path, "utf8") || "{}"); } catch {
-        // Corrupt existing config — keep the backup, start fresh.
+        // Corrupt existing config -- keep the backup, start fresh.
         doc = {};
       }
     }
@@ -93,7 +93,7 @@ merge_json() {
 }
 
 # --- TOML merge helper (Codex) ---
-# S4 — atomic variant: write to sibling .tmp, append block, then atomic rename.
+# S4 -- atomic variant: write to sibling .tmp, append block, then atomic rename.
 # Eliminates the crash-mid-pipeline window where $dst could be truncated.
 merge_toml() {
   local dst="$1" launcher="$2"
@@ -120,7 +120,7 @@ merge_toml() {
   mv "$tmp" "$dst"
 }
 
-echo "IJFW install — launcher: $LAUNCHER"
+echo "IJFW install -- launcher: $LAUNCHER"
 echo
 
 for target in "${TARGETS[@]}"; do
@@ -130,7 +130,7 @@ for target in "${TARGETS[@]}"; do
       note "Inside Claude Code, run:"
       note "  /plugin marketplace add $REPO_ROOT/claude"
       note "  /plugin install ijfw"
-      note "Plugin auto-registers the MCP server — no extra step needed."
+      note "Plugin auto-registers the MCP server -- no extra step needed."
       note ".claudeignore template at $REPO_ROOT/claude/.claudeignore"
       note "  Copy to your project root for instant context savings."
       ;;
@@ -150,7 +150,7 @@ for target in "${TARGETS[@]}"; do
       echo "[Gemini CLI]"
       dst="$HOME/.gemini/settings.json"
       merge_json "$dst" "$LAUNCHER"
-      # W4.1 / E2 — platform parity: copy the GEMINI.md rules file.
+      # W4.1 / E2 -- platform parity: copy the GEMINI.md rules file.
       if [ ! -f "$HOME/.gemini/GEMINI.md" ]; then
         mkdir -p "$HOME/.gemini"
         cp "$REPO_ROOT/gemini/GEMINI.md" "$HOME/.gemini/GEMINI.md" 2>/dev/null \
@@ -172,7 +172,7 @@ for target in "${TARGETS[@]}"; do
       echo "[Windsurf]"
       dst="$HOME/.codeium/windsurf/mcp_config.json"
       merge_json "$dst" "$LAUNCHER"
-      # W4.1 / E2 — copy the .windsurfrules to the current project.
+      # W4.1 / E2 -- copy the .windsurfrules to the current project.
       if [ ! -f ".windsurfrules" ] && [ -f "$REPO_ROOT/windsurf/.windsurfrules" ]; then
         cp "$REPO_ROOT/windsurf/.windsurfrules" .windsurfrules 2>/dev/null \
           && ok "Merged MCP + installed .windsurfrules" \
@@ -185,7 +185,7 @@ for target in "${TARGETS[@]}"; do
       echo "[Copilot (VS Code)]"
       dst=".vscode/mcp.json"
       merge_json "$dst" "$LAUNCHER"
-      # W4.1 / E2 — copy the copilot-instructions.md to .github/ (Copilot's
+      # W4.1 / E2 -- copy the copilot-instructions.md to .github/ (Copilot's
       # project-instructions convention) if not already present.
       if [ ! -f ".github/copilot-instructions.md" ] && [ -f "$REPO_ROOT/copilot/copilot-instructions.md" ]; then
         mkdir -p .github 2>/dev/null
@@ -219,13 +219,13 @@ ijfw_post_commit
 
 install_post_commit_hook() {
   if [ ! -d ".git" ]; then
-    note "No .git directory found — skipping post-commit hook."
+    note "No .git directory found -- skipping post-commit hook."
     return
   fi
   HOOK_FILE=".git/hooks/post-commit"
   note "Modifying: $(pwd)/$HOOK_FILE"
   if [ -f "$HOOK_FILE" ] && grep -qF "$HOOK_MARKER" "$HOOK_FILE" 2>/dev/null; then
-    ok "Post-commit hook already installed — no change."
+    ok "Post-commit hook already installed -- no change."
     return
   fi
   if [ -f "$HOOK_FILE" ]; then
