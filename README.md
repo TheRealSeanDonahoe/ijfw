@@ -2,12 +2,14 @@
 
 Multi-AI orchestration layer for 7 platforms. One install, zero config, persistent memory.
 
+Three AIs review every diff. Cache-hit savings logged per run. Your memory follows you across all seven agents.
+
 ---
 
 ## 30-Second Hook
 
 ```bash
-npm install -g @ijfw/install && ijfw demo
+npm install -g @ijfw/install && ijfw-install && ijfw demo
 ```
 
 Installs IJFW across every AI coding agent you have running, fires a live demo, and prints a health report — all without touching a config file.
@@ -43,7 +45,7 @@ IJFW is a multi-AI orchestration layer that makes every AI coding agent smarter 
 ### npm (recommended)
 
 ```bash
-npm install -g @ijfw/install && ijfw install
+npm install -g @ijfw/install && ijfw-install
 ```
 
 ### Claude Code
@@ -55,31 +57,31 @@ npm install -g @ijfw/install && ijfw install
 ### Codex
 
 ```bash
-ijfw install codex
+ijfw-install codex
 ```
 
 ### Gemini CLI
 
 ```bash
-ijfw install gemini
+ijfw-install gemini
 ```
 
 ### Cursor
 
 ```bash
-ijfw install cursor
+ijfw-install cursor
 ```
 
 ### Windsurf
 
 ```bash
-ijfw install windsurf
+ijfw-install windsurf
 ```
 
 ### Copilot
 
 ```bash
-ijfw install copilot
+ijfw-install copilot
 ```
 
 ### Universal (any agent)
@@ -107,7 +109,7 @@ Universal ------+                    |
 
 **Core layer (~51 lines, ~700 tokens):** terse output, smart model routing, context discipline, quality gates on destructive actions.
 
-**MCP server (5 tools):** `recall`, `store`, `search`, `status`, `prelude` — shared across all platforms via stdio. No sockets. No cloud.
+**MCP server (7 tools):** `recall`, `store`, `search`, `status`, `prelude`, `prompt_check`, `metrics` — shared across all platforms via stdio. No sockets. No cloud.
 
 **Memory tiers:**
 - Hot: plain markdown, instant reads, written on every session end
@@ -118,6 +120,7 @@ Universal ------+                    |
 
 ## Why IJFW
 
+- **Three AIs, not one.** IJFW fires the Trident -- one OpenAI model, one Google model, plus a specialist swarm -- at every cross-audit. Consensus findings jump to high-priority; blind spots never get a free pass.
 - **One install, all agents.** Platform-native configs for every major AI coding tool from a single source of truth. No drift, no duplication.
 - **Memory that actually works.** Decisions, patterns, and handoffs persist across sessions and travel between platforms through a shared MCP server — running locally, no account required.
 - **Smarter, not cheaper.** Auto-routing sends reads to Haiku, code to Sonnet, architecture to Opus. Terse-output rules cut token waste. The result is faster answers and lower costs without you managing any of it.

@@ -63,8 +63,9 @@ npm org ls ijfw
 
 ```bash
 # [P10] Principle audit: zero unresolved HIGH items
-grep "HIGH" .planning/phase10/CROSS-AUDIT-PRINCIPLES.md
-# Expected: no output (or only resolved/closed lines)
+# Pass condition: every match must end with [closed]. Any line without [closed] is a blocker.
+grep -v '[closed]' .planning/phase10/CROSS-AUDIT-PRINCIPLES.md | grep "HIGH"
+# Expected: no output
 
 # [P10] Dogfood receipts archived
 ls .planning/phase10/DOGFOOD-CRITIQUE-P10.md
