@@ -36,3 +36,14 @@ On a short request (<30 tokens) with no obvious target: call `ijfw_prompt_check`
 
 ## Cross-Audit / Research / Critique
 To cross-audit, cross-research, or cross-critique, run `ijfw cross <mode> <target>`.
+
+## Invoking IJFW commands
+IJFW commands on Gemini are intent phrases routed through the MCP tools and the `ijfw` CLI. There are no slash commands -- speak the intent and Gemini maps it natively.
+
+| Intent phrase                        | What fires                              |
+|--------------------------------------|-----------------------------------------|
+| "what's my status?"                  | `ijfw_memory_status` MCP tool           |
+| "run a cross-audit on <file>"        | `ijfw cross audit <file>` shell command |
+| "recall my last handoff"             | `ijfw_memory_prelude` MCP tool          |
+| "run the doctor"                     | `ijfw doctor` shell command             |
+| "show me the demo"                   | `ijfw demo` shell command               |
