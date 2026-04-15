@@ -45,8 +45,31 @@ function Invoke-Preflight {
     $issues += "Node $node detected; IJFW wants Node >=18."
   }
   if (-not (Test-Command git))  { $issues += "git not on PATH -- install Git for Windows, then retry." }
-  if (-not (Test-Command bash)) { $issues += "bash not on PATH -- install Git for Windows (includes Git Bash), then retry." }
+  if (-not (Resolve-GitBash)) { $issues += "Git Bash not found -- install Git for Windows (bundles bash.exe), then retry." }
   return $issues
+}
+
+# Locate Git Bash explicitly. On Windows the plain `bash` command often
+# resolves to WSL's bash, which fails with 'No such file or directory' when
+# no Linux distro is installed. Git for Windows ships bash.exe alongside
+# git.exe under <git-root>\bin\ (or \usr\bin\), so derive it from git's path.
+function Resolve-GitBash {
+  $gitCmd = Get-Command git -ErrorAction SilentlyContinue
+  if ($gitCmd) {
+    $gitDir = Split-Path -Parent $gitCmd.Source
+    $candidates = @(
+      (Join-Path $gitDir 'bash.exe'),
+      (Join-Path (Split-Path -Parent $gitDir) 'bin\bash.exe'),
+      (Join-Path (Split-Path -Parent $gitDir) 'usr\bin\bash.exe')
+    )
+    foreach ($c in $candidates) { if (Test-Path $c) { return $c } }
+  }
+  foreach ($c in @(
+    'C:\Program Files\Git\bin\bash.exe',
+    'C:\Program Files\Git\usr\bin\bash.exe',
+    'C:\Program Files (x86)\Git\bin\bash.exe'
+  )) { if (Test-Path $c) { return $c } }
+  return $null
 }
 
 function Invoke-CloneOrPull($target, $branch) {
@@ -64,10 +87,12 @@ function Invoke-CloneOrPull($target, $branch) {
 function Invoke-InstallScript($target) {
   $script = Join-Path $target "scripts\install.sh"
   if (-not (Test-Path $script)) { throw "scripts/install.sh missing at $script." }
+  $gitBash = Resolve-GitBash
+  if (-not $gitBash) { throw "Git Bash not found -- install Git for Windows and retry." }
   Push-Location $target
   try {
     $env:IJFW_NONINTERACTIVE = if ($env:CI -or $Yes) { "1" } else { "" }
-    & bash "./scripts/install.sh"
+    & $gitBash "./scripts/install.sh"
     if ($LASTEXITCODE -ne 0) { throw "scripts/install.sh exited $LASTEXITCODE." }
   } finally {
     Pop-Location
