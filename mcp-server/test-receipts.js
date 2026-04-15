@@ -261,3 +261,47 @@ test('renderHeroLine with findings.items shape reports correct count (not 0)', (
   const out = renderHeroLine([r], []);
   assert.ok(out.includes('2 findings'), `expected 2 findings, got: ${out}`);
 });
+
+// --- 10D hero-line cache savings tests ---
+
+test('renderHeroLine: no cache_stats -> no cache suffix', () => {
+  const r = makeReceipt(); // no cache_stats field
+  const out = renderHeroLine([r], []);
+  assert.ok(!out.includes('cache hit'), `expected no cache suffix, got: ${out}`);
+});
+
+test('renderHeroLine: cache_read_input_tokens=0 -> no cache suffix', () => {
+  const r = makeReceipt({ cache_stats: { cache_eligible: true, cache_creation_input_tokens: 500, cache_read_input_tokens: 0 } });
+  const out = renderHeroLine([r], []);
+  assert.ok(!out.includes('cache hit'), `expected no cache suffix when reads=0, got: ${out}`);
+});
+
+test('renderHeroLine: cache_read_input_tokens>0 -> savings suffix appended', () => {
+  // 1,000,000 tokens * $2.70/M = $2.70 savings
+  const r = makeReceipt({ cache_stats: { cache_eligible: true, cache_creation_input_tokens: 0, cache_read_input_tokens: 1_000_000 } });
+  const out = renderHeroLine([r], []);
+  assert.ok(out.includes('prompt cache hit'), `expected cache hit in: ${out}`);
+  assert.ok(out.includes('$2.7000 saved'), `expected savings amount in: ${out}`);
+});
+
+test('renderHeroLine: cache savings accumulate across multiple receipts', () => {
+  const r1 = makeReceipt({ cache_stats: { cache_eligible: true, cache_read_input_tokens: 500_000 } });
+  const r2 = makeReceipt({ cache_stats: { cache_eligible: true, cache_read_input_tokens: 500_000 } });
+  const out = renderHeroLine([r1, r2], []);
+  // 1,000,000 tokens total -> $2.70
+  assert.ok(out.includes('$2.7000 saved'), `expected $2.7000 saved, got: ${out}`);
+});
+
+test('renderHeroLine: cache suffix appended after delta when both present', () => {
+  const r = makeReceipt({ input_tokens: 12000, cache_stats: { cache_eligible: true, cache_read_input_tokens: 1_000_000 } });
+  const sessions = [
+    makeSession({ input_tokens: 30000 }),
+    makeSession({ input_tokens: 28000 }),
+    makeSession({ input_tokens: 32000 }),
+  ];
+  const out = renderHeroLine([r], sessions);
+  assert.ok(out.includes('measured'), `expected delta in: ${out}`);
+  assert.ok(out.includes('cache hit'), `expected cache suffix in: ${out}`);
+  // cache suffix should come after delta
+  assert.ok(out.indexOf('measured') < out.indexOf('cache hit'), 'delta must precede cache suffix');
+});

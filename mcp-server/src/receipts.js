@@ -85,14 +85,19 @@ export function renderReceipt(record, phaseWave = 'Phase 10 / Wave 10A', stepNum
     lines.push(`Step ${stepNum}.3 -- duration: ${dur}`);
   }
 
-  // Cache stats (Step 10D.1 addendum: reserved; rendered when present, no-op when absent)
+  // Cache stats (Step 10D.3: rendered when present, no-op when absent)
   const cs = record.cache_stats;
   if (cs) {
-    if (typeof cs.cache_creation_input_tokens === 'number') {
-      lines.push(`Step ${stepNum}.4 -- cache created: ${cs.cache_creation_input_tokens} tokens`);
-    }
-    if (typeof cs.cache_read_input_tokens === 'number') {
-      lines.push(`Step ${stepNum}.5 -- cache read: ${cs.cache_read_input_tokens} tokens`);
+    if (cs.cache_eligible === false) {
+      const reason = cs.cache_eligible_reason ?? 'prompt < 1024 tokens';
+      lines.push(`Step ${stepNum}.4 -- cache-eligible: false (${reason})`);
+    } else {
+      if (typeof cs.cache_creation_input_tokens === 'number') {
+        lines.push(`Step ${stepNum}.4 -- cache created: ${cs.cache_creation_input_tokens} tokens`);
+      }
+      if (typeof cs.cache_read_input_tokens === 'number') {
+        lines.push(`Step ${stepNum}.5 -- cache read: ${cs.cache_read_input_tokens} tokens`);
+      }
     }
   }
 
