@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 3 Plan — Audit
 
 Date: 2026-04-14

@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 8 — COMPLETE
 
 **Theme:** "Trident, enforced · visible · everywhere · owned."

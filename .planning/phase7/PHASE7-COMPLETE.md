@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 7 — COMPLETE
 
 **Branch:** `phase7/cross-research-critique`

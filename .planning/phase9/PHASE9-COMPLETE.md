@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 9 — COMPLETE
 
 **Theme:** "Robust for strangers."

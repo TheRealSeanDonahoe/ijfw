@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 8 Dogfood — `ijfw cross critique` on its own HEAD~4..HEAD
 
 **Stamp:** 2026-04-14T23:05

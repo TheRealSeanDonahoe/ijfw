@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 7 Cross-Audit — Consensus Report
 
 **Auditors:** Codex + Gemini (Donahoe Trident, self=Claude excluded)

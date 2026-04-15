@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 9 Scope Audit — 4-way Trident consensus
 
 **Stamp:** 2026-04-14T23:40
