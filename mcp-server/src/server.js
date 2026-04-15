@@ -25,6 +25,7 @@ import { checkPrompt } from './prompt-check.js';
 import { applyCaps, CAP_CONTENT } from './caps.js';
 import { ensureSchemaHeader, SCHEMA_HEADER } from './schema.js';
 import { searchCorpus } from './search-bm25.js';
+import { crossProjectSearch } from './cross-project-search.js';
 // R2-E -- single source of truth for markdown/HTML/control-char defanger.
 import { sanitizeContent } from './sanitizer.js';
 
@@ -554,6 +555,18 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    name: 'ijfw_cross_project_search',
+    description: 'BM25-ranked search across every IJFW project ever opened on this machine. Results tagged [project:<basename>] with line numbers + snippets. Use when you need to recall how a similar problem was solved in another project. Reads ~/.ijfw/registry.md as the source of truth.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pattern: { type: 'string', description: 'Search query. Supports plain words and "quoted phrases". Use BM25 relevance ranking.' },
+        limit: { type: 'number', description: 'Max results (default 10, max 50).' }
+      },
+      required: ['pattern']
+    }
   }
 ];
 
@@ -782,6 +795,26 @@ function handleSearch({ query, limit = 10, scope = 'project' }) {
   return { text: results.map(r => `[${r.source}:L${r.line}] ${r.content}`).join('\n') };
 }
 
+// Phase 12 / Wave 12B (R1): BM25-ranked cross-project search. Distinct from
+// handleSearch(scope:'all') which is a naive keyword-count scan retained for
+// backward compat. This handler is the canonical cross-project path.
+function handleCrossProjectSearch({ pattern, limit = 10 } = {}) {
+  if (!pattern || typeof pattern !== 'string') {
+    return { text: 'pattern is required and must be a string.', isError: true };
+  }
+  if (pattern.length > 500) pattern = pattern.substring(0, 500);
+  const projects = readRegistry();
+  if (projects.length === 0) {
+    return { text: 'No other IJFW projects on record. Open one more project to enable cross-project search.' };
+  }
+  const hits = crossProjectSearch(pattern, projects, readProjectMemory, { limit });
+  if (hits.length === 0) {
+    return { text: `No matches for "${pattern}" across ${projects.length} project${projects.length === 1 ? '' : 's'}.` };
+  }
+  const body = hits.map(h => `[${h.source}:L${h.line}] (score ${h.score}) ${h.snippet}`).join('\n');
+  return { text: body };
+}
+
 // Phase 3 #6: aggregate session metrics. Reads .ijfw/metrics/sessions.jsonl,
 // tolerates v1 lines (treats missing token/cost fields as 0), groups by day,
 // renders compact text. Positive-framed zero-state when no sessions logged yet.
@@ -946,6 +979,9 @@ function handleMessage(msg) {
             break;
           case 'ijfw_metrics':
             result = handleMetrics(args || {});
+            break;
+          case 'ijfw_cross_project_search':
+            result = handleCrossProjectSearch(args || {});
             break;
           case 'ijfw_prompt_check': {
             const pc = checkPrompt((args && args.prompt) || '');

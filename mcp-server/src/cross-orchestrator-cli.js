@@ -7,13 +7,16 @@
 //
 // Zero external deps. Parse argv manually.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename, isAbsolute, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { runCrossOp } from './cross-orchestrator.js';
 import { readReceipts, purgeReceipts } from './receipts.js';
 import { renderHeroLine } from './hero-line.js';
 import { ROSTER, isInstalled, isReachable } from './audit-roster.js';
+import { aggregatePortfolioFindings } from './cross-project-search.js';
 
 // ---------------------------------------------------------------------------
 // Findings printer
@@ -94,6 +97,16 @@ function parseArgs(argv) {
 
   if (args[0] === 'cross') {
     const mode = args[1];
+
+    if (mode === 'project-audit') {
+      const rule = args[2];
+      let dryRun = false;
+      for (let i = 3; i < args.length; i++) {
+        if (args[i] === '--dry-run') dryRun = true;
+      }
+      return { cmd: 'cross-project-audit', rule, dryRun };
+    }
+
     const target = args[2];
     let only = null;
     let confirm = false;
@@ -136,9 +149,11 @@ Commands:
   --purge-receipts  Clear the cross-runs receipt log. Try: ijfw --purge-receipts
 
 Modes (for ijfw cross):
-  audit     Adversarial review of a file, module, or path
-  research  Multi-source research on a topic
-  critique  Structured counter-argument generation
+  audit           Adversarial review of a file, module, or path
+  research        Multi-source research on a topic
+  critique        Structured counter-argument generation
+  project-audit   Run the same audit across every registered IJFW project
+                  Usage: ijfw cross project-audit <rule-file> [--dry-run]
 
 Options for ijfw cross:
   --with <id>   Force a specific auditor (comma-separated for multiple)
@@ -397,6 +412,81 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
 }
 
 // ---------------------------------------------------------------------------
+// Portfolio audit -- `ijfw cross project-audit <rule-file>`
+// ---------------------------------------------------------------------------
+
+// Read the registry (same format as server.js: path|hash|iso lines). Lives
+// here as a narrow duplicate so the CLI does not depend on server.js bootstrap.
+function readProjectRegistry() {
+  const file = join(homedir(), '.ijfw', 'registry.md');
+  if (!existsSync(file)) return [];
+  const body = readFileSync(file, 'utf8');
+  const out = [];
+  for (const line of body.split('\n')) {
+    const parts = line.split('|').map(s => s.trim());
+    if (parts.length < 3) continue;
+    const [path, hash, iso] = parts;
+    if (!path || !isAbsolute(path)) continue;
+    out.push({ path, hash, iso });
+  }
+  return out;
+}
+
+async function cmdCrossProjectAudit({ rule, dryRun }) {
+  if (!rule) {
+    console.error('Usage: ijfw cross project-audit <rule-file> [--dry-run]');
+    process.exit(1);
+  }
+
+  const resolvedRule = isAbsolute(rule) ? rule : resolve(process.cwd(), rule);
+  if (!existsSync(resolvedRule)) {
+    console.error(`Rule file not found: ${resolvedRule}`);
+    process.exit(1);
+  }
+
+  const projects = readProjectRegistry();
+  if (projects.length === 0) {
+    console.log('No other IJFW projects registered yet. Open a second project to populate the registry.');
+    return;
+  }
+
+  console.log(`Phase 12 / Wave 12B -- portfolio audit -- ${projects.length} project${projects.length === 1 ? '' : 's'}.`);
+
+  if (dryRun) {
+    for (const p of projects) console.log(`  - ${basename(p.path)}  (${p.path})`);
+    console.log('\n--dry-run: no audits dispatched. Drop the flag to fire.');
+    return;
+  }
+
+  const startedAt = new Date().toISOString();
+  const results = [];
+  for (const p of projects) {
+    const tag = basename(p.path);
+    console.log(`  [${tag}] running cross audit ...`);
+    const r = spawnSync('ijfw', ['cross', 'audit', resolvedRule], {
+      cwd: p.path,
+      encoding: 'utf8',
+      timeout: 5 * 60 * 1000,
+    });
+    if (r.error) {
+      results.push({ project: tag, path: p.path, status: 'failed', findings: '', error: r.error.message });
+    } else if (r.status !== 0) {
+      results.push({ project: tag, path: p.path, status: 'failed', findings: r.stdout || '', error: (r.stderr || '').trim().split('\n')[0] || `exit ${r.status}` });
+    } else {
+      results.push({ project: tag, path: p.path, status: 'ok', findings: r.stdout || '' });
+    }
+  }
+  const finishedAt = new Date().toISOString();
+
+  const body = aggregatePortfolioFindings(results, { rule: basename(resolvedRule), startedAt, finishedAt });
+  const outDir = join(process.cwd(), '.ijfw', 'memory');
+  mkdirSync(outDir, { recursive: true });
+  const outFile = join(outDir, `portfolio-audit-${finishedAt.replace(/[:.]/g, '-')}.md`);
+  writeFileSync(outFile, body, 'utf8');
+  console.log(`\nPortfolio findings written: ${outFile}`);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -413,6 +503,8 @@ if (parsed.cmd === 'status') {
   cmdDemo().catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'cross') {
   cmdCross(parsed).catch(err => { console.error(err.message); process.exit(1); });
+} else if (parsed.cmd === 'cross-project-audit') {
+  cmdCrossProjectAudit(parsed).catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'doctor') {
   cmdDoctor();
 } else if (parsed.cmd === 'purge-receipts') {
