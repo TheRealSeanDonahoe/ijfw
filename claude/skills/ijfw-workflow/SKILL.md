@@ -351,6 +351,25 @@ Store in `.ijfw/projects/<name>/design.md`.
 
 ---
 
+# STEP STATE FILE
+
+At every Step transition (phase start, audit gate entry, step completion), write `.ijfw/state/current-step.json`:
+
+```json
+{
+  "phase":            "<phase — e.g. Deep, Quick, or phase number>",
+  "wave":             "<wave — e.g. 1, QW, 4>",
+  "step":             "<step — e.g. 1.1, 3, 4.2>",
+  "label":            "<what is happening right now, one short sentence>",
+  "started_at":       "<ISO 8601 timestamp>",
+  "recommended_next": "<specific next action with default, no open menu>"
+}
+```
+
+Write the file with `Write` or shell redirect. Overwrite on every transition — this is a single-record file, not a log. Never skip a transition even if the step is brief. `/ijfw-status` reads this file to report current position.
+
+---
+
 # STATE MANAGEMENT (Deep Mode)
 
 Deep mode persists project state in `.ijfw/projects/<project-name>/`:

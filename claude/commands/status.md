@@ -5,6 +5,38 @@ description: "Show IJFW state — mode, routing, memory, recent activity, codeba
 
 Render the IJFW status block as a fenced code block. **Compute it deterministically** from filesystem state — never invent values.
 
+<!--
+CURRENT STEP STATE SCHEMA
+File: .ijfw/state/current-step.json
+
+{
+  "phase":            string,   // e.g. "Deep", "Quick", "3"
+  "wave":             string,   // e.g. "1", "QW", "4"
+  "step":             string,   // e.g. "1.1", "3", "4.2"
+  "label":            string,   // human description of what is happening right now
+  "started_at":       string,   // ISO 8601 timestamp, e.g. "2026-04-15T14:32:00Z"
+  "recommended_next": string    // specific next action with default, no open menus
+}
+
+Write contract: ijfw-workflow writes this file at every Step transition
+(phase start, audit gate entry, step completion). /ijfw-status reads it
+to report current position. Reader must not write; writer must not skip
+any transition even if the step is brief.
+-->
+
+## Current workflow step (read first)
+
+Read `.ijfw/state/current-step.json`. If present and valid, prepend to the status block:
+
+```
+Phase {phase} / Wave {wave} · Step {step} — {label}
+Recommended next: {recommended_next}. Say no/alt to override.
+```
+
+If the file is absent: prepend `No active workflow session. Start one with: /ijfw-workflow deep plan`
+
+---
+
 ## Data sources (read in this order, skip silently if missing)
 
 1. `IJFW_MODE` env var → mode (default: smart)
