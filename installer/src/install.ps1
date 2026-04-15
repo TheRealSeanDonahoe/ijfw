@@ -106,15 +106,30 @@ function Merge-Marketplace {
 
   $settings = @{}
   if (Test-Path $settingsPath) {
+    $raw = Get-Content -Raw -LiteralPath $settingsPath
+    # Strip UTF-8 BOM if present -- ConvertFrom-Json rejects it on PS 5.1.
+    if ($raw.Length -gt 0 -and [int][char]$raw[0] -eq 0xFEFF) { $raw = $raw.Substring(1) }
+    # Strip JSONC comments + trailing commas before parse.
+    $cleaned = $raw -replace '/\*[\s\S]*?\*/',''
+    $cleaned = $cleaned -replace '(^|[^:])//[^\n]*','$1'
+    $cleaned = $cleaned -replace ',(\s*[}\]])','$1'
     try {
-      $raw = Get-Content -Raw -LiteralPath $settingsPath
-      # Strip JSONC comments + trailing commas before parse (mirrors tolerantJsonParse).
-      $cleaned = $raw -replace '/\*[\s\S]*?\*/',''
-      $cleaned = $cleaned -replace '(^|[^:])//[^\n]*','$1'
-      $cleaned = $cleaned -replace ',(\s*[}\]])','$1'
-      $settings = ConvertFrom-Json $cleaned -AsHashtable
+      $parsed = ConvertFrom-Json $cleaned -AsHashtable -ErrorAction Stop
+      if ($parsed -is [hashtable]) { $settings = $parsed }
     } catch {
-      throw "settings.json at $settingsPath is not valid JSON or recoverable JSONC."
+      # Graceful fallback: back up the unparseable file, surface the manual
+      # next step, return without throwing so the rest of the install stands.
+      $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+      $backup = "$settingsPath.bak.marketplace.$ts"
+      Copy-Item -LiteralPath $settingsPath -Destination $backup -Force
+      Write-Host ""
+      Write-Host "  [--] Could not auto-merge marketplace entry into $settingsPath" -ForegroundColor Yellow
+      Write-Host "  [--] Your existing file looks like it is not valid JSON/JSONC." -ForegroundColor Yellow
+      Write-Host "  [--] Original saved as: $backup"
+      Write-Host "  [--] Finish in Claude Code with two commands:"
+      Write-Host "  [--]   /plugin marketplace add $target\claude"
+      Write-Host "  [--]   /plugin install ijfw"
+      return $false
     }
   }
   if (-not $settings.ContainsKey('extraKnownMarketplaces')) { $settings['extraKnownMarketplaces'] = @{} }
@@ -125,6 +140,7 @@ function Merge-Marketplace {
   $tmp = "$settingsPath.tmp"
   $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tmp -Encoding UTF8
   Move-Item -Force -LiteralPath $tmp -Destination $settingsPath
+  return $true
 }
 
 # --- main ---
@@ -145,8 +161,9 @@ Invoke-InstallScript $target
 Write-Ok "scripts/install.sh complete"
 
 if (-not $NoMarketplace) {
-  Merge-Marketplace
-  Write-Ok "marketplace registered in $env:USERPROFILE\.claude\settings.json"
+  if (Merge-Marketplace) {
+    Write-Ok "marketplace registered in $env:USERPROFILE\.claude\settings.json"
+  }
 }
 
 Write-Host ""
