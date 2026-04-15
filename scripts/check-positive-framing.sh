@@ -8,13 +8,13 @@
 # Add to CI: any new contributor that adds a "Warning:" or "Failed to" string
 # to a user-facing surface fails the build.
 #
-# This is the executable enforcement of P22 — Standards Encoded.
+# This is the executable enforcement of P22 -- Standards Encoded.
 
 set -u
 cd "$(dirname "$0")/.."
 
 # Phrases that are NEVER acceptable in user-facing output. The agent/skill
-# files contain INSTRUCTIONS that may legitimately discuss errors — those are
+# files contain INSTRUCTIONS that may legitimately discuss errors -- those are
 # audited separately. Hooks and slash-command output go DIRECTLY to the user.
 NEGATIVE_PATTERNS=(
   '\bWarning:'
@@ -27,7 +27,7 @@ NEGATIVE_PATTERNS=(
 )
 
 # Files that ARE user-facing output (echoes/printf going to stdout/stderr that
-# Claude Code surfaces). Skill bodies and agent prompts are excluded — they
+# Claude Code surfaces). Skill bodies and agent prompts are excluded -- they
 # are LLM instructions, not user output.
 SCAN=(
   claude/hooks/scripts/session-start.sh
@@ -65,7 +65,7 @@ for file in "${ALL_SCAN[@]}"; do
     CONTENT="${line#*:}"
     for pat in "${NEGATIVE_PATTERNS[@]}"; do
       if printf '%s' "$CONTENT" | grep -Eq -- "$pat"; then
-        # Allow comments — only flag actual emit statements.
+        # Allow comments -- only flag actual emit statements.
         case "$CONTENT" in
           *'#'*[[:space:]]*"$pat"*) ;;
           *)

@@ -24,9 +24,9 @@ automatically.
 When invoked without a target, run this detection cascade and use the first
 non-empty result:
 
-1. **Staged changes** — `git diff --cached --name-only`
-2. **Unstaged changes** — `git diff --name-only`
-3. **Last commit** — `git diff HEAD~1 --name-only`
+1. **Staged changes** -- `git diff --cached --name-only`
+2. **Unstaged changes** -- `git diff --name-only`
+3. **Last commit** -- `git diff HEAD~1 --name-only`
 4. If all empty: print the roster and ask "what topic would you like researched?"
 
 Report which step succeeded:
@@ -43,9 +43,9 @@ use the diff hunks rather than the full file.
 
 The natural-language phrase **"research this across models"** / **"multi-model
 research"** fires the intent router (`mcp-server/src/intent-router.js`), which
-nudges Claude to invoke `/cross-research` automatically — same auto-detect flow runs.
+nudges Claude to invoke `/cross-research` automatically -- same auto-detect flow runs.
 
-## Default flow — Donahoe Trident (don't make me think)
+## Default flow -- Donahoe Trident (don't make me think)
 
 Caller is one perspective. **Default is two independent research streams feeding
 one synthesis.** The Trident yields: independent evidence collection in parallel,
@@ -55,21 +55,21 @@ and where they diverge.
 When invoked, do this in order:
 
 1. **Probe roster.** Call `pickAuditors({ count: 2, env: process.env })` from
-   `audit-roster.js`. Returns `{ picks, missing, note }` — picks are installed
+   `audit-roster.js`. Returns `{ picks, missing, note }` -- picks are installed
    AND non-self.
 
 2. **Show a TODO surface** in chat:
 
    ```
    Cross-research plan
-     [ ] Generate Phase A requests (codex=benchmarks, gemini=citations)
-     [ ] Fire codex in background
-     [ ] Fire gemini in background
+     [ ] Step A.1: Generate Wave A requests (codex=benchmarks, gemini=citations)
+     [ ] Step A.2: Fire codex in background
+     [ ] Step A.2: Fire gemini in background
      [ ] Wait for both completions
-     [ ] Generate Phase B synthesis request (claude=synthesis)
-     [ ] Fire synthesis
-     [ ] Render consensus/contested/unique matrix
-     [ ] Archive all requests + responses + merge
+     [ ] Step B.1: Generate Wave B synthesis request (claude=synthesis)
+     [ ] Step B.2: Fire synthesis
+     [ ] Step B.3: Render consensus/contested/unique matrix
+     [ ] Step B.4: Archive all requests + responses + merge
    ```
 
 3. **Ask the user once** which combo to run:
@@ -79,29 +79,29 @@ When invoked, do this in order:
    Run cross-research:
      [A] codex only (benchmarks angle)
      [B] gemini only (citations angle)
-     [C] Both — recommended (Donahoe Trident, enables full synthesis)
+     [C] Both -- recommended (Donahoe Trident, enables full synthesis)
      [D] Cancel / pick custom
    ```
 
-   Default suggestion: **C (Both)** when ≥2 installed. Synthesis (Phase B) requires
+   Default suggestion: **C (Both)** when >=2 installed. Synthesis (Phase B) requires
    both Phase A responses; if only one auditor runs, Phase B renders a partial
    synthesis and flags the gap.
 
 4. **If only one installed:**
 
-   > "Only `<id>` is installed locally. The full Trident shines here — two
+   > "Only `<id>` is installed locally. The full Trident shines here -- two
    > independent research streams remove single-model blind spots before synthesis.
    > Install one of the available auditors (opencode, aider, etc.) to unlock the
    > complete picture."
 
    Then offer to run the single-auditor partial flow.
 
-5. **Fire Phase A in background** (see Phase A section below).
+5. **Fire Wave A in background** (see Wave A section below).
 
-6. **After Phase A completes**, run `/cross-research compare` (or fire it
+6. **After Wave A completes**, run `/cross-research compare` (or fire it
    automatically when both background jobs notify).
 
-7. **Fire Phase B synthesis** via fresh Claude session (see Phase B section below).
+7. **Fire Wave B synthesis** via fresh Claude session (see Wave B section below).
 
 8. **Render matrix** from `mergeResponses('research', responses)`.
 
@@ -119,14 +119,14 @@ Research role assignment is mode-aware via `assignRoles('research', roster, self
 `cross-dispatcher.js`:
 - `codex` → `benchmarks` angle
 - `gemini` → `citations` angle
-- Synthesis always goes to a **fresh Claude session via `claude -p`** — never the
+- Synthesis always goes to a **fresh Claude session via `claude -p`** -- never the
   caller's own session, even if self=claude, to prevent circularity.
 
 ---
 
-## Phase A — Parallel fan-out
+## Wave A -- Parallel fan-out
 
-### Step 1 — Generate Phase A requests via the dispatcher
+### Step A.1 -- Generate Phase A requests via the dispatcher
 
 Run one node call per auditor:
 
@@ -144,13 +144,13 @@ import('./mcp-server/src/cross-dispatcher.js').then(m =>
 )" > .ijfw/cross-audit/request-research-gemini.md
 ```
 
-> **Note:** `buildRequest` is synchronous and returns a string — do NOT `.then()` it. Wrap it in `process.stdout.write(...)` directly.
+> **Note:** `buildRequest` is synchronous and returns a string -- do NOT `.then()` it. Wrap it in `process.stdout.write(...)` directly.
 
 Replace `<target>` with the detected or specified target string.
 
-### Step 2 — Fire auditors in background
+### Step A.2 -- Fire auditors in background
 
-**Auto-fire is required.** Do NOT stop at "request written — paste it into Codex."
+**Auto-fire is required.** Do NOT stop at "request written -- paste it into Codex."
 Only fall back to human paste when `command -v <auditor>` fails AND the roster
 probe returns the auditor as missing.
 
@@ -167,10 +167,10 @@ cat .ijfw/cross-audit/request-research-gemini.md | gemini - > .ijfw/cross-audit/
 Both run simultaneously. Wait for both completion notifications before proceeding
 to Phase B. Update the TODO surface to `in_progress` then `completed` per auditor.
 
-### Step 2b — Fire Claude specialist swarm in parallel (caller leg)
+### Step A.2b -- Fire Claude specialist swarm in parallel (caller leg)
 
 **Caller-side = specialist swarm, not single opinion.** The Trident's third leg
-is a parallel dispatch of in-session subagents — research specialists chosen for
+is a parallel dispatch of in-session subagents -- research specialists chosen for
 the target's domain. This fires ALONGSIDE Codex + Gemini, not after.
 
 Fire these via the `Agent` tool in the same message (all independent, same
@@ -197,16 +197,16 @@ as the three Phase A inputs to Phase B synthesis.
 **Missing auditor fallback (positive framing only):**
 If `command -v codex` (or `gemini`) fails, surface:
 
-> "Codex isn't installed locally — paste `request-research-codex.md` into
+> "Codex isn't installed locally -- paste `request-research-codex.md` into
 > https://platform.openai.com/playground and save the response as
 > `.ijfw/cross-audit/response-research-codex.md`, then re-run
 > `/cross-research compare`."
 
 ---
 
-## Phase B — Synthesis (sequential, after Phase A)
+## Wave B -- Synthesis (sequential, after Wave A)
 
-### Step 1 — Generate the synthesis request
+### Step B.1 -- Generate the synthesis request
 
 Read both Phase A responses and feed them as `priorResponses` to the dispatcher:
 
@@ -216,11 +216,11 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
   const fs = await import('fs');
   const codex = fs.readFileSync('.ijfw/cross-audit/response-research-codex.md','utf8');
   const gemini = fs.readFileSync('.ijfw/cross-audit/response-research-gemini.md','utf8');
-  // Caller-swarm file is optional — if absent, synthesis runs on the two
+  // Caller-swarm file is optional -- if absent, synthesis runs on the two
   // external sources. If present, it's the third leg of the Trident.
   let caller = '';
   try { caller = fs.readFileSync('.ijfw/cross-audit/response-research-caller.md','utf8'); } catch {}
-  // Pass a labeled string, not an unlabeled array — the dispatcher interpolates
+  // Pass a labeled string, not an unlabeled array -- the dispatcher interpolates
   // priorResponses verbatim, so labels preserve per-source provenance in synthesis.
   const labeled = '### Codex (benchmarks)\n\n' + codex +
     '\n\n### Gemini (citations)\n\n' + gemini +
@@ -229,7 +229,7 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
 })" > .ijfw/cross-audit/request-research-synthesis.md
 ```
 
-### Step 2 — Fire synthesis via fresh Claude session
+### Step B.2 -- Fire synthesis via fresh Claude session
 
 **Auto-fire is required.** Fire via Bash tool with `run_in_background:true`:
 
@@ -240,7 +240,7 @@ cat .ijfw/cross-audit/request-research-synthesis.md | claude -p > .ijfw/cross-au
 A fresh `claude -p` session is used even when the caller is Claude, to prevent
 the synthesis from being coloured by the caller's in-session context.
 
-### Step 3 — Render matrix
+### Step B.3 -- Render matrix
 
 Once the synthesis response lands, call `mergeResponses` to build the final matrix:
 
@@ -266,9 +266,9 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
 Render the merged result as:
 
 ```
-## Research matrix — <target>
+## Research matrix -- <target>
 
-### Consensus (≥2 sources agree)
+### Consensus (>=2 sources agree)
 | Claim | Evidence | Sources | Confidence |
 |-------|----------|---------|------------|
 | ...   | ...      | ...     | high       |
@@ -285,7 +285,7 @@ Render the merged result as:
 - ...
 ```
 
-### Step 4 — Archive
+### Step B.4 -- Archive
 
 Move all six files (3 requests + 3 responses) plus the merged JSON to:
 
@@ -302,10 +302,10 @@ Move all six files (3 requests + 3 responses) plus the merged JSON to:
 
 ## Notes
 
-- Phase A is always parallel; Phase B is always sequential (depends on Phase A).
-- The synthesis angle always runs in a fresh `claude -p` session — never the caller's
+- Wave A is always parallel; Wave B is always sequential (depends on Wave A).
+- The synthesis angle always runs in a fresh `claude -p` session -- never the caller's
   own context.
 - `audit-roster.js` detection is conservative: if the caller cannot be identified,
   all options are shown rather than guessing.
-- Positive framing throughout: no "missing auditor error" — "install to unlock the
+- Positive framing throughout: no "missing auditor error" -- "install to unlock the
   full Trident."

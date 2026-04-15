@@ -97,13 +97,14 @@ async function runTest() {
     console.log('\nTools:');
     send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
     resp = await waitForResponse(2);
-    assert(resp.result?.tools?.length === 7, 'Lists exactly 7 tools (Phase 3: +ijfw_metrics, +ijfw_prompt_check)');
+    assert(resp.result?.tools?.length === 8, 'Lists exactly 8 tools (Phase 12: +ijfw_cross_project_search)');
     const toolNames = resp.result?.tools?.map(t => t.name) || [];
     assert(toolNames.includes('ijfw_memory_recall'), 'Has recall tool');
     assert(toolNames.includes('ijfw_memory_store'), 'Has store tool');
     assert(toolNames.includes('ijfw_memory_search'), 'Has search tool');
     assert(toolNames.includes('ijfw_memory_status'), 'Has status tool');
     assert(toolNames.includes('ijfw_memory_prelude'), 'Has prelude tool');
+    assert(toolNames.includes('ijfw_cross_project_search'), 'Has cross-project-search tool');
 
     // --- Test 4: Resources list (empty, but shouldn't error) ---
     console.log('\nProtocol compliance:');

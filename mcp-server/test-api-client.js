@@ -92,13 +92,15 @@ test('gemini: uses x-goog-api-key header and systemInstruction shape', async () 
 
 // --- Anthropic ---
 
-test('anthropic: uses x-api-key header and top-level system key', async () => {
+test('anthropic: uses x-api-key header; short prompt skips cache_control', async () => {
   const calls = mockFetch(200, {
     content: [{ type: 'text', text: 'anthropic response' }],
+    usage: {},
   });
 
   const pick = makePick('anthropic', 'ANTHROPIC_API_KEY');
   const env = { ANTHROPIC_API_KEY: 'ak-test' };
+  // 'some target' is short — total tokens well below 1024 threshold.
   const result = await runViaApi(pick, 'audit', 'general', 'some target', env);
 
   assert.equal(result.status, 'ok');
@@ -109,9 +111,60 @@ test('anthropic: uses x-api-key header and top-level system key', async () => {
   assert.equal(opts.headers['anthropic-version'], '2023-06-01');
 
   const body = JSON.parse(opts.body);
-  assert.equal(typeof body.system, 'string', 'top-level system key must be a string');
+  // Short prompt: system is a plain string (no cache_control block).
+  assert.equal(typeof body.system, 'string', 'short prompt: system must be a plain string');
   assert.ok(Array.isArray(body.messages));
   assert.equal(body.messages[0].role, 'user');
+
+  // cache_stats must indicate ineligible.
+  assert.ok(result.cache_stats, 'cache_stats must be present on Anthropic result');
+  assert.equal(result.cache_stats.cache_eligible, false);
+  assert.ok(result.cache_stats.cache_eligible_reason);
+
+  restoreFetch();
+});
+
+test('anthropic: long prompt enables cache_control block', async () => {
+  const calls = mockFetch(200, {
+    content: [{ type: 'text', text: 'cached response' }],
+    usage: { cache_creation_input_tokens: 1200, cache_read_input_tokens: 0 },
+  });
+
+  const pick = makePick('anthropic', 'ANTHROPIC_API_KEY');
+  const env = { ANTHROPIC_API_KEY: 'ak-test' };
+  // Pad target to force system+user > 1024*4=4096 chars.
+  const longTarget = 'x'.repeat(5000);
+  const result = await runViaApi(pick, 'audit', 'general', longTarget, env);
+
+  assert.equal(result.status, 'ok');
+
+  const body = JSON.parse(calls[0].opts.body);
+  // Long prompt: system must be an array with cache_control.
+  assert.ok(Array.isArray(body.system), 'long prompt: system must be an array');
+  assert.equal(body.system[0].type, 'text');
+  assert.deepEqual(body.system[0].cache_control, { type: 'ephemeral' });
+
+  // cache_stats must indicate eligible.
+  assert.equal(result.cache_stats.cache_eligible, true);
+  assert.equal(result.cache_stats.cache_creation_input_tokens, 1200);
+  assert.equal(result.cache_stats.cache_read_input_tokens, 0);
+
+  restoreFetch();
+});
+
+test('anthropic: cache_read_input_tokens captured from API response', async () => {
+  mockFetch(200, {
+    content: [{ type: 'text', text: 'hit response' }],
+    usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 1100 },
+  });
+
+  const pick = makePick('anthropic', 'ANTHROPIC_API_KEY');
+  const env = { ANTHROPIC_API_KEY: 'ak-test' };
+  const longTarget = 'y'.repeat(5000);
+  const result = await runViaApi(pick, 'audit', 'general', longTarget, env);
+
+  assert.equal(result.cache_stats.cache_eligible, true);
+  assert.equal(result.cache_stats.cache_read_input_tokens, 1100);
 
   restoreFetch();
 });

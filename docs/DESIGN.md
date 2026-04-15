@@ -1,4 +1,4 @@
-# IJFW — Design Document
+# IJFW -- Design Document
 ## Everything We Decided and Why
 
 This document captures all architectural decisions made during the design phase,
@@ -8,21 +8,21 @@ including everything beyond the original Master Design Spec.
 
 ## Design Principles
 
-### 1. Rory Sutherland — Perceived Value Through Reframing
+### 1. Rory Sutherland -- Perceived Value Through Reframing
 - Never position as "cheaper." Position as "smarter."
-- Startup report shows ONLY positives — what IJFW did FOR you.
+- Startup report shows ONLY positives -- what IJFW did FOR you.
 - No negatives, no "not found," no diagnostics, no error-style messaging.
 - Every line the user sees should make them feel upgraded.
 - The savings are a side effect of intelligence, not the goal.
 
-### 2. Steve Krug — Don't Make Me Think
+### 2. Steve Krug -- Don't Make Me Think
 - One concept: mode. Everything else is automatic.
 - No settings pages, no config files to edit, no env vars to set.
 - Smart defaults that work for 80%+ of cases.
 - Override via natural language, not configuration.
 - If something's missing, quietly create it. Don't ask permission for safe actions.
 
-### 3. Sean Donahoe — It Just Fucking Works
+### 3. Sean Donahoe -- It Just Fucking Works
 - One install. Works on session one.
 - Self-contained. No external dependencies required.
 - Auto-detects environment and adapts silently.
@@ -82,7 +82,7 @@ Positive framing only. No negatives. Examples:
 
 **Returning session:**
 ```
-━━━ IJFW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--- IJFW ------------------------------
 smart mode | high effort | OpenRouter + local model
 
 Memory loaded (34 decisions, 12 sessions)
@@ -90,47 +90,47 @@ Last session: auth migration 4/7 complete
 Next: routes/exams.ts
 
 Ready.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---------------------------------------
 ```
 
 **New project:**
 ```
-━━━ IJFW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--- IJFW ------------------------------
 smart mode | high effort | multi-model routing
 
 Project: Next.js 14 / TypeScript / PostgreSQL
 Optimised project context created (42 lines)
 Codebase indexed (247 files, 23 API routes)
 Ready.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---------------------------------------
 ```
 
 **Nothing to report:**
 ```
-━━━ IJFW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--- IJFW ------------------------------
 smart mode | high effort
 
 Ready.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---------------------------------------
 ```
 
 ---
 
 ## Three-Tier Memory System
 
-### Tier 1 — Session Memory (Working Memory)
+### Tier 1 -- Session Memory (Working Memory)
 - What's happening now. Decisions, files touched, errors, progress.
 - Captured by hooks at compaction events and session end.
 - Stored: `.ijfw/sessions/<session-id>.md` (plain markdown)
 - Token cost: zero additional per-turn. Hooks fire only at boundaries.
 
-### Tier 2 — Project Memory (Short-Term Recall)
+### Tier 2 -- Project Memory (Short-Term Recall)
 - Cross-session. Last 7-14 days of activity.
 - Session summaries, handoffs, rolling project journal.
 - Stored: `.ijfw/memory/project-journal.md`, `.ijfw/memory/handoff.md`
 - Compressed at SessionEnd, injected at SessionStart.
 
-### Tier 3 — Knowledge Base (Long-Term Memory)
+### Tier 3 -- Knowledge Base (Long-Term Memory)
 - Architectural decisions, codebase conventions, user preferences.
 - Persists indefinitely. Grows via dream cycle.
 - Stored: `.ijfw/memory/knowledge.md` (~2000 tokens max)
@@ -162,14 +162,20 @@ Uses architect agent (Opus, high effort). Cost: ~5-10K tokens. Infrequent.
 
 ## MCP Memory Server
 
-### 4 Tools Only (Not 19 or 22 Like Competitors)
+### 8 Tools (Scannable Surface, Not 19 or 22 Like Competitors)
+
+Cap set in CLAUDE.md. Additions beyond this must displace an existing tool.
 
 | Tool | Purpose |
 |------|---------|
-| `ijfw_memory_recall` | Retrieve context. Progressive disclosure. |
-| `ijfw_memory_store` | Store decisions/observations. Auto-called by hooks. |
-| `ijfw_memory_search` | Keyword/semantic search across all memory. |
-| `ijfw_memory_status` | Compressed ~150-200 token wake-up injection. |
+| `ijfw_memory_recall` | Retrieve context. Progressive disclosure. Cross-project via `from_project`. |
+| `ijfw_memory_store` | Store decisions / patterns / handoffs / preferences / observations. |
+| `ijfw_memory_search` | Keyword + BM25 search, local or all-projects. |
+| `ijfw_memory_status` | ~200-token wake-up injection. |
+| `ijfw_memory_prelude` | Full first-turn memory bundle for Codex/Cursor/Windsurf/Copilot. |
+| `ijfw_prompt_check` | Deterministic vague-prompt detector for platforms without pre-prompt hooks. |
+| `ijfw_metrics` | Tokens / cost / routing / session totals. |
+| `ijfw_cross_project_search` | BM25 search across every registered IJFW project. |
 
 ### Why 4 and Not More
 - Don't make me think. Fewer tools = less agent decision overhead.
@@ -239,16 +245,16 @@ Never presented as problems. Presented as upgrades.
 ## Processing Tiers (Cost Optimisation)
 
 ```
-Tier 1 — Deterministic (free, always on):
+Tier 1 -- Deterministic (free, always on):
   ANSI stripping, test collapsing, whitespace normalization,
   JSON minification, tool output truncation
 
-Tier 2 — Cheap LLM (optional, auto-detected):
+Tier 2 -- Cheap LLM (optional, auto-detected):
   Memory compression, dream cycle, session summarization,
   project context generation
   Routes to: Ollama/LM Studio (if detected) → Haiku (fallback)
 
-Tier 3 — Full LLM (user's configured model):
+Tier 3 -- Full LLM (user's configured model):
   Actual coding tasks, architecture, complex reasoning
 ```
 
@@ -256,20 +262,20 @@ Tier 3 — Full LLM (user's configured model):
 
 ## Build Phases
 
-### Phase 1 — MVP (Current Build)
+### Phase 1 -- MVP (Current Build)
 - [x] Core skill (ijfw-core/SKILL.md)
 - [x] Agents (scout/builder/architect)
 - [x] Commands (mode/compress/status/handoff/consolidate)
 - [x] On-demand skills (commit/review/compress/handoff/summarize)
 - [x] Hooks (SessionStart/PreCompact/Stop/PreToolUse)
 - [x] Hook scripts (startup detection, compaction guidance, session end, input stripping)
-- [x] MCP memory server (4 tools, markdown + keyword search)
+- [x] MCP memory server (8 tools, markdown + BM25 + cross-project search)
 - [x] Platform configs (Claude/Codex/Gemini/Cursor/Windsurf/Copilot)
 - [x] Universal rules file
 - [x] Activation rules
 - [x] README + DESIGN docs
 
-### Phase 2 — Intelligence Layer
+### Phase 2 -- Intelligence Layer
 - [ ] Effort auto-scaling by task keywords (classifier in core skill)
 - [ ] Self-verification enforcement rules
 - [ ] Plan-then-execute enforcement
@@ -278,13 +284,13 @@ Tier 3 — Full LLM (user's configured model):
 - [ ] Cross-project global knowledge promotion
 - [ ] SQLite FTS5 warm layer for memory server
 
-### Phase 3 — Platform Polish
+### Phase 3 -- Platform Polish
 - [ ] Full plugin marketplace listings
 - [ ] npx one-liner install scripts per platform
 - [ ] Platform-specific hook adaptations
 - [ ] Benchmark harness (three-arm: baseline vs terse vs IJFW)
 
-### Phase 4 — Advanced
+### Phase 4 -- Advanced
 - [ ] Optional vector embedding layer (cold storage)
 - [ ] Token usage dashboard (/ijfw-status with cost tracking)
 - [ ] Team memory sharing

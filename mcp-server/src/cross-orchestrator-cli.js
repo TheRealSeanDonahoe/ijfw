@@ -1,4 +1,4 @@
-// cross-orchestrator-cli.js — thin CLI for `ijfw cross <mode> <target>`.
+// cross-orchestrator-cli.js -- thin CLI for `ijfw cross <mode> <target>`.
 //
 // Commands:
 //   ijfw cross <mode> <target> [--confirm] [--with <id>] [--expand]
@@ -7,13 +7,17 @@
 //
 // Zero external deps. Parse argv manually.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename, isAbsolute, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { runCrossOp } from './cross-orchestrator.js';
-import { readReceipts } from './receipts.js';
+import { readReceipts, purgeReceipts } from './receipts.js';
 import { renderHeroLine } from './hero-line.js';
 import { ROSTER, isInstalled, isReachable } from './audit-roster.js';
+import { aggregatePortfolioFindings } from './cross-project-search.js';
+import { runImport, listImporters } from './importers/cli.js';
 
 // ---------------------------------------------------------------------------
 // Findings printer
@@ -22,47 +26,47 @@ function printFindings(mode, merged) {
   if (mode === 'audit') {
     const items = Array.isArray(merged) ? merged : [];
     if (items.length === 0) {
-      console.log('  No findings returned.');
+      console.log('  Auditors returned no findings -- your target looks solid.');
+      console.log('  Run `ijfw cross audit <another-file>` to audit a different target.');
       return;
     }
-    // Table header
-    console.log(`\n  ${'Sev'.padEnd(8)} ${'Location'.padEnd(20)} Issue`);
-    console.log(`  ${'-'.repeat(70)}`);
-    for (const item of items) {
-      const sev = String(item.severity || '').padEnd(8);
-      const loc = String(item.location || '').padEnd(20).slice(0, 20);
-      const issue = String(item.issue || '').slice(0, 50);
-      console.log(`  ${sev} ${loc} ${issue}`);
-    }
+    console.log('');
+    items.forEach((item, i) => {
+      const sev = item.severity ? ` [${item.severity}]` : '';
+      const loc = item.location ? ` | ${item.location}` : '';
+      const issue = String(item.issue || '');
+      console.log(`  Step 1.${i + 1} --${sev}${loc} -- ${issue}`);
+    });
     return;
   }
 
   if (mode === 'research') {
-    const { consensus = [], contested = [], unique = {}, synthesisPending } = merged || {};
-    console.log(`\n  Consensus (${consensus.length}), Contested (${contested.length}), Unique per auditor`);
-    if (synthesisPending) console.log('  Note: synthesis pass pending — lexical match only.');
-    for (const item of consensus.slice(0, 5)) {
-      console.log(`  [consensus] ${String(item.claim || '').slice(0, 80)}`);
-    }
-    for (const item of contested.slice(0, 3)) {
-      console.log(`  [contested] ${String(item.claim || '').slice(0, 80)}`);
-    }
+    const { consensus = [], contested = [], synthesisPending } = merged || {};
+    console.log('');
+    console.log(`  Consensus: ${consensus.length}  |  Contested: ${contested.length}`);
+    if (synthesisPending) console.log('  Note: synthesis pass pending -- lexical match only.');
+    consensus.slice(0, 5).forEach((item, i) => {
+      console.log(`  Step 1.${i + 1} -- [consensus] ${String(item.claim || '')}`);
+    });
+    contested.slice(0, 3).forEach((item, i) => {
+      console.log(`  Step 2.${i + 1} -- [contested] ${String(item.claim || '')}`);
+    });
     return;
   }
 
   if (mode === 'critique') {
     const items = Array.isArray(merged) ? merged : [];
     if (items.length === 0) {
-      console.log('  No counter-arguments returned.');
+      console.log('  No counter-arguments surfaced -- argument appears well-supported.');
+      console.log('  Run `ijfw cross critique <another-target>` to challenge a different position.');
       return;
     }
-    console.log(`\n  ${'Sev'.padEnd(8)} Counter-argument`);
-    console.log(`  ${'-'.repeat(70)}`);
-    for (const item of items) {
-      const sev = String(item.severity || '').padEnd(8);
-      const arg = String(item.counterArg || '').slice(0, 60);
-      console.log(`  ${sev} ${arg}`);
-    }
+    console.log('');
+    items.forEach((item, i) => {
+      const sev = item.severity ? ` [${item.severity}]` : '';
+      const arg = String(item.counterArg || '');
+      console.log(`  Step 1.${i + 1} --${sev} ${arg}`);
+    });
   }
 }
 
@@ -84,8 +88,38 @@ function parseArgs(argv) {
     return { cmd: 'demo' };
   }
 
+  if (args[0] === 'doctor') {
+    return { cmd: 'doctor' };
+  }
+
+  if (args[0] === '--purge-receipts') {
+    return { cmd: 'purge-receipts' };
+  }
+
+  if (args[0] === 'import') {
+    const tool = args[1];
+    let dryRun = false, force = false, includeMetrics = false, customPath = null;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--dry-run') dryRun = true;
+      else if (args[i] === '--force') force = true;
+      else if (args[i] === '--include-metrics') includeMetrics = true;
+      else if (args[i] === '--path' && args[i + 1]) customPath = args[++i];
+    }
+    return { cmd: 'import', tool, dryRun, force, includeMetrics, customPath };
+  }
+
   if (args[0] === 'cross') {
     const mode = args[1];
+
+    if (mode === 'project-audit') {
+      const rule = args[2];
+      let dryRun = false;
+      for (let i = 3; i < args.length; i++) {
+        if (args[i] === '--dry-run') dryRun = true;
+      }
+      return { cmd: 'cross-project-audit', rule, dryRun };
+    }
+
     const target = args[2];
     let only = null;
     let confirm = false;
@@ -109,26 +143,42 @@ function parseArgs(argv) {
 
 function printUsage() {
   console.log(`
-ijfw — It Just Fucking Works CLI
+ijfw -- It Just Fucking Works CLI
+Fire 2-4 AIs at any target. Receipts logged. Cache hits tracked. Memory follows you.
 
 Usage:
   ijfw demo
   ijfw cross <mode> <target> [options]
+  ijfw cross project-audit <rule-file> [--dry-run]
+  ijfw import <tool> [--dry-run] [--force] [--path <p>]
   ijfw status
+  ijfw doctor
+  ijfw --purge-receipts
   ijfw --help
 
 Commands:
-  demo      30-second tour of the Trident — audits a built-in fixture and shows per-auditor findings
+  demo              Run a 30-second Trident tour. Try: ijfw demo
+  cross             Fire external auditors at a target. Try: ijfw cross audit README.md
+  import            Pull memory in from another tool. Try: ijfw import claude-mem --dry-run
+  status            Show recent cross-audit activity. Try: ijfw status
+  doctor            Probe which CLIs and API keys are reachable. Try: ijfw doctor
+  --purge-receipts  Clear the cross-runs receipt log. Try: ijfw --purge-receipts
 
 Modes (for ijfw cross):
-  audit     Adversarial review of a file, module, or path
-  research  Multi-source research on a topic
-  critique  Structured counter-argument generation
+  audit           Adversarial review of a file, module, or path
+  research        Multi-source research on a topic
+  critique        Structured counter-argument generation
+  project-audit   Run the same audit across every registered IJFW project
+                  Usage: ijfw cross project-audit <rule-file> [--dry-run]
 
-Options:
+Options for ijfw cross:
   --with <id>   Force a specific auditor (comma-separated for multiple)
-  --confirm     Prompt for confirmation before firing (useful with partial roster)
+  --confirm     Prompt for confirmation before firing
   --expand      Include extended swarm when available
+
+Environment:
+  IJFW_AUDIT_BUDGET_USD   Session spend cap (default $2.00). First call is always
+                          allowed (no cap). Cap enforced from the 2nd call on.
 
 Examples:
   ijfw demo
@@ -137,18 +187,27 @@ Examples:
   ijfw cross critique HEAD~3..HEAD
   ijfw cross audit CLAUDE.md --with codex,gemini
   ijfw status
+  ijfw doctor
 `.trim());
 }
 
 async function cmdStatus(projectDir) {
   const receipts = readReceipts(projectDir);
   if (receipts.length === 0) {
-    console.log("Ready. Run `ijfw cross` to see your first hero line.");
+    console.log('No cross-audit runs recorded yet.');
+    console.log('Recommended next: `ijfw cross audit <file>` to run your first Trident audit.');
     return;
   }
   const hero = renderHeroLine(receipts);
+  const last = receipts[receipts.length - 1];
+  const mode = last?.mode || 'cross';
+  const ts = last?.timestamp ? last.timestamp.slice(0, 10) : '';
+  console.log(`Trident -- run ${receipts.length} -- ${mode}${ts ? ' (' + ts + ')' : ''}`);
+  console.log('--');
   console.log(hero);
-  console.log(`\nTotal runs: ${receipts.length}`);
+  console.log('--');
+  console.log(`${receipts.length} Trident run${receipts.length === 1 ? '' : 's'} on record.`);
+  console.log('Recommended next: `ijfw cross audit <file>`. Say no/alt to override.');
 }
 
 // ---------------------------------------------------------------------------
@@ -193,16 +252,18 @@ function _printDemoFindings(picks, auditorResults) {
 async function cmdDemo() {
   const reachable = _anyAuditorReachable();
   if (!reachable) {
-    console.log('Install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY) — then retry `ijfw demo`.');
+    console.log('No auditors reachable yet.');
+    console.log('Install codex or gemini, or set OPENAI_API_KEY / GEMINI_API_KEY, then run `ijfw demo`.');
+    console.log('Run `ijfw doctor` to see the full roster status.');
     process.exit(0);
   }
 
-  console.log('IJFW demo — 30-second tour of the Trident');
+  console.log('IJFW demo -- 30-second tour of the Trident');
   console.log('');
 
   const fixturePath = join(dirname(fileURLToPath(import.meta.url)), '../fixtures/demo-target.js');
   if (!existsSync(fixturePath)) {
-    console.log('Demo fixture not found — run `npm pack` or reinstall @ijfw/memory-server.');
+    console.log('Demo fixture not found -- run `npm pack` or reinstall @ijfw/memory-server.');
     process.exit(0);
   }
 
@@ -228,9 +289,10 @@ async function cmdDemo() {
   const { picks, auditorResults } = result;
 
   if (!picks || picks.length === 0) {
-    console.log('No auditors responded. Install codex or gemini — then retry `ijfw demo`.');
+    console.log('No auditors responded this run.');
+    console.log('Install codex or gemini, or set OPENAI_API_KEY / GEMINI_API_KEY, then run `ijfw demo`.');
     console.log('');
-    console.log('Try `ijfw cross audit <your-file>` next.');
+    console.log('Run `ijfw cross audit <your-file>` when an auditor is reachable.');
     return;
   }
 
@@ -255,40 +317,101 @@ async function cmdDemo() {
     }
   }
 
+  const allItems = Array.isArray(result.merged) ? result.merged : [];
+  const consensusCritical = allItems.filter(i => i.severity === 'critical' || i.severity === 'high').length;
   console.log('');
+  console.log(`That was ${picks.length} AIs, one command. ${allItems.length} findings surfaced${consensusCritical > 0 ? `, ${consensusCritical} consensus-critical` : ''}.`);
   console.log('Try `ijfw cross audit <your-file>` next.');
+}
+
+// ---------------------------------------------------------------------------
+// Doctor
+// ---------------------------------------------------------------------------
+
+function cmdDoctor() {
+  console.log('ijfw doctor -- roster + key probe');
+  console.log('');
+
+  const rows = [];
+  for (const entry of ROSTER) {
+    const reach = isReachable(entry.id, process.env);
+    const cli = isInstalled(entry.id);
+    const apiKey = entry.apiFallback ? process.env[entry.apiFallback.authEnv] : null;
+    const apiOk = Boolean(apiKey);
+
+    if (cli) {
+      rows.push(`  [ ok ] ${entry.id} CLI -- ${entry.name} installed`);
+    } else {
+      const hint = entry.apiFallback
+        ? `install ${entry.invoke.split(' ')[0]} or set ${entry.apiFallback.authEnv}`
+        : `install ${entry.invoke.split(' ')[0]}`;
+      rows.push(`  [ .. ] ${entry.id} CLI -- install to unlock -- ${hint}`);
+    }
+
+    if (entry.apiFallback) {
+      if (apiOk) {
+        rows.push(`  [ ok ] ${entry.apiFallback.authEnv} -- set`);
+      } else {
+        rows.push(`  [ .. ] ${entry.apiFallback.authEnv} -- set to enable ${entry.id} API fallback`);
+      }
+    }
+  }
+
+  for (const row of rows) console.log(row);
+  console.log('');
+
+  const anyReachable = ROSTER.some(e => isReachable(e.id, process.env).any);
+  if (anyReachable) {
+    console.log('At least one auditor is reachable. Run `ijfw cross audit <file>` to start.');
+  } else {
+    console.log('IJFW has the Trident ready -- install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY), then run `ijfw demo`.');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Purge receipts
+// ---------------------------------------------------------------------------
+
+function cmdPurgeReceipts(projectDir) {
+  const count = purgeReceipts(projectDir);
+  if (count === 0) {
+    console.log('Receipt log is already empty. Run `ijfw cross audit <file>` to generate entries.');
+  } else {
+    console.log(`Receipt log cleared -- ${count} entr${count === 1 ? 'y' : 'ies'} removed.`);
+    console.log('Run `ijfw cross audit <file>` to start fresh.');
+  }
 }
 
 async function cmdCross({ mode, target, only, confirm, expand }) {
   const VALID_MODES = ['audit', 'research', 'critique'];
   if (!mode || !VALID_MODES.includes(mode)) {
-    console.error(`Error: mode must be one of: ${VALID_MODES.join(', ')}`);
+    console.error(`ijfw cross requires a mode: ${VALID_MODES.join(', ')}. Example: ijfw cross audit <file>`);
     process.exit(1);
   }
   if (!target) {
-    console.error('Error: target is required (file path, git range, or topic).');
+    console.error('ijfw cross needs a target -- pass a file path, git range, or topic. Example: ijfw cross audit CLAUDE.md');
     process.exit(1);
   }
 
   const projectDir = process.cwd();
   const runStamp = new Date().toISOString();
 
-  console.log(`\nijfw cross ${mode} — target: ${target}`);
+  console.log(`\nijfw cross ${mode} -- target: ${target}`);
   console.log('Probing roster...');
 
   let result;
   try {
     result = await runCrossOp({ mode, target, projectDir, runStamp, only, confirm, expand });
   } catch (err) {
-    console.error(`Error: ${err.message}`);
+    console.error(`${err.message} -- run ijfw doctor to see what to fix.`);
     process.exit(1);
   }
 
   const { merged, picks, missing, note } = result;
 
   if (picks.length === 0) {
-    console.log('\n' + (note || 'No external auditors installed. Install codex, gemini, opencode, aider, or copilot.'));
-    console.log('\nReceipt: .ijfw/receipts/cross-runs.jsonl');
+    console.log('\nIJFW has the Trident ready -- install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY), then run `ijfw demo`.');
+    console.log('Run `ijfw doctor` to see which auditors are available on this machine.');
     return;
   }
 
@@ -301,7 +424,115 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
   console.log('\nFindings:');
   printFindings(mode, merged);
 
-  console.log('\nReceipt: .ijfw/receipts/cross-runs.jsonl');
+  console.log('\nReceipt logged -- run `ijfw status` to see it.');
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio audit -- `ijfw cross project-audit <rule-file>`
+// ---------------------------------------------------------------------------
+
+// Read the registry (same format as server.js: path|hash|iso lines). Lives
+// here as a narrow duplicate so the CLI does not depend on server.js bootstrap.
+function readProjectRegistry() {
+  const file = join(homedir(), '.ijfw', 'registry.md');
+  if (!existsSync(file)) return [];
+  const body = readFileSync(file, 'utf8');
+  const out = [];
+  for (const line of body.split('\n')) {
+    const parts = line.split('|').map(s => s.trim());
+    if (parts.length < 3) continue;
+    const [path, hash, iso] = parts;
+    if (!path || !isAbsolute(path)) continue;
+    out.push({ path, hash, iso });
+  }
+  return out;
+}
+
+async function cmdCrossProjectAudit({ rule, dryRun }) {
+  if (!rule) {
+    console.error('Usage: ijfw cross project-audit <rule-file> [--dry-run]');
+    process.exit(1);
+  }
+
+  const resolvedRule = isAbsolute(rule) ? rule : resolve(process.cwd(), rule);
+  if (!existsSync(resolvedRule)) {
+    console.error(`Rule file not found: ${resolvedRule}`);
+    process.exit(1);
+  }
+
+  const projects = readProjectRegistry();
+  if (projects.length === 0) {
+    console.log('No other IJFW projects registered yet.');
+    console.log('The registry auto-populates the first time you run any IJFW command in a project:');
+    console.log('  cd /path/to/another/project && ijfw status');
+    console.log('Then re-run: ijfw cross project-audit ' + rule);
+    return;
+  }
+
+  console.log(`Phase 12 / Wave 12B -- portfolio audit -- ${projects.length} project${projects.length === 1 ? '' : 's'}.`);
+
+  if (dryRun) {
+    for (const p of projects) console.log(`  - ${basename(p.path)}  (${p.path})`);
+    console.log('\n--dry-run: no audits dispatched. Drop the flag to fire.');
+    return;
+  }
+
+  const startedAt = new Date().toISOString();
+  const results = [];
+  for (const p of projects) {
+    const tag = basename(p.path);
+    console.log(`  [${tag}] running cross audit ...`);
+    const r = spawnSync('ijfw', ['cross', 'audit', resolvedRule], {
+      cwd: p.path,
+      encoding: 'utf8',
+      timeout: 5 * 60 * 1000,
+    });
+    if (r.error) {
+      results.push({ project: tag, path: p.path, status: 'failed', findings: '', error: r.error.message });
+    } else if (r.status !== 0) {
+      results.push({ project: tag, path: p.path, status: 'failed', findings: r.stdout || '', error: (r.stderr || '').trim().split('\n')[0] || `exit ${r.status}` });
+    } else {
+      results.push({ project: tag, path: p.path, status: 'ok', findings: r.stdout || '' });
+    }
+  }
+  const finishedAt = new Date().toISOString();
+
+  const body = aggregatePortfolioFindings(results, { rule: basename(resolvedRule), startedAt, finishedAt });
+  const outDir = join(process.cwd(), '.ijfw', 'memory');
+  mkdirSync(outDir, { recursive: true });
+  const outFile = join(outDir, `portfolio-audit-${finishedAt.replace(/[:.]/g, '-')}.md`);
+  writeFileSync(outFile, body, 'utf8');
+  console.log(`\nPortfolio findings written: ${outFile}`);
+}
+
+// ---------------------------------------------------------------------------
+// Import -- `ijfw import <tool> [--dry-run] [--force] [--path <p>]`
+// ---------------------------------------------------------------------------
+
+async function cmdImport(parsed) {
+  const tool = parsed.tool;
+  if (!tool) {
+    console.error(`Usage: ijfw import <tool> [--dry-run] [--force] [--path <p>]`);
+    console.error(`Tools: ${listImporters().join(', ')}`);
+    process.exit(1);
+  }
+  const result = await runImport({
+    tool,
+    dryRun: parsed.dryRun,
+    force: parsed.force,
+    includeMetrics: parsed.includeMetrics,
+    path: parsed.customPath,
+  });
+  if (!result.ok) {
+    console.error(result.error);
+    process.exit(1);
+  }
+  console.log(result.summary);
+  if (result.dryRun && result.samples && result.samples.length > 0) {
+    console.log('\nSample entries (dry-run):');
+    for (const s of result.samples) console.log(`  - [${s.type}] ${s.summary || '(no title)'}`);
+    console.log('\nRe-run without --dry-run to write them to .ijfw/memory/.');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -321,6 +552,14 @@ if (parsed.cmd === 'status') {
   cmdDemo().catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'cross') {
   cmdCross(parsed).catch(err => { console.error(err.message); process.exit(1); });
+} else if (parsed.cmd === 'cross-project-audit') {
+  cmdCrossProjectAudit(parsed).catch(err => { console.error(err.message); process.exit(1); });
+} else if (parsed.cmd === 'import') {
+  cmdImport(parsed).catch(err => { console.error(err.message); process.exit(1); });
+} else if (parsed.cmd === 'doctor') {
+  cmdDoctor();
+} else if (parsed.cmd === 'purge-receipts') {
+  cmdPurgeReceipts(process.cwd());
 } else {
   console.error(`Unknown command: ${parsed.raw}`);
   printUsage();

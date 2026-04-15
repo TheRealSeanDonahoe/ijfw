@@ -5,7 +5,7 @@
 // env vars, AND probes whether each CLI is actually installed on PATH.
 //
 // Donahoe principle: never trust a single AI; run through (at least) three.
-// Caller is one. We aim to suggest two reviewers — the Trident.
+// Caller is one. We aim to suggest two reviewers -- the Trident.
 //
 // Detection is conservative: we'd rather show all options than silently
 // exclude a valid one. If we genuinely can't tell who's calling, nothing
@@ -160,12 +160,12 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
 
     for (const fam of TARGET_FAMILIES) {
       if (fam === callerFamily) {
-        // Caller is in this family — pick next-best family (oss, or other non-self)
+        // Caller is in this family -- pick next-best family (oss, or other non-self)
         const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily);
         if (backfill) {
           picks.push(annotatePick(backfill));
           picked.add(backfill.id);
-          nudges.push(`No ${fam}-family auditor outside caller — using ${backfill.id} (${backfill.family}) as stand-in. Install a ${fam === 'openai' ? 'google' : 'openai'}-family auditor for full Trident diversity.`);
+          nudges.push(`No ${fam}-family auditor outside caller -- using ${backfill.id} (${backfill.family}) as stand-in. Install a ${fam === 'openai' ? 'google' : 'openai'}-family auditor for full Trident diversity.`);
         } else {
           missing.push({ family: fam, reason: `no reachable auditor in family ${fam}` });
         }
@@ -178,17 +178,17 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
           picks.push(annotatePick(pick));
           picked.add(pick.id);
         } else {
-          // All family members already picked — leave slot missing
+          // All family members already picked -- leave slot missing
           missing.push({ family: fam, reason: `all reachable auditors in family ${fam} already selected` });
         }
       } else {
-        // No reachable member of this family — backfill from oss or any remaining non-self
+        // No reachable member of this family -- backfill from oss or any remaining non-self
         const backfill = eligible.find(e => !picked.has(e.id) && e.family !== callerFamily && !TARGET_FAMILIES.includes(e.family));
         missing.push({ family: fam, reason: `no reachable auditor in family ${fam}` });
         if (backfill) {
           picks.push(annotatePick(backfill));
           picked.add(backfill.id);
-          nudges.push(`No ${fam}-family auditor reachable — using ${backfill.id} (${backfill.family}) as stand-in. Install gemini (google) or codex/copilot (openai) for full Trident lineage diversity.`);
+          nudges.push(`No ${fam}-family auditor reachable -- using ${backfill.id} (${backfill.family}) as stand-in. Install gemini (google) or codex/copilot (openai) for full Trident lineage diversity.`);
         }
       }
     }
@@ -221,7 +221,7 @@ export function pickAuditors({ count = 2, env = process.env, only = null, strate
   if (picks.length === 0) {
     note = 'No external auditors reachable. Install codex, gemini, opencode, aider, or copilot (or set OPENAI_API_KEY / GEMINI_API_KEY) to use cross-audit.';
   } else if (picks.length < count) {
-    note = `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} reachable (${picks.map(e => e.id).join(', ')}); ${wantMore} short. Install another to triangulate findings — single-reviewer audits miss what overlap would catch.`;
+    note = `Donahoe Trident principle: cross-audit works best with two top-tier AIs reviewing alongside the caller. Only ${picks.length} reachable (${picks.map(e => e.id).join(', ')}); ${wantMore} short. Install another to triangulate findings -- single-reviewer audits miss what overlap would catch.`;
   }
   return { picks, missing: all.filter(e => !e.isSelf && !isReachable(e.id, env).any), note };
 }
@@ -253,10 +253,10 @@ export function formatRoster(env = process.env) {
   const lines = [];
   for (const e of all) {
     const role = e.isSelf ? 'self    ' : (e.installed ? 'ready   ' : 'install ');
-    lines.push(`  ${e.id.padEnd(9)} ${role}— ${e.name} (${e.invoke}) — ${e.note}`);
+    lines.push(`  ${e.id.padEnd(9)} ${role}-- ${e.name} (${e.invoke}) -- ${e.note}`);
   }
   const header = self
     ? `Detected caller: ${self}. Roster (ready = installed + non-self):`
-    : `Caller unknown — full roster:`;
+    : `Caller unknown -- full roster:`;
   return header + '\n' + lines.join('\n');
 }

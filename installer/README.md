@@ -1,23 +1,23 @@
 # @ijfw/install
 
-One-command installer for [IJFW](https://github.com/TradeCanyon/ijfw) — the AI
+One-command installer for [IJFW](https://github.com/TradeCanyon/ijfw) -- the AI
 efficiency layer for Claude Code, Codex, Gemini, Cursor, Windsurf, Copilot.
 
 ## Install
 
 ```bash
-npx @ijfw/install
+npm install -g @ijfw/install
+ijfw demo
 ```
 
-Default: clones to `~/.ijfw`, runs `scripts/install.sh`, registers the IJFW
-marketplace in `~/.claude/settings.json`.
+IJFW configures every agent on your machine. The options below let you customise the install location, branch, or skip specific steps -- all are optional.
 
 ### Options
 
 | Flag | Default | Notes |
 |------|---------|-------|
 | `--dir <path>` | `$IJFW_HOME` or `~/.ijfw` | Install location |
-| `--branch <name>` | `main` | Git branch to clone |
+| `--branch <name>` | latest released tag | Git branch or tag |
 | `--no-marketplace` | off | Skip settings.json edits |
 | `--yes` | off | Non-interactive |
 
@@ -32,7 +32,13 @@ Memory is preserved across re-runs by default.
 
 ## Preflight
 
-Runs `node ≥18`, `git`, `bash`. On native Windows, recommends WSL.
+Requires `node >=18`, `git`, `bash`. On native Windows use the PowerShell
+installer (PS 5.1+), which shells Git Bash under the hood -- no WSL required:
+
+```powershell
+iwr https://raw.githubusercontent.com/TradeCanyon/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
+.\install.ps1 -Dir $env:USERPROFILE\.ijfw
+```
 
 ## Build (contributors)
 

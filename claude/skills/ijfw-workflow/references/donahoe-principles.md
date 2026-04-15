@@ -1,4 +1,4 @@
-# The Donahoe Principles — Quick Audit Reference
+# The Donahoe Principles -- Quick Audit Reference
 ## "It Just Fucking Works" by Sean Donahoe
 
 Use this reference during audit gates. Check applicable principles per stage.
@@ -23,7 +23,7 @@ P10. Test like someone's trying to break it. Angry users, bad input, no network,
 P11. Offline is a feature, not an error. Design for no network first.
 P12. Security without friction. Invisible security gets used. Terminal commands lose 80%.
 P13. Their data, their machine, their choice. Minimal resources. Clean up. Don't phone home.
-P14. Accessible is not optional. Visual, motor, age — if they can't use it, you told them they don't matter.
+P14. Accessible is not optional. Visual, motor, age -- if they can't use it, you told them they don't matter.
 P15. Updates should be invisible. No user action. Never break workflows. Improve silently.
 P16. Shared infrastructure, shared benefit. Systems thinking for product suites.
 
@@ -33,7 +33,7 @@ P18. Crashes are bugs, not features. Auto-save. State preservation. Graceful rec
 P19. Progressive disclosure, not progressive punishment. Reveal complexity as readiness grows.
 P20. One app, all platforms. Platform fragmentation is the hidden killer.
 P21. Price like you respect them. No hidden costs, no confusing tiers, no insulting free tier.
-P22. Standards scale, vibes don't. Encode quality in linters, tests, CI/CD — not just your head.
+P22. Standards scale, vibes don't. Encode quality in linters, tests, CI/CD -- not just your head.
 
 ## THE MULTI-AI QUALITY TRIDENT
 GENERATE → VALIDATE → SHIP

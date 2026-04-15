@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IJFW UserPromptSubmit — deterministic vague-prompt detector.
+# IJFW UserPromptSubmit -- deterministic vague-prompt detector.
 #
 # Receives Claude Code's UserPromptSubmit JSON on stdin:
 #   { "session_id": "...", "prompt": "..." }
@@ -15,7 +15,7 @@
 #
 # NOTE: never crash Claude Code. Every step guards itself.
 
-# E4 — universal disable switch.
+# E4 -- universal disable switch.
 [ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 
 # Detect severity1 plugin and defer.
@@ -120,7 +120,7 @@ if (r.vague) {
     block += '\\n\\nAsk back:';
     for (const q of r.rewrite) block += '\\n  • ' + q;
   }
-  block += '\\nSignals: ' + r.signals.join(', ') + '. Override with leading * or \"ijfw off\".\\n</ijfw-prompt-check>';
+  block += '\\nOverride: start prompt with * to skip, or say \"ijfw off\" to disable.\\nSignals: ' + r.signals.join(', ') + '.\\n</ijfw-prompt-check>';
   contextParts.push(block);
 }
 

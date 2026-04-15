@@ -16,10 +16,10 @@ Before any synthesis, check `.ijfw/.automem-consent`:
 
 ## Inputs (all local files)
 
-- `.ijfw/.session-signals.jsonl` — ERROR/FAIL/Traceback lines captured by the PreToolUse hook (W3.6).
-- `.ijfw/.session-feedback.jsonl` — corrections/confirmations/preferences detected by the UserPromptSubmit hook (W3.7).
-- `.ijfw/.prompt-check-state` — last turn's intent + vague signals.
-- `.ijfw/memory/project-journal.md` — existing entries (dedupe against these).
+- `.ijfw/.session-signals.jsonl` -- ERROR/FAIL/Traceback lines captured by the PreToolUse hook (W3.6).
+- `.ijfw/.session-feedback.jsonl` -- corrections/confirmations/preferences detected by the UserPromptSubmit hook (W3.7).
+- `.ijfw/.prompt-check-state` -- last turn's intent + vague signals.
+- `.ijfw/memory/project-journal.md` -- existing entries (dedupe against these).
 - Transcript read via Claude Code's Stop-hook payload (`transcript_path`).
 
 ## Synthesis
@@ -30,10 +30,10 @@ For each signal cluster:
 2. **Cap sizes.** Run `applyCaps` from `mcp-server/src/caps.js`. content ≤4KB, why/how ≤1KB, summary ≤120.
 3. **Dedupe.** Use BM25 search (`mcp-server/src/search-bm25.js`) against `project-journal.md`. If score > 6 against an existing entry, skip (duplicate).
 4. **Classify** into one of:
-   - `pattern` — error→fix recurrence (same error type seen ≥2×).
-   - `decision` — an explicit user choice ("from now on X").
-   - `preference` — a style/workflow preference ("I prefer Y").
-   - `observation` — something worth noting, single instance.
+   - `pattern` -- error→fix recurrence (same error type seen >=2x).
+   - `decision` -- an explicit user choice ("from now on X").
+   - `preference` -- a style/workflow preference ("I prefer Y").
+   - `observation` -- something worth noting, single instance.
 5. **Emit** via `ijfw_memory_store` MCP tool with fields:
    - `type`: one of the above
    - `summary`: single sentence, ≤120 chars
@@ -45,9 +45,9 @@ For each signal cluster:
 ## Model routing
 
 `IJFW_AUTOMEM_MODEL` env var controls synthesis:
-- unset or `off` — skip LLM synthesis; only deterministic signals promoted 1:1.
-- `claude-haiku-4-5-*` — Anthropic Haiku (~$0.001/session).
-- `ollama:<model>` — local Ollama, fully offline.
+- unset or `off` -- skip LLM synthesis; only deterministic signals promoted 1:1.
+- `claude-haiku-4-5-*` -- Anthropic Haiku (~$0.001/session).
+- `ollama:<model>` -- local Ollama, fully offline.
 
 Default ship: unset. Deterministic signals still become memories; only the
 richer "what did I learn" synthesis is gated on an LLM budget.
@@ -66,9 +66,9 @@ Every auto-stored entry carries `tags: [..., "auto-memorize"]`. The
 
 ## Safety
 
-- **Never** store raw transcript content — only redacted + capped extracts.
+- **Never** store raw transcript content -- only redacted + capped extracts.
 - **Never** call out to an LLM unless `IJFW_AUTOMEM_MODEL` is set AND consent is `true`.
-- **Never** store secrets — the redactor runs first, always.
-- **Never** silently overwrite user-authored memories — auto-entries go into the knowledge file with their distinguishing tag.
+- **Never** store secrets -- the redactor runs first, always.
+- **Never** silently overwrite user-authored memories -- auto-entries go into the knowledge file with their distinguishing tag.
 
 Resume normal mode after.

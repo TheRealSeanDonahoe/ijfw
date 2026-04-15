@@ -1,4 +1,4 @@
-// @ijfw/install — reverse install. Preserves ~/.ijfw/memory/ unless --purge.
+// @ijfw/install -- reverse install. Preserves ~/.ijfw/memory/ unless --purge.
 
 import { existsSync, rmSync, cpSync, mkdtempSync } from 'node:fs';
 import { resolve, join } from 'node:path';
@@ -18,7 +18,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`ijfw-uninstall — reverse IJFW install
+  console.log(`ijfw-uninstall -- reverse IJFW install
 Usage: ijfw-uninstall [--dir <path>] [--purge] [--no-marketplace]
   --purge           also remove memory/ (destructive)
   --no-marketplace  skip ~/.claude/settings.json edits

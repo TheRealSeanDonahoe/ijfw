@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 9 Dogfood — `ijfw cross critique HEAD~2..HEAD`
 
 **Stamp:** 2026-04-15

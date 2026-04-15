@@ -1,25 +1,25 @@
 ---
 name: consolidate
-description: "Dream cycle — promote patterns, prune stale, reconcile contradictions, optionally promote to global."
+description: "Dream cycle -- promote patterns, prune stale, reconcile contradictions, optionally promote to global."
 ---
 
 Run the IJFW dream cycle on project memory using the architect agent.
 
 ## Inputs to read
 
-- `.ijfw/memory/project-journal.md` — append-only timeline
-- `.ijfw/memory/knowledge.md` — curated decisions/patterns
-- `.ijfw/memory/handoff.md` — latest session handoff (if present)
-- `~/.ijfw/memory/global-knowledge.md` — cross-project preferences (this project's namespace only)
-- `.ijfw/sessions/*.md` — session markers
-- `~/.claude/projects/<encoded>/memory/*.md` — Claude native project memory (read-only mirror)
+- `.ijfw/memory/project-journal.md` -- append-only timeline
+- `.ijfw/memory/knowledge.md` -- curated decisions/patterns
+- `.ijfw/memory/handoff.md` -- latest session handoff (if present)
+- `~/.ijfw/memory/global-knowledge.md` -- cross-project preferences (this project's namespace only)
+- `.ijfw/sessions/*.md` -- session markers
+- `~/.claude/projects/<encoded>/memory/*.md` -- Claude native project memory (read-only mirror)
 
 ## Algorithm
 
 ### 1. Promote (journal → knowledge)
 Scan the journal for entries that meet the **promotion threshold**:
-- Same topic/pattern referenced in **≥3 journal entries** AND
-- Spanning **≥2 distinct session IDs** AND
+- Same topic/pattern referenced in **>=3 journal entries** AND
+- Spanning **>=2 distinct session IDs** AND
 - Not already present in knowledge.md
 
 For each qualifying pattern, write a structured entry to knowledge.md:
@@ -40,7 +40,7 @@ tags: [derived, from, content]
 Detect pairs of entries where a later statement supersedes an earlier one
 (e.g., "use REST" followed later by "migrated to GraphQL"). For each:
 - Mark the older entry with `superseded: true` and a `superseded_by_date` field.
-- Do NOT delete — history matters for audit trails.
+- Do NOT delete -- history matters for audit trails.
 - Add a reconciliation note to knowledge.md explaining the transition.
 
 ### 3. Prune stale journal
@@ -54,7 +54,7 @@ Detect pairs of entries where a later statement supersedes an earlier one
 - Stay under ~2000 tokens total. If larger, cluster and archive oldest cluster.
 
 ### 5. Cross-project promotion (opt-in)
-If a pattern is referenced in **≥3 different projects** (via global-knowledge
+If a pattern is referenced in **>=3 different projects** (via global-knowledge
 namespace inspection) OR the user explicitly flags it with `globalize: true`:
 - Promote to `~/.ijfw/memory/global/<facet>.md` (preferences/patterns/stack/anti-patterns/lessons).
 - Facet classification by architect agent using concise rule: the "what I like"
@@ -65,21 +65,21 @@ namespace inspection) OR the user explicitly flags it with `globalize: true`:
 
 ```
 Dream cycle complete.
-  ✓ Promoted N patterns to knowledge
-  ✓ Reconciled N contradictions (M superseded)
-  ✓ Archived N stale entries
-  ✓ Knowledge base: N entries (P tokens)
-  ✓ Global promoted: N entries (if any)
+  [ok] Promoted N patterns to knowledge
+  [ok] Reconciled N contradictions (M superseded)
+  [ok] Archived N stale entries
+  [ok] Knowledge base: N entries (P tokens)
+  [ok] Global promoted: N entries (if any)
 ```
 
-No "Warning:" lines. No "Failed to..." — if a step couldn't run (e.g. journal
+No "Warning:" lines. No "Failed to..." -- if a step couldn't run (e.g. journal
 missing), silently skip and omit from the report.
 
 ## Mode-aware
 
 - **smart mode:** full cycle, architect agent, ~5-10K tokens. Runs automatically every 5 sessions.
 - **fast mode:** skip cross-project promotion, skip reconciliation. Scout agent, ~1-2K tokens.
-- **deep mode:** adds second pass — re-read knowledge.md after compression to detect any remaining redundancies.
+- **deep mode:** adds second pass -- re-read knowledge.md after compression to detect any remaining redundancies.
 
 ## When to run
 - `/consolidate` explicit invocation anytime

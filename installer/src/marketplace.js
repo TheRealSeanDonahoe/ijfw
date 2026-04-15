@@ -9,12 +9,12 @@ export function claudeSettingsPath() {
   return join(homedir(), '.claude', 'settings.json');
 }
 
-// C3 (audit R1) + R2-F — tokenizer-aware JSONC comment strip. A naive
+// C3 (audit R1) + R2-F -- tokenizer-aware JSONC comment strip. A naive
 // regex was corrupting string values containing //, /*, */. R2-F also
 // handles: leading BOM (U+FEFF), CR-only and U+2028/U+2029 line
 // separators inside `//` line comments, and unterminated `/* */`.
 function stripJsoncComments(raw) {
-  // Strip a leading UTF-8 BOM — common when settings.json was saved by
+  // Strip a leading UTF-8 BOM -- common when settings.json was saved by
   // a Windows editor. JSON.parse chokes on it too.
   if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
   let out = '';
@@ -25,7 +25,7 @@ function stripJsoncComments(raw) {
   while (i < n) {
     const c = raw[i];
     const c2 = raw[i + 1];
-    // String literal — copy verbatim including any escaped chars.
+    // String literal -- copy verbatim including any escaped chars.
     if (c === '"') {
       out += c; i++;
       while (i < n) {
@@ -37,13 +37,13 @@ function stripJsoncComments(raw) {
       }
       continue;
     }
-    // Line comment — terminate at \n, \r, U+2028, U+2029, or EOF.
+    // Line comment -- terminate at \n, \r, U+2028, U+2029, or EOF.
     if (c === '/' && c2 === '/') {
       i += 2;
       while (i < n && !isLineBreak(raw.charCodeAt(i))) i++;
       continue;
     }
-    // Block comment — tolerate unterminated (EOF closes).
+    // Block comment -- tolerate unterminated (EOF closes).
     if (c === '/' && c2 === '*') {
       i += 2;
       while (i < n && !(raw[i] === '*' && raw[i + 1] === '/')) i++;
@@ -93,7 +93,7 @@ export function mergeMarketplace(settingsPath = claudeSettingsPath()) {
 
 export function unmergeMarketplace(settingsPath = claudeSettingsPath()) {
   if (!existsSync(settingsPath)) return null;
-  // Y1 — use tolerantJsonParse for symmetry with mergeMarketplace so uninstall
+  // Y1 -- use tolerantJsonParse for symmetry with mergeMarketplace so uninstall
   // doesn't crash on JSONC-flavored settings.
   const settings = tolerantJsonParse(readFileSync(settingsPath, 'utf8'), settingsPath);
   if (settings.extraKnownMarketplaces?.ijfw) delete settings.extraKnownMarketplaces.ijfw;

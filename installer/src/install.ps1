@@ -2,8 +2,8 @@
 # PowerShell 5.1+ / PowerShell Core on Windows. No WSL required.
 #
 # Mirrors installer/src/install.js flow:
-#   preflight → resolve target → clone/pull → run scripts/install.sh via Git Bash
-#   → merge marketplace into %USERPROFILE%\.claude\settings.json → summary.
+#   preflight -> resolve target -> clone/pull -> run scripts/install.sh via Git Bash
+#   -> merge marketplace into %USERPROFILE%\.claude\settings.json -> summary.
 #
 # Usage:
 #   Invoke-Expression (iwr https://raw.githubusercontent.com/TradeCanyon/ijfw/main/installer/src/install.ps1).Content
@@ -30,7 +30,10 @@ function Test-Command($cmd) {
 }
 
 function Get-Target {
-  if ($Dir) { return (Resolve-Path -LiteralPath $Dir -ErrorAction SilentlyContinue) ?? $Dir }
+  if ($Dir) {
+    $resolved = Resolve-Path -LiteralPath $Dir -ErrorAction SilentlyContinue
+    if ($resolved) { return $resolved.Path } else { return $Dir }
+  }
   if ($env:IJFW_HOME) { return $env:IJFW_HOME }
   return Join-Path $env:USERPROFILE ".ijfw"
 }
@@ -39,11 +42,34 @@ function Invoke-Preflight {
   $issues = @()
   $node = if (Test-Command node) { (node --version) } else { $null }
   if (-not $node -or ([int]($node -replace 'v(\d+)\..*','$1') -lt 18)) {
-    $issues += "Node $node detected; IJFW wants Node >=18."
+    $issues += "Node 18+ unlocks IJFW (found $node). Grab it from https://nodejs.org and we'll pick up where you left off."
   }
-  if (-not (Test-Command git))  { $issues += "git not on PATH — install Git for Windows, then retry." }
-  if (-not (Test-Command bash)) { $issues += "bash not on PATH — install Git for Windows (includes Git Bash), then retry." }
+  if (-not (Test-Command git))  { $issues += "Install Git for Windows (https://git-scm.com) and rerun -- it bundles everything we need." }
+  if (-not (Resolve-GitBash)) { $issues += "Git Bash wasn't found next to git.exe. Install Git for Windows (includes bash.exe) and rerun." }
   return $issues
+}
+
+# Locate Git Bash explicitly. On Windows the plain `bash` command often
+# resolves to WSL's bash, which fails with 'No such file or directory' when
+# no Linux distro is installed. Git for Windows ships bash.exe alongside
+# git.exe under <git-root>\bin\ (or \usr\bin\), so derive it from git's path.
+function Resolve-GitBash {
+  $gitCmd = Get-Command git -ErrorAction SilentlyContinue
+  if ($gitCmd) {
+    $gitDir = Split-Path -Parent $gitCmd.Source
+    $candidates = @(
+      (Join-Path $gitDir 'bash.exe'),
+      (Join-Path (Split-Path -Parent $gitDir) 'bin\bash.exe'),
+      (Join-Path (Split-Path -Parent $gitDir) 'usr\bin\bash.exe')
+    )
+    foreach ($c in $candidates) { if (Test-Path $c) { return $c } }
+  }
+  foreach ($c in @(
+    'C:\Program Files\Git\bin\bash.exe',
+    'C:\Program Files\Git\usr\bin\bash.exe',
+    'C:\Program Files (x86)\Git\bin\bash.exe'
+  )) { if (Test-Path $c) { return $c } }
+  return $null
 }
 
 function Invoke-CloneOrPull($target, $branch) {
@@ -61,14 +87,91 @@ function Invoke-CloneOrPull($target, $branch) {
 function Invoke-InstallScript($target) {
   $script = Join-Path $target "scripts\install.sh"
   if (-not (Test-Path $script)) { throw "scripts/install.sh missing at $script." }
+  $gitBash = Resolve-GitBash
+  if (-not $gitBash) { throw "Git Bash not found -- install Git for Windows and retry." }
   Push-Location $target
   try {
     $env:IJFW_NONINTERACTIVE = if ($env:CI -or $Yes) { "1" } else { "" }
-    & bash "./scripts/install.sh"
+    # Let the PS wrapper own the final closer so Merge-Marketplace output
+    # lands above it. Bash skips its "Full log" line when this is set.
+    $env:IJFW_SKIP_CLOSER = "1"
+    & $gitBash "./scripts/install.sh"
     if ($LASTEXITCODE -ne 0) { throw "scripts/install.sh exited $LASTEXITCODE." }
   } finally {
     Pop-Location
+    Remove-Item Env:\IJFW_SKIP_CLOSER -ErrorAction SilentlyContinue
   }
+}
+
+function ConvertTo-Hashtable($obj) {
+  # PS 5.1 compatibility: ConvertFrom-Json's -AsHashtable is PS 7+ only.
+  # Walk the PSCustomObject tree manually into hashtables + arrays.
+  if ($null -eq $obj) { return $null }
+  if ($obj -is [System.Collections.IDictionary]) {
+    $h = @{}
+    foreach ($k in $obj.Keys) { $h[$k] = ConvertTo-Hashtable $obj[$k] }
+    return $h
+  }
+  if ($obj -is [System.Management.Automation.PSCustomObject]) {
+    $h = @{}
+    foreach ($p in $obj.PSObject.Properties) { $h[$p.Name] = ConvertTo-Hashtable $p.Value }
+    return $h
+  }
+  if ($obj -is [System.Collections.IEnumerable] -and -not ($obj -is [string])) {
+    $out = @()
+    foreach ($item in $obj) { $out += ,(ConvertTo-Hashtable $item) }
+    return ,$out
+  }
+  return $obj
+}
+
+function ConvertFrom-Jsonc($raw) {
+  # State-machine JSONC cleaner: strips // line comments, /* block comments */,
+  # and trailing commas before } or ], but only when NOT inside a string.
+  # The regex version we shipped earlier mangled files whose string values
+  # contained // or /* patterns. This implementation walks the text char by
+  # char with a tiny state machine -- no regex false-positives.
+  if (-not $raw) { return $raw }
+  if ($raw.Length -gt 0 -and [int][char]$raw[0] -eq 0xFEFF) { $raw = $raw.Substring(1) }
+
+  $sb = New-Object System.Text.StringBuilder
+  $len = $raw.Length
+  $i = 0
+  $inString = $false
+  $escape = $false
+
+  while ($i -lt $len) {
+    $ch = $raw[$i]
+    if ($inString) {
+      [void]$sb.Append($ch)
+      if ($escape) { $escape = $false }
+      elseif ($ch -eq '\') { $escape = $true }
+      elseif ($ch -eq '"') { $inString = $false }
+      $i++
+      continue
+    }
+    if ($ch -eq '"') { $inString = $true; [void]$sb.Append($ch); $i++; continue }
+    if ($ch -eq '/' -and $i + 1 -lt $len) {
+      $next = $raw[$i + 1]
+      if ($next -eq '/') {
+        while ($i -lt $len -and $raw[$i] -ne "`n") { $i++ }
+        continue
+      }
+      if ($next -eq '*') {
+        $i += 2
+        while ($i + 1 -lt $len -and -not ($raw[$i] -eq '*' -and $raw[$i + 1] -eq '/')) { $i++ }
+        $i += 2
+        continue
+      }
+    }
+    [void]$sb.Append($ch)
+    $i++
+  }
+
+  # Strip trailing commas. Safe to do as a second regex pass now that strings
+  # and comments are out of the way.
+  $intermediate = $sb.ToString()
+  return ($intermediate -replace ',(\s*[}\]])','$1')
 }
 
 function Merge-Marketplace {
@@ -78,15 +181,24 @@ function Merge-Marketplace {
 
   $settings = @{}
   if (Test-Path $settingsPath) {
+    $raw = Get-Content -Raw -LiteralPath $settingsPath
+    $cleaned = ConvertFrom-Jsonc $raw
     try {
-      $raw = Get-Content -Raw -LiteralPath $settingsPath
-      # Strip JSONC comments + trailing commas before parse (mirrors tolerantJsonParse).
-      $cleaned = $raw -replace '/\*[\s\S]*?\*/',''
-      $cleaned = $cleaned -replace '(^|[^:])//[^\n]*','$1'
-      $cleaned = $cleaned -replace ',(\s*[}\]])','$1'
-      $settings = ConvertFrom-Json $cleaned -AsHashtable
+      $parsed = ConvertFrom-Json $cleaned -ErrorAction Stop
+      $settings = ConvertTo-Hashtable $parsed
+      if ($null -eq $settings) { $settings = @{} }
     } catch {
-      throw "settings.json at $settingsPath is not valid JSON or recoverable JSONC."
+      # Graceful fallback: back up the unparseable file, surface the manual
+      # next step, return without throwing so the rest of the install stands.
+      $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+      $backup = "$settingsPath.bak.marketplace.$ts"
+      Copy-Item -LiteralPath $settingsPath -Destination $backup -Force
+      Write-Host "  ==> HEADS UP" -ForegroundColor Yellow -NoNewline
+      Write-Host "  your Claude settings.json is not valid JSON/JSONC" -ForegroundColor DarkGray
+      Write-Host "      Backed up to $backup" -ForegroundColor DarkGray
+      Write-Host "      The two /plugin commands above still complete the install." -ForegroundColor DarkGray
+      Write-Host ""
+      return $false
     }
   }
   if (-not $settings.ContainsKey('extraKnownMarketplaces')) { $settings['extraKnownMarketplaces'] = @{} }
@@ -97,6 +209,7 @@ function Merge-Marketplace {
   $tmp = "$settingsPath.tmp"
   $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tmp -Encoding UTF8
   Move-Item -Force -LiteralPath $tmp -Destination $settingsPath
+  return $true
 }
 
 # --- main ---
@@ -108,21 +221,18 @@ if ($issues.Count -gt 0) {
 }
 
 $target = Get-Target
-Write-Host "IJFW → $target"
 
-$action = Invoke-CloneOrPull $target $Branch
-Write-Ok "repo $action"
+# scripts/install.sh owns the summary (Live now / Standing by / next step).
+# Keep clone/pull output suppressed so the final banner reads clean.
+$action = Invoke-CloneOrPull $target $Branch | Out-Null
 
 Invoke-InstallScript $target
-Write-Ok "scripts/install.sh complete"
 
 if (-not $NoMarketplace) {
-  Merge-Marketplace
-  Write-Ok "marketplace registered in $env:USERPROFILE\.claude\settings.json"
+  # Best-effort: returns $true on success, prints its own message on fallback.
+  [void](Merge-Marketplace)
 }
 
+$log = Join-Path $env:USERPROFILE ".ijfw\install.log"
+Write-Host "  Full log   $log" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "IJFW ready."
-Write-Host "  Memory preserved at: $target\memory"
-Write-Host "  /doctor inside Claude Code to verify health."
-Write-Host "  Privacy: everything local. See NO_TELEMETRY.md."

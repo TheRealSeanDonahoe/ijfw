@@ -21,7 +21,7 @@ export function ensureSchemaHeader(filepath) {
   return 'migrated';
 }
 
-// W3.2 / ST4 — corruption recovery.
+// W3.2 / ST4 -- corruption recovery.
 // If a memory file is non-zero but fails a structure sanity check,
 // quarantine it to <name>.corrupt.<ts> and seed a fresh file. Returns
 // 'ok' | 'recovered' | 'created'. Called before any read that treats
@@ -50,7 +50,7 @@ export function recoverIfCorrupt(filepath) {
   if (bad / Math.max(1, sample.length) > 0.02) {
     return quarantine(filepath, cur, 'binary-content');
   }
-  // Default: treat as ok — preserve user's plain-text content even without
+  // Default: treat as ok -- preserve user's plain-text content even without
   // structure markers. We only recover on true corruption.
   return 'ok';
 }
@@ -62,7 +62,7 @@ function quarantine(filepath, content, reason) {
     if (content != null) {
       writeFileSync(quarantinePath, `<!-- ijfw-quarantine reason=${reason} at=${new Date(ts).toISOString()} -->\n\n${content}`);
     } else {
-      // Y4 — renameSync can transiently fail on Windows when an indexer or
+      // Y4 -- renameSync can transiently fail on Windows when an indexer or
       // AV holds a short lock on the file. Retry a few times with 50ms spacing.
       let renamed = false;
       for (let i = 0; i < 4 && !renamed; i++) {

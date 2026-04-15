@@ -7,6 +7,8 @@ import {
   parseResponse,
   scoreRebuttalSurvival,
   mergeResponses,
+  estimateCost,
+  checkBudget,
 } from './src/cross-dispatcher.js';
 
 // ---------------------------------------------------------------------------
@@ -353,4 +355,110 @@ test('mergeResponses critique ranks by survival DESC then severity DESC', () => 
 
 test('mergeResponses throws on unknown mode', () => {
   assert.throws(() => mergeResponses('book', []), /Unknown mode/);
+});
+
+// ---------------------------------------------------------------------------
+// estimateCost + checkBudget (Step 10B.6)
+// ---------------------------------------------------------------------------
+
+test('estimateCost returns positive number for non-empty target', () => {
+  const cost = estimateCost('hello world', [{ id: 'codex' }]);
+  assert.ok(typeof cost === 'number' && cost > 0);
+});
+
+test('estimateCost returns 0 for empty target', () => {
+  assert.equal(estimateCost('', [{ id: 'codex' }]), 0);
+});
+
+test('estimateCost uses fallback price for unknown provider', () => {
+  const c1 = estimateCost('hello world', [{ id: 'unknown-provider' }]);
+  assert.ok(c1 > 0);
+});
+
+test('checkBudget returns null when no prior receipts (first call always passes)', () => {
+  const sessionStart = new Date(Date.now() - 10_000);
+  const result = checkBudget({
+    target: 'some target',
+    picks: [{ id: 'codex' }],
+    receipts: [],
+    sessionStart,
+    env: { IJFW_AUDIT_BUDGET_USD: '0.01' },
+  });
+  assert.equal(result, null);
+});
+
+test('checkBudget returns null when accumulated is zero and estimate fits (default $2)', () => {
+  const sessionStart = new Date(Date.now() - 10_000);
+  const result = checkBudget({
+    target: 'small target',
+    picks: [{ id: 'codex' }],
+    receipts: [],
+    sessionStart,
+    env: {},
+  });
+  assert.equal(result, null);
+});
+
+test('checkBudget returns error message when accumulated + estimate exceeds budget', () => {
+  const sessionStart = new Date(Date.now() - 10_000);
+  // accumulated=$0.009 + any positive estimate must exceed $0.009 budget
+  const priorReceipt = { timestamp: new Date().toISOString(), cost_usd: 0.009 };
+  const result = checkBudget({
+    target: 'some target text that has some chars to estimate',
+    picks: [{ id: 'codex' }],
+    receipts: [priorReceipt],
+    sessionStart,
+    env: { IJFW_AUDIT_BUDGET_USD: '0.009' }, // budget exactly equal to accumulated
+  });
+  assert.ok(typeof result === 'string', 'should return a string error message');
+  assert.ok(result.includes('Budget'), 'message must mention Budget');
+  assert.ok(result.includes('accumulated'), 'message must mention accumulated');
+  assert.ok(result.includes('Raise IJFW_AUDIT_BUDGET_USD'), 'message must include raise instruction');
+});
+
+test('checkBudget message matches exact format spec', () => {
+  // With accumulated=$0.01 and budget=$0.01 and any estimate>0, should refuse.
+  const sessionStart = new Date(Date.now() - 10_000);
+  const priorReceipt = { timestamp: new Date().toISOString(), cost_usd: 0.01 };
+  const result = checkBudget({
+    target: 'a',
+    picks: [{ id: 'codex' }],
+    receipts: [priorReceipt],
+    sessionStart,
+    env: { IJFW_AUDIT_BUDGET_USD: '0.01' },
+  });
+  // Message format: "Budget $X.XX reached (accumulated $X.XX + next ~$X.XX). Raise IJFW_AUDIT_BUDGET_USD to continue."
+  assert.ok(/Budget \$[\d.]+/.test(result), 'message must contain Budget $X.XX');
+  assert.ok(/accumulated \$[\d.]+/.test(result), 'message must contain accumulated $X.XX');
+  assert.ok(/next ~\$[\d.]+/.test(result), 'message must contain next ~$X.XX');
+  assert.ok(result.endsWith('Raise IJFW_AUDIT_BUDGET_USD to continue.'), 'message must end with raise instruction');
+});
+
+test('checkBudget ignores receipts older than session start', () => {
+  // Receipt is 1 hour before session start — should not count toward accumulated.
+  const sessionStart = new Date(Date.now() - 1_000);
+  const oldReceipt = { timestamp: new Date(Date.now() - 7_200_000).toISOString(), cost_usd: 100.0 };
+  const result = checkBudget({
+    target: 'small',
+    picks: [{ id: 'codex' }],
+    receipts: [oldReceipt],
+    sessionStart,
+    env: { IJFW_AUDIT_BUDGET_USD: '0.01' },
+  });
+  // old receipt excluded → accumulated=0 → first call allowed
+  assert.equal(result, null);
+});
+
+test('checkBudget returns null when IJFW_AUDIT_BUDGET_USD is not set (default $2)', () => {
+  const sessionStart = new Date(Date.now() - 10_000);
+  // Even with a $1.50 receipt, $2 default still allows another call
+  const priorReceipt = { timestamp: new Date().toISOString(), cost_usd: 0.50 };
+  const result = checkBudget({
+    target: 'small target',
+    picks: [{ id: 'codex' }],
+    receipts: [priorReceipt],
+    sessionStart,
+    env: {},
+  });
+  assert.equal(result, null);
 });

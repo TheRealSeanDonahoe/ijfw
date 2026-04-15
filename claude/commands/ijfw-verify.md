@@ -4,7 +4,7 @@ description: "Run the IJFW workflow Verify phase (Deep D5). Full audit against t
 ---
 
 Run the full Verify phase of the IJFW workflow. This is the quality gate before
-shipping — a structured audit of everything built against the original brief.
+shipping -- a structured audit of everything built against the original brief.
 
 **What runs:**
 
@@ -25,5 +25,8 @@ the audit loop end-to-end.
 **Natural triggers:** "verify the work", "run the audit", "check everything",
 "quality gate", "are we ready to ship?"
 
-If gaps are found, Verify stays open until they're resolved — it does not
+If gaps are found, Verify stays open until they're resolved -- it does not
 auto-advance to Ship on a partial pass.
+
+**GATE:** Verify phase ends at the SHIP GATE -- original brief re-read, what was
+built matches what was asked. All items pass before advancing to Ship.

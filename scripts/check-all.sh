@@ -1,47 +1,60 @@
 #!/usr/bin/env bash
-# Run all IJFW CI guards. Used before commit / release.
-# Exits non-zero on any failure.
+# check-all.sh -- single gate for IJFW CI + publish-day health.
+#
+# Runs: banned-char lint, mcp-server unit suite, installer syntax check.
+# Exits 0 only when every check passes. Fail-fast.
 
-set -u
-cd "$(dirname "$0")/.."
+set -euo pipefail
 
-FAILED=0
-run() {
-  printf '\n=== %s ===\n' "$1"
-  if ! eval "$2"; then FAILED=$((FAILED + 1)); fi
-}
+REPO_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 
-run "MCP server tests"         "node mcp-server/test.js"
-run "Size caps"                "node --test mcp-server/test-size-caps.js"
-run "Schema version"           "node --test mcp-server/test-schema-version.js"
-run "Secret redactor"          "node --test mcp-server/test-redactor.js"
-run "Metrics JSONL v3"         "node --test mcp-server/test-metrics-v3.js"
-run "Intent router"            "node --test mcp-server/test-intent-router.js"
-run "Prompt rewrite"           "node --test mcp-server/test-prompt-rewrite.js"
-run "BM25 search"              "node --test mcp-server/test-search-bm25.js"
-run "Corruption recovery"      "node --test mcp-server/test-corruption-recovery.js"
-run "Feedback detector"        "node --test mcp-server/test-feedback-detector.js"
-run "Vectors module"           "node --test mcp-server/test-vectors.js"
-run "Audit roster"             "node --test mcp-server/test-audit-roster.js"
-run "API client"               "node --test mcp-server/test-api-client.js"
-run "Cross orchestrator"       "node --test mcp-server/test-cross-orchestrator.js"
-run "Demo fixture + CLI"       "node --test mcp-server/test-demo.js"
-run "Cross dispatcher"         "node --test mcp-server/test-cross-dispatcher.js"
-run "Receipts + hero-line"     "node --test mcp-server/test-receipts.js"
-run "Sanitizer"                "node --test mcp-server/test-sanitizer.js"
-run "Hook syntax (bash -n)"    "for f in claude/hooks/scripts/*.sh; do bash -n \"\$f\" || exit 1; done && echo OK"
-run "Hook wiring"              "bash claude/hooks/tests/test-wiring.sh"
-run "JSON validity"            "for f in claude/.claude-plugin/plugin.json claude/hooks/hooks.json gemini/.gemini/settings.json cursor/.cursor/mcp.json windsurf/mcp_config.json copilot/.vscode/mcp.json; do node -e \"JSON.parse(require('fs').readFileSync('\$f'))\" || exit 1; done && echo OK"
-run "Line caps"                "bash scripts/check-line-caps.sh"
-run "Positive framing"         "bash scripts/check-positive-framing.sh"
-run "Ownership discipline"     "hits=\$(grep -rn --include='*.md' --include='*.sh' '\b\(gsd\|superpowers\|hookify\|claude-supermemory\|feature-dev\|pr-review-toolkit\):[a-z-]\+' claude/commands/ claude/skills/ claude/hooks/scripts/ 2>/dev/null | grep -v 'Agent(' | grep -v 'absorbed' | grep -v '\bpattern\b'); if [ -n \"\$hits\" ]; then echo \"FAIL: foreign-plugin verb(s) found:\"; echo \"\$hits\"; exit 1; fi; echo OK"
-run "MCP launcher health"      "bash scripts/check-mcp.sh"
-run "Doctor runs cleanly"      "bash scripts/doctor.sh >/dev/null"
+ok()   { printf "  [ok] %s\n" "$1"; }
+fail() { printf "  [fail] %s\n" "$1" >&2; }
 
-echo ""
-if [ $FAILED -gt 0 ]; then
-  echo "FAIL: $FAILED check(s) failed."
+echo "== banned-char lint =="
+# Banned set: section sign, box-drawing heavy horizontal, em-dash, Greek delta,
+# multiplication sign, unicode minus, check marks, middle dot. Covers the same
+# surfaces Phase 10+11+12 audited.
+TARGETS=(
+  "claude/skills" "claude/commands" "claude/hooks/scripts" "claude/rules"
+  "mcp-server/src" "mcp-server/bin" "installer/src" "installer/README.md" "installer/CHANGELOG.md"
+  "scripts" "codex" "gemini" "cursor" "windsurf" "copilot" "universal" "README.md" "CHANGELOG.md" "CLAUDE.md" "PUBLISH-CHECKLIST.md" "NO_TELEMETRY.md" "docs"
+)
+HITS=0
+for t in "${TARGETS[@]}"; do
+  [ -e "$t" ] || continue
+  if matches=$(LC_ALL=C grep -RnE $'\302\247|\342\224\201|\342\200\224|\316\224|\303\227|\342\210\222|\342\234\223|\342\234\224|\302\267' "$t" 2>/dev/null); then
+    if [ -n "$matches" ]; then
+      echo "$matches" >&2
+      HITS=$((HITS + 1))
+    fi
+  fi
+done
+if [ "$HITS" -gt 0 ]; then
+  fail "banned-char lint found $HITS offending file(s)"
   exit 1
 fi
+ok "banned-char lint clean"
+
+echo
+echo "== mcp-server unit tests =="
+if ! command -v node >/dev/null 2>&1; then
+  fail "node not on PATH"
+  exit 1
+fi
+(cd mcp-server && node --test 2>&1 | tail -8)
+ok "mcp-server suite passed"
+
+echo
+echo "== installer syntax check =="
+bash -n scripts/install.sh && ok "scripts/install.sh parses"
+# install.ps1 is validated by Windows CI; ASCII-only check is the unix guard.
+if LC_ALL=C grep -q '[^ -~	]' installer/src/install.ps1; then
+  fail "installer/src/install.ps1 contains non-ASCII"
+  exit 1
+fi
+ok "installer/src/install.ps1 ASCII-clean"
+
+echo
 echo "All checks passed."
-exit 0

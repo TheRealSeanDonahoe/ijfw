@@ -1,9 +1,41 @@
 ---
 name: ijfw-status
-description: "Show IJFW state — mode, routing, memory, recent activity, codebase index, settings. Use when you want the at-a-glance banner you'd otherwise get at session start."
+description: "Show IJFW state -- mode, routing, memory, recent activity, codebase index, settings. Use when you want the at-a-glance banner you'd otherwise get at session start."
 ---
 
-Render the IJFW status block as a fenced code block. **Compute it deterministically** from filesystem state — never invent values.
+Render the IJFW status block as a fenced code block. **Compute it deterministically** from filesystem state -- never invent values.
+
+<!--
+CURRENT STEP STATE SCHEMA
+File: .ijfw/state/current-step.json
+
+{
+  "phase":            string,   // e.g. "Deep", "Quick", "3"
+  "wave":             string,   // e.g. "1", "QW", "4"
+  "step":             string,   // e.g. "1.1", "3", "4.2"
+  "label":            string,   // human description of what is happening right now
+  "started_at":       string,   // ISO 8601 timestamp, e.g. "2026-04-15T14:32:00Z"
+  "recommended_next": string    // specific next action with default, no open menus
+}
+
+Write contract: ijfw-workflow writes this file at every Step transition
+(phase start, audit gate entry, step completion). /ijfw-status reads it
+to report current position. Reader must not write; writer must not skip
+any transition even if the step is brief.
+-->
+
+## Current workflow step (read first)
+
+Read `.ijfw/state/current-step.json`. If present and valid, prepend to the status block:
+
+```
+Phase {phase} / Wave {wave} -- Step {step} -- {label}
+Recommended next: {recommended_next}. Say no/alt to override.
+```
+
+If the file is absent: prepend `No active workflow session. Start one with: /ijfw-workflow deep plan`
+
+---
 
 ## Data sources (read in this order, skip silently if missing)
 
@@ -22,10 +54,10 @@ Render the IJFW status block as a fenced code block. **Compute it deterministica
 10. `.ijfw/.startup-flags` → list any IJFW_NEEDS_* flags
 11. `.ijfw/receipts/cross-runs.jsonl` → parse each line; aggregate via `renderHeroLine` from `mcp-server/src/hero-line.js` (omit the whole "Cross-audit runs" section if the file doesn't exist or has zero lines)
 
-## Output format (positive framing — never "missing", "warning", "failed")
+## Output format (positive framing -- never "missing", "warning", "failed")
 
 ```
-━━━ IJFW Status ━━━━━━━━━━━━━━━━━━━━━━━━
+--- IJFW Status ---
 {mode} mode | {effort} effort{routing_str}
 
 Memory
@@ -51,9 +83,9 @@ Cross-audit runs
   (omit whole section if receipts file missing or empty)
 
 Pending
-  {one line per IJFW_NEEDS_* flag — e.g. "Memory consolidation due (run /consolidate)"}
+  {one line per IJFW_NEEDS_* flag -- e.g. "Memory consolidation due (run /consolidate)"}
   (omit section if no flags)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
 ```
 
 ## Rules
@@ -61,7 +93,7 @@ Pending
 - ALL counts are real reads from disk. No fabrication.
 - Sections with zero values are OMITTED entirely (don't show "0 entries").
 - Truncate decision lines at 100 chars with `…` if longer.
-- If `.ijfw/` doesn't exist: render `Fresh project — no IJFW state yet. Memory will start accumulating from your next "remember X" or stored decision.`
+- If `.ijfw/` doesn't exist: render `Fresh project -- no IJFW state yet. Memory will start accumulating from your next "remember X" or stored decision.`
 - Do NOT use jargon like "JSONL", "SQLite", file paths, or "MCP". User-facing only.
 - Do NOT include load times, check marks, or framework details. Just facts.
 - Use the fenced code block (triple backticks) so the output renders as visible chrome regardless of Claude Code's hook output handling.

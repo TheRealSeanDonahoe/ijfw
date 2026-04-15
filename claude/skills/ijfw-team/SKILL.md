@@ -7,7 +7,7 @@ model: sonnet
 
 # IJFW Team Generator
 
-Creates specialised agents for your specific project. Not generic templates —
+Creates specialised agents for your specific project. Not generic templates --
 agents tailored to your project's domain, stack, and needs.
 
 Generated agents are saved to `.ijfw/agents/` (portable across platforms).
@@ -25,45 +25,45 @@ Any IJFW-compatible agent reads from this directory.
 
 ---
 
-## Domain Templates (starting points — always customise to the project)
+## Domain Templates (starting points -- always customise to the project)
 
 ### Software Development
-- **product-lead** (sonnet) — requirements, user stories, acceptance criteria
-- **architect** (opus, high effort) — system design, security, data model, API design
-- **senior-dev** (sonnet) — complex implementation, patterns, code review
-- **dev** (sonnet) — feature implementation, tests, bug fixes
-- **qa** (sonnet) — test strategy, edge cases, regression testing
-- **security** (opus, high effort) — threat model, auth, data protection, pen testing
-- **devops** (haiku) — CI/CD, deployment, infrastructure, monitoring
-- **docs** (haiku) — documentation, API docs, READMEs, guides
+- **product-lead** (sonnet) -- requirements, user stories, acceptance criteria
+- **architect** (opus, high effort) -- system design, security, data model, API design
+- **senior-dev** (sonnet) -- complex implementation, patterns, code review
+- **dev** (sonnet) -- feature implementation, tests, bug fixes
+- **qa** (sonnet) -- test strategy, edge cases, regression testing
+- **security** (opus, high effort) -- threat model, auth, data protection, pen testing
+- **devops** (haiku) -- CI/CD, deployment, infrastructure, monitoring
+- **docs** (haiku) -- documentation, API docs, READMEs, guides
 
 ### Book / Long-Form Writing
-- **story-architect** (opus, high effort) — plot structure, pacing, arcs, tension
-- **world-builder** (sonnet) — settings, environments, atmosphere, sensory detail
-- **lore-master** (haiku) — continuity bible, rules, history, faction tracking
-- **prose-stylist** (sonnet) — voice, tone, sentence craft, genre conventions
-- **continuity-editor** (haiku) — cross-chapter consistency, timeline, character tracking
-- **beta-reader** (sonnet) — fresh-eyes review, plot holes, reader experience
+- **story-architect** (opus, high effort) -- plot structure, pacing, arcs, tension
+- **world-builder** (sonnet) -- settings, environments, atmosphere, sensory detail
+- **lore-master** (haiku) -- continuity bible, rules, history, faction tracking
+- **prose-stylist** (sonnet) -- voice, tone, sentence craft, genre conventions
+- **continuity-editor** (haiku) -- cross-chapter consistency, timeline, character tracking
+- **beta-reader** (sonnet) -- fresh-eyes review, plot holes, reader experience
 
 ### Content / Marketing
-- **strategist** (opus, high effort) — campaign strategy, audience, positioning
-- **copywriter** (sonnet) — headlines, body copy, CTAs, tone of voice
-- **seo-specialist** (haiku) — keywords, structure, meta, search intent
-- **editor** (sonnet) — clarity, grammar, consistency, brand voice
-- **social-media** (haiku) — platform adaptation, hooks, engagement
+- **strategist** (opus, high effort) -- campaign strategy, audience, positioning
+- **copywriter** (sonnet) -- headlines, body copy, CTAs, tone of voice
+- **seo-specialist** (haiku) -- keywords, structure, meta, search intent
+- **editor** (sonnet) -- clarity, grammar, consistency, brand voice
+- **social-media** (haiku) -- platform adaptation, hooks, engagement
 
 ### Business / Strategy
-- **ceo** (opus, high effort) — vision, strategy, decision-making, priorities
-- **cto** (opus, high effort) — technical strategy, architecture, build-vs-buy
-- **analyst** (sonnet) — research, data analysis, market assessment
-- **operations** (sonnet) — process design, workflows, efficiency
-- **finance** (haiku) — budgets, projections, cost analysis
+- **ceo** (opus, high effort) -- vision, strategy, decision-making, priorities
+- **cto** (opus, high effort) -- technical strategy, architecture, build-vs-buy
+- **analyst** (sonnet) -- research, data analysis, market assessment
+- **operations** (sonnet) -- process design, workflows, efficiency
+- **finance** (haiku) -- budgets, projections, cost analysis
 
 ### Design / Creative
-- **creative-director** (opus, high effort) — vision, aesthetic direction, brand
-- **ux-designer** (sonnet) — user flows, wireframes, usability, accessibility
-- **ui-designer** (sonnet) — visual design, components, responsive layout
-- **researcher** (haiku) — user research, competitive analysis, testing
+- **creative-director** (opus, high effort) -- vision, aesthetic direction, brand
+- **ux-designer** (sonnet) -- user flows, wireframes, usability, accessibility
+- **ui-designer** (sonnet) -- visual design, components, responsive layout
+- **researcher** (haiku) -- user research, competitive analysis, testing
 
 ### Any Other Domain
 
@@ -95,7 +95,7 @@ Each generated agent follows this structure:
 name: <role-name>
 model: <haiku|sonnet|opus>
 effort: <low|medium|high>
-description: <when to use this agent — 1-2 lines>
+description: <when to use this agent -- 1-2 lines>
 allowed-tools: <relevant tools for this role>
 ---
 
@@ -117,11 +117,11 @@ After generating, present the team as:
 ```
 Project team ready:
 
-  architect (opus)  — system design, security model, API surface
-  senior-dev (sonnet) — auth flow, payment integration, complex features  
-  dev (sonnet) — CRUD endpoints, tests, UI components
-  qa (sonnet) — test strategy, edge cases, regression suite
-  security (opus) — threat model, auth audit, data protection
+  architect (opus)  -- system design, security model, API surface
+  senior-dev (sonnet) -- auth flow, payment integration, complex features  
+  dev (sonnet) -- CRUD endpoints, tests, UI components
+  qa (sonnet) -- test strategy, edge cases, regression suite
+  security (opus) -- threat model, auth audit, data protection
 
 Agents saved to .ijfw/agents/
 Adjust with: "swap qa for a dedicated performance engineer"
@@ -157,7 +157,7 @@ Modifications update `.ijfw/agents/` immediately.
 ## Portability
 
 Agents in `.ijfw/agents/` work with any platform that reads agent markdown:
-- Claude Code reads from `.claude/agents/` — symlink or copy
+- Claude Code reads from `.claude/agents/` -- symlink or copy
 - Codex reads agent definitions from its skills system
 - Other platforms: agents are referenced in the workflow skill context
 

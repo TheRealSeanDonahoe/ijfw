@@ -19,7 +19,7 @@ const MARKER = '…[truncated]';
 function cap(s, limit) {
   if (typeof s !== 'string' || !s) return '';
   if (s.length <= limit) return s;
-  // s.length is in UTF-16 code units — codepoint count is <= that. If the
+  // s.length is in UTF-16 code units -- codepoint count is <= that. If the
   // codepoint count is under the limit, return unchanged (no slice needed).
   const codepoints = Array.from(s);
   if (codepoints.length <= limit) return s;

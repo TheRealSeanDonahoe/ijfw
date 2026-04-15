@@ -1,4 +1,4 @@
-// hero-line.js — one-line summary renderer for cross-run receipts.
+// hero-line.js -- one-line summary renderer for cross-run receipts.
 // Codex U1 caveat: delta is NEVER fabricated. If real data is insufficient,
 // the delta suffix is omitted entirely.
 
@@ -29,17 +29,21 @@ function countFindings(f) {
   return { total: consensus + contested + unique, consensus };
 }
 
+// Anthropic cache-read savings rate: full input $3/M, cache-read $0.30/M -> $2.70/M saved.
+const CACHE_SAVINGS_PER_TOKEN = 2.70 / 1_000_000;
+
 // renderHeroLine(receipts, sessions?)
-//   receipts — array of cross-runs.jsonl records
-//   sessions — array of sessions.jsonl v3 records (optional, default [])
+//   receipts -- array of cross-runs.jsonl records
+//   sessions -- array of sessions.jsonl v3 records (optional, default [])
 //
 // Returns a one-line string. Delta is only appended when:
 //   - receipts have real input_tokens (sum > 0)
-//   - sessions has ≥3 entries with non-null input_tokens (Claude baseline)
+//   - sessions has >=3 entries with non-null input_tokens (Claude baseline)
 //   - baseline sum > 0
+// Cache savings suffix appended when last receipt has cache_read_input_tokens > 0.
 export function renderHeroLine(receipts, sessions = []) {
   if (!receipts || receipts.length === 0) {
-    return 'No cross-audit runs yet';
+    return 'No cross-audit runs yet -- fire the Trident at any file with `ijfw cross audit <file>`. First run in ~20s.';
   }
 
   // Aggregate auditor IDs (unique across all receipts).
@@ -49,6 +53,7 @@ export function renderHeroLine(receipts, sessions = []) {
   let totalConsensus = 0;
   let receiptsInputTokens = 0;
   let hasReceiptsTokens = true;
+  let totalCacheReadTokens = 0;
 
   for (const r of receipts) {
     if (Array.isArray(r.auditors)) {
@@ -65,13 +70,25 @@ export function renderHeroLine(receipts, sessions = []) {
     } else {
       receiptsInputTokens += r.input_tokens;
     }
+    const crt = r.cache_stats?.cache_read_input_tokens;
+    if (typeof crt === 'number' && crt > 0) {
+      totalCacheReadTokens += crt;
+    }
   }
 
-  const baseline = `${auditorIds.size} AIs · ${fmtDuration(totalMs)} · ${totalFindings} findings, ${totalConsensus} consensus-critical`;
+  // Value statement (Sutherland lens): what was delivered, not what was done.
+  const baseline = `${auditorIds.size} AIs surfaced ${totalFindings} findings (${totalConsensus} consensus-critical) in ${fmtDuration(totalMs)}`;
+
+  // Cache savings suffix (10D.4): append only when cache reads produced a
+  // visible saving (>= $0.01). A sub-cent figure reads as anti-value.
+  const rawSaved = totalCacheReadTokens * CACHE_SAVINGS_PER_TOKEN;
+  const cacheSuffix = rawSaved >= 0.01
+    ? ` (prompt cache hit -- ~$${rawSaved.toFixed(2)} saved)`
+    : '';
 
   // Codex U1: only compute delta when all guards pass.
   if (!hasReceiptsTokens || receiptsInputTokens <= 0) {
-    return baseline;
+    return baseline + cacheSuffix;
   }
 
   // Filter sessions: must be Claude-only entries with real input_tokens.
@@ -81,18 +98,18 @@ export function renderHeroLine(receipts, sessions = []) {
 
   const MIN_SAMPLES = 3;
   if (claudeSessions.length < MIN_SAMPLES) {
-    return baseline;
+    return baseline + cacheSuffix;
   }
 
   const sessionBaseline = claudeSessions.reduce((sum, s) => sum + s.input_tokens, 0);
   if (sessionBaseline <= 0) {
-    return baseline;
+    return baseline + cacheSuffix;
   }
 
   const delta = 1 - (receiptsInputTokens / sessionBaseline);
   const pct = Math.round(Math.abs(delta) * 100);
-  const sign = delta >= 0 ? '\u2212' : '+';
+  const sign = delta >= 0 ? '-' : '+';
   const n = claudeSessions.length;
 
-  return `${baseline} · measured \u0394: ${sign}${pct}% tokens vs solo Claude ${n}\u00D7`;
+  return `${baseline} -- measured delta: ${sign}${pct}% tokens vs solo Claude ${n}x${cacheSuffix}`;
 }

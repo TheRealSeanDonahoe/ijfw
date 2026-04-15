@@ -11,7 +11,7 @@ Scan the codebase and generate an optimised project context file.
 ## Process
 
 1. Read: package.json, tsconfig.json, Cargo.toml, pyproject.toml, go.mod, Dockerfile,
-   docker-compose.yml, .env.example, Makefile — whatever exists.
+   docker-compose.yml, .env.example, Makefile -- whatever exists.
 2. Scan: directory structure (2 levels deep), test framework, linter config, CI config.
 3. Detect: language, framework, database, ORM, auth approach, deployment target.
 4. Identify: key directories, entry points, API route patterns, shared utilities.
@@ -24,7 +24,7 @@ Write a CLAUDE.md (or platform equivalent) with:
 # Project Context
 
 Stack: <framework> / <language> / <database>
-Architecture: <pattern — monolith, microservices, serverless, etc.>
+Architecture: <pattern -- monolith, microservices, serverless, etc.>
 Entry: <main entry point(s)>
 Tests: <framework + command to run>
 Lint: <tool + command>
@@ -42,4 +42,4 @@ Lint: <tool + command>
 Rules:
 - Max 50 lines. This loads every session.
 - No boilerplate explanations. Just facts.
-- If uncertain about a pattern, omit it — don't guess.
+- If uncertain about a pattern, omit it -- don't guess.

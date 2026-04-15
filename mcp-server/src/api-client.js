@@ -1,4 +1,4 @@
-// api-client.js — API-key fallback for cross-audit/research/critique.
+// api-client.js -- API-key fallback for cross-audit/research/critique.
 //
 // Uses Node 19+ native fetch (Undici). Zero external deps.
 // Each provider gets its own request builder; the caller treats the
@@ -52,7 +52,18 @@ function buildGemini(system, user, model, key, timeoutMs, endpoint) {
   };
 }
 
+// Sonnet 4.5 prompt-caching threshold: 1024 tokens (rough: chars / 4).
+const CACHE_TOKEN_THRESHOLD = 1024;
+
 function buildAnthropic(system, user, model, key, timeoutMs) {
+  const promptChars = system.length + user.length;
+  const estimatedTokens = Math.floor(promptChars / 4);
+  const cacheEligible = estimatedTokens >= CACHE_TOKEN_THRESHOLD;
+
+  const systemBlock = cacheEligible
+    ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
+    : system;
+
   return {
     url: 'https://api.anthropic.com/v1/messages',
     options: {
@@ -61,20 +72,22 @@ function buildAnthropic(system, user, model, key, timeoutMs) {
         'Content-Type': 'application/json',
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
         model,
         max_tokens: 4096,
-        system,
+        system: systemBlock,
         messages: [{ role: 'user', content: user }],
       }),
       signal: AbortSignal.timeout(timeoutMs),
     },
+    _cacheEligible: cacheEligible,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Text extractor — normalises the three provider response shapes
+// Text extractor -- normalises the three provider response shapes
 // ---------------------------------------------------------------------------
 
 function extractText(provider, json) {
@@ -89,6 +102,21 @@ function extractText(provider, json) {
     return block?.text ?? '';
   }
   return '';
+}
+
+function extractCacheStats(json, cacheEligible) {
+  if (!cacheEligible) {
+    return {
+      cache_eligible: false,
+      cache_eligible_reason: 'prompt < 1024 tokens',
+    };
+  }
+  const usage = json?.usage ?? {};
+  return {
+    cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+    cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+    cache_eligible: true,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +160,10 @@ export async function runViaApi(pick, mode, angle, target, env = process.env, ti
     }
     const json = await res.json();
     const raw = extractText(fb.provider, json);
+    if (fb.provider === 'anthropic') {
+      const cache_stats = extractCacheStats(json, req._cacheEligible);
+      return { status: 'ok', raw, model: fb.model, cache_stats };
+    }
     return { status: 'ok', raw, model: fb.model };
   } catch (err) {
     return { status: 'failed', error: err.message ?? String(err), model: fb.model };

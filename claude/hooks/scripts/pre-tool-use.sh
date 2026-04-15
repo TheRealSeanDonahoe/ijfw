@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# E4 — universal disable switch.
+# E4 -- universal disable switch.
 [ "${IJFW_DISABLE:-}" = "1" ] && exit 0
-# IJFW PreToolUse — scans the about-to-run command for destructive patterns
+# IJFW PreToolUse -- scans the about-to-run command for destructive patterns
 # BEFORE execution and injects a verification reminder. The agent sees it
 # next turn and can abort or refine.
 #
@@ -10,7 +10,7 @@
 # `tool_response` yet). Output trimming moved to post-tool-use.sh.
 #
 # Positive framing: phrases actions as "confirm X" not "Warning: Y".
-# Never blocks execution — only augments context.
+# Never blocks execution -- only augments context.
 
 IJFW_DIR=".ijfw"
 INPUT=$(head -c 1048576)

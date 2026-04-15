@@ -1,3 +1,4 @@
+<!-- pre-P10-template: historical, preserved as-is -->
 # Phase 7 Dogfood — /cross-critique on finished P7
 
 **Stamp:** 2026-04-14T21:48

@@ -1,5 +1,5 @@
 ---
-description: "Show why a memory recall returned what it did — BM25 vs vector vs hybrid provenance."
+description: "Show why a memory recall returned what it did -- BM25 vs vector vs hybrid provenance."
 allowed-tools: ["Read", "Bash"]
 ---
 

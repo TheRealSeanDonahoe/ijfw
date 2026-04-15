@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# IJFW doctor — user-facing health check. Wraps existing check-*.sh dev
+# IJFW doctor -- user-facing health check. Wraps existing check-*.sh dev
 # scripts in human-friendly, positive-framed output.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-ok()   { printf "  ✓ %s\n" "$1"; }
-info() { printf "  · %s\n" "$1"; }
+ok()   { printf "  [ok] %s\n" "$1"; }
+info() { printf "  -- %s\n" "$1"; }
 
 echo "IJFW health check"
 echo ""
@@ -35,7 +35,7 @@ echo "[MCP server]"
 if bash scripts/check-mcp.sh >/dev/null 2>&1; then
   ok "MCP server responds cleanly"
 else
-  info "MCP launcher present — will initialize on first Claude session"
+  info "MCP launcher present -- will initialize on first Claude session"
 fi
 echo ""
 
@@ -43,7 +43,7 @@ echo "[Hook wiring]"
 if bash claude/hooks/tests/test-wiring.sh >/dev/null 2>&1; then
   ok "all 6 hook events correctly wired"
 else
-  info "hook wiring needs attention — run: bash claude/hooks/tests/test-wiring.sh"
+  info "hook wiring needs attention -- run: bash claude/hooks/tests/test-wiring.sh"
 fi
 echo ""
 
@@ -51,7 +51,7 @@ echo "[Line caps]"
 if bash scripts/check-line-caps.sh >/dev/null 2>&1; then
   ok "skill and rule files under their caps"
 else
-  info "line caps need attention — run: bash scripts/check-line-caps.sh"
+  info "line caps need attention -- run: bash scripts/check-line-caps.sh"
 fi
 echo ""
 
@@ -59,7 +59,7 @@ echo "[Positive framing]"
 if bash scripts/check-positive-framing.sh >/dev/null 2>&1; then
   ok "user-facing surfaces clean"
 else
-  info "user-facing surfaces want review — run: bash scripts/check-positive-framing.sh"
+  info "user-facing surfaces want review -- run: bash scripts/check-positive-framing.sh"
 fi
 echo ""
 
