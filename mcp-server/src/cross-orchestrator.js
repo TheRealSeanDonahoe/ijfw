@@ -17,8 +17,8 @@ import { spawn } from 'node:child_process';
 import * as readline from 'node:readline';
 import { pickAuditors, isReachable } from './audit-roster.js';
 import { loadSwarmConfig } from './swarm-config.js';
-import { buildRequest, parseResponse, mergeResponses } from './cross-dispatcher.js';
-import { writeReceipt } from './receipts.js';
+import { buildRequest, parseResponse, mergeResponses, checkBudget } from './cross-dispatcher.js';
+import { writeReceipt, readReceipts } from './receipts.js';
 import { runViaApi } from './api-client.js';
 
 // ---------------------------------------------------------------------------
@@ -350,6 +350,15 @@ export async function runCrossOp({
   if (picks.length === 0) {
     process.stderr.write('No external auditors ready — install codex or gemini for full Trident.\n');
     return { merged: null, picks: [], missing, note };
+  }
+
+  // 2b. Budget guard — post-flight accumulation check (2nd+ calls in session)
+  const sessionStart = new Date(Date.now() - process.uptime() * 1000);
+  const priorReceipts = readReceipts(projectDir);
+  const budgetMsg = checkBudget({ target, picks, receipts: priorReceipts, sessionStart, env });
+  if (budgetMsg) {
+    process.stderr.write(budgetMsg + '\n');
+    process.exit(2);
   }
 
   // 3. UX gate — emit status line or prompt before firing

@@ -368,3 +368,62 @@ function mergeCritique(responses) {
     return ra - rb; // DESC severity (lower index = higher sev)
   });
 }
+
+// ---------------------------------------------------------------------------
+// Budget guard (Step 10B.6)
+// ---------------------------------------------------------------------------
+
+// Rough per-token list prices (USD) for each provider family.
+// Used only for pre-flight estimation — not for billing.
+// Prices are input-side costs at standard rates as of 2026.
+const PROVIDER_PRICE_PER_TOKEN = {
+  codex:     0.000_015,  // OpenAI o4-mini input ~$15/M
+  opencode:  0.000_015,
+  aider:     0.000_015,
+  gemini:    0.000_000_5, // Gemini 1.5 Flash input ~$0.50/M
+  copilot:   0.000_010,  // GPT-4o input ~$10/M (conservative)
+  claude:    0.000_003,  // Sonnet input ~$3/M
+  anthropic: 0.000_003,
+};
+const DEFAULT_PRICE_PER_TOKEN = 0.000_010; // fallback for unknown providers
+
+// estimateCost(target, picks) — rough cost in USD for one runCrossOp call.
+// char-count / 4 approximates token count; multiply by provider price.
+export function estimateCost(target, picks) {
+  const charCount = typeof target === 'string' ? target.length : 0;
+  const tokens = charCount / 4;
+  let total = 0;
+  for (const pick of picks) {
+    const price = PROVIDER_PRICE_PER_TOKEN[pick.id] ?? DEFAULT_PRICE_PER_TOKEN;
+    total += tokens * price;
+  }
+  return total;
+}
+
+// checkBudget({ target, picks, receipts, sessionStart, env }) — returns null
+// if within budget, or a string error message to emit to stderr before exit 2.
+//
+// Post-flight accumulation only: first call is always allowed; the guard
+// refuses when accumulated prior receipts + estimated next call exceed budget.
+// (first-call surprise is unavoidable — budget enforces on 2nd+ calls.)
+export function checkBudget({ target, picks, receipts, sessionStart, env = {} }) {
+  const raw = env.IJFW_AUDIT_BUDGET_USD;
+  const budget = raw !== undefined ? parseFloat(raw) : 2.00;
+  if (!isFinite(budget) || budget <= 0) return null; // invalid → no guard
+
+  // Sum cost_usd from receipts in current session window.
+  const accumulated = receipts
+    .filter(r => r && r.timestamp && new Date(r.timestamp) >= sessionStart)
+    .reduce((sum, r) => sum + (typeof r.cost_usd === 'number' ? r.cost_usd : 0), 0);
+
+  const estimated = estimateCost(target, picks);
+
+  if (accumulated + estimated > budget) {
+    const fmt = (n) => `$${n.toFixed(2)}`;
+    return (
+      `Budget ${fmt(budget)} reached (accumulated ${fmt(accumulated)} + next ~${fmt(estimated)}). ` +
+      `Raise IJFW_AUDIT_BUDGET_USD to continue.`
+    );
+  }
+  return null;
+}
