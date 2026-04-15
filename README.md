@@ -1,169 +1,133 @@
-# IJFW — "It Just Fucking Works"
-### AI Efficiency Framework by Sean Donahoe
+# IJFW — It Just Fucking Works.
 
-One install. Zero config. Makes your AI coding agent smarter, more efficient, and gives it persistent memory across sessions and platforms.
-
-**Measured impact** ([full report](core/benchmarks/REPORT-001.md)):
-- **−41% cost** per session (Arm C vs unconstrained baseline)
-- **−20% output tokens** (terse output rules on by default)
-- **−51% cache-creation tokens** (context discipline)
-
-Measured on `claude-sonnet-4-5` fixing a single-file bug. n=1, directional — full suite in Phase 3.5.
-
-**What it does:**
-- **Smarter output** — no filler, no preamble, no narration. Lead with the answer.
-- **Smart routing** — right model for the right task. Haiku for reads, Sonnet for code, Opus for architecture.
-- **Persistent memory** — remembers decisions, patterns, and context across sessions and platforms.
-- **Auto-configuration** — detects your environment, fixes bad defaults, optimises project context.
-- **Context discipline** — targeted reads, input stripping, smart compaction, session handoff.
-- **Cross-platform** — one MCP memory server shared across Claude Code, Codex, Gemini CLI, Cursor, Windsurf, Copilot.
+Multi-AI orchestration layer for 7 platforms. One install, zero config, persistent memory.
 
 ---
 
-## Install
+## 30-Second Hook
 
 ```bash
-git clone https://github.com/seandonahoe/ijfw.git ~/.ijfw
-cd ~/.ijfw
-bash scripts/install.sh                  # all platforms
-# or:
-bash scripts/install.sh codex cursor     # only the platforms you use
+npm install -g @ijfw/install && ijfw demo
 ```
 
-The installer resolves the absolute path to the bundled MCP launcher and writes platform-native configs with that path baked in. No env vars, no manual JSON editing.
+Installs IJFW across every AI coding agent you have running, fires a live demo, and prints a health report — all without touching a config file.
 
-Verify everything's healthy:
+---
+
+## Demo Output
+
+```
+IJFW v1.0.0 — It Just Fucking Works.
+
+Platforms detected:   Claude Code, Codex, Gemini CLI, Cursor
+Memory:               247 entries across 4 projects
+MCP server:           running (stdio)
+Mode:                 smart (auto-routing on)
+
+Session start: 3 patterns loaded, last handoff restored.
+Routing: Haiku -> reads | Sonnet -> code | Opus -> architecture
+
+All checks passed.
+```
+
+---
+
+## What It Is
+
+IJFW is a multi-AI orchestration layer that makes every AI coding agent smarter without you lifting a finger. It ships platform-native packages for Claude Code, Codex, Gemini CLI, Cursor, Windsurf, Copilot, and a universal paste-anywhere rules file. One shared MCP memory server keeps decisions, patterns, and handoffs in sync across all of them. Auto-routing picks the right model for the right task. Context discipline keeps sessions lean and handoffs clean.
+
+---
+
+## Installation
+
+### npm (recommended)
 
 ```bash
-bash scripts/check-all.sh
-# Should show: All checks passed.
+npm install -g @ijfw/install && ijfw install
 ```
 
 ### Claude Code
 
-Inside Claude Code:
-
-```
-/plugin marketplace add ~/.ijfw/claude
+```bash
 /plugin install ijfw
 ```
 
-### Any other agent
+### Codex
 
-Paste the contents of `universal/ijfw-rules.md` into your agent's system prompt or rules file.
-
----
-
-## Usage
-
-IJFW works automatically after install. No configuration needed.
-
-### Modes
-
-| Mode | What it does |
-|------|-------------|
-| **smart** (default) | Auto-routes models, effort, verbosity by task type |
-| **fast** | Maximum efficiency — cheapest models, ultra-terse |
-| **deep** | Maximum quality — best models, self-verification, plan-then-execute |
-| **manual** | All automation off — you control everything |
-
-Switch: `/mode fast` or just say "go fast" / "think deeper"
-
-### Commands
-
-| Command | What it does |
-|---------|-------------|
-| `/mode` | Switch between smart/fast/deep/manual |
-| `/compress <file>` | Compress a file into terse form (saves 40-50% tokens) |
-| `/ijfw-status` | Show current mode, routing, memory, context health |
-| `/handoff` | Create or resume a session handoff |
-| `/consolidate` | Run memory dream cycle (promote, prune, reconcile) |
-| `/cross-audit` | Generate audit doc for Multi-AI Quality Trident review |
-
-### Memory
-
-IJFW remembers automatically. Decisions, patterns, handoffs — all captured and injected without you doing anything. Memory persists across sessions and works across platforms via the MCP server.
-
----
-
-## How It Works
-
-### Startup
-
-On session start, IJFW silently:
-1. Detects your environment (OpenRouter, Ollama, local models)
-2. Loads project memory and last session handoff
-3. Checks and optimises settings (effort level, project context)
-4. Shows a clean, positive startup summary
-
-### Per Turn
-
-The always-on core skill (~51 lines, ~700 tokens) ensures:
-- Terse, efficient output
-- Smart agent delegation
-- Context discipline
-- Quality gates on destructive actions
-
-### Session End
-
-Hooks automatically:
-- Compress the session into a journal entry
-- Generate a structured handoff for next session
-- Flag when memory consolidation is due
-
-### Team Memory (optional)
-
-For shared, PR-reviewed conventions across a team, drop markdown into
-`.ijfw/team/` and commit it:
-
-```
-.ijfw/team/decisions.md   # team-wide architectural calls
-.ijfw/team/patterns.md    # coding standards everyone follows
-.ijfw/team/stack.md       # approved tech choices
-.ijfw/team/members.md     # ownership map
+```bash
+ijfw install codex
 ```
 
-Team memory ranks **above** personal memory in search and at the top of every
-session's prelude, so shared decisions never get lost behind individual notes.
-Empty by default — create the folder when you're ready.
+### Gemini CLI
+
+```bash
+ijfw install gemini
+```
+
+### Cursor
+
+```bash
+ijfw install cursor
+```
+
+### Windsurf
+
+```bash
+ijfw install windsurf
+```
+
+### Copilot
+
+```bash
+ijfw install copilot
+```
+
+### Universal (any agent)
+
+Paste `universal/ijfw-rules.md` into your agent's system prompt or rules file. No installer needed.
 
 ---
 
 ## Architecture
 
 ```
-ijfw/
-├── claude/          Claude Code plugin (full featured)
-├── codex/           Codex CLI config + instructions
-├── gemini/          Gemini CLI config + GEMINI.md
-├── cursor/          Cursor MCP + .cursorrules + .cursor/rules
-├── windsurf/        Windsurf MCP + rules
-├── copilot/         Copilot MCP + instructions
-├── universal/       Paste-anywhere rules
-├── mcp-server/      Cross-platform MCP memory server (Node.js, zero deps)
-└── docs/            Documentation
+Claude Code ----+
+Codex ----------+
+Gemini CLI -----+
+Cursor ---------+---> IJFW Core (ijfw-core/SKILL.md, ~51 lines)
+Windsurf -------+         |
+Copilot --------+         +---> MCP Memory Server (stdio, zero deps)
+Universal ------+                    |
+                               +-----+------+
+                               |            |
+                           Hot tier      Warm tier
+                         (markdown)      (SQLite)
+                        .ijfw/memory/  .ijfw/db/
 ```
+
+**Core layer (~51 lines, ~700 tokens):** terse output, smart model routing, context discipline, quality gates on destructive actions.
+
+**MCP server (5 tools):** `recall`, `store`, `search`, `status`, `prelude` — shared across all platforms via stdio. No sockets. No cloud.
+
+**Memory tiers:**
+- Hot: plain markdown, instant reads, written on every session end
+- Warm: SQLite, full-text search across sessions and projects
+- Team: `.ijfw/team/` — PR-reviewed conventions shared by the whole team
+
+---
+
+## Why IJFW
+
+- **One install, all agents.** Platform-native configs for every major AI coding tool from a single source of truth. No drift, no duplication.
+- **Memory that actually works.** Decisions, patterns, and handoffs persist across sessions and travel between platforms through a shared MCP server — running locally, no account required.
+- **Smarter, not cheaper.** Auto-routing sends reads to Haiku, code to Sonnet, architecture to Opus. Terse-output rules cut token waste. The result is faster answers and lower costs without you managing any of it.
 
 ---
 
 ## Privacy
 
-**IJFW doesn't phone home.** No telemetry, no analytics, no cloud account. Every memory, metric, and auto-extracted lesson lives on your machine. The MCP server speaks stdio only (no sockets). Hooks are deterministic bash. See [NO_TELEMETRY.md](NO_TELEMETRY.md) for the full accounting — what gets stored, where, and the handful of operations that touch the network (installer clones, optional vector-model download, optional LLM auto-memorize), plus how to turn each off.
+IJFW does not phone home. No telemetry, no analytics, no cloud account. Every memory, metric, and auto-extracted lesson lives on your machine. The MCP server speaks stdio only. Hooks are deterministic bash scripts. See [NO_TELEMETRY.md](NO_TELEMETRY.md) for the full accounting.
 
 ---
 
-## Credits
-
-IJFW builds on the work of:
-- **caveman** — proved terse output works
-- **claude-mem** — pioneered persistent memory
-- **claude-router** — proved model routing saves costs
-- **Memorix** — cross-agent memory concept
-- **MemPalace** — structured memory metaphor
-- **Superpowers** & **GSD** — workflow patterns
-
-IJFW is the first framework to coordinate all layers into a single, zero-config system.
-
----
-
-**By Sean Donahoe** | "It Just Fucking Works"
+**By Sean Donahoe** | [github.com/seandonahoe/ijfw](https://github.com/seandonahoe/ijfw)
