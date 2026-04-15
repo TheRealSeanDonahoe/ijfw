@@ -184,6 +184,34 @@ Step 3.1 -- done (plan audit passed, plan.md approved).
 
 Phase Deep / Wave 4 -- starting now.
 
+### DISPATCH PLANNING (Wave 4 entry)
+
+Before any sub-wave dispatch, call the dispatch-planner to decide shared-branch
+vs worktree-isolated parallelism per sub-wave:
+
+```
+node -e "
+import('./mcp-server/src/dispatch-planner.js').then(async (m) => {
+  const { readFile } = await import('node:fs/promises');
+  const md = await readFile(process.argv[1], 'utf8');
+  const manifest = m.buildManifest(m.parsePlan(md), { override: process.argv[2] || null });
+  console.log(m.manifestSummary(manifest));
+  console.log(JSON.stringify(manifest, null, 2));
+})" .planning/phaseN/PLAN.md
+```
+
+Emit the one-line summary to the user before dispatching:
+`Phase Deep / Wave 4 -- dispatch plan: <manifestSummary>.`
+
+Override flags (from user or `/workflow` args):
+- `--all-worktree` -> every sub-wave runs in its own worktree.
+- `--all-shared`   -> every sub-wave commits to the parent branch.
+- default: planner decides per `Files:` declaration in the plan.
+
+Sub-waves without a `Files:` declaration fall back to worktree (safe default).
+Plan authors declare files like:
+`  Files: mcp-server/src/foo.js, claude/skills/bar/SKILL.md`
+
 Work through plan. Dispatch to project team agents.
 If team was set up in Discovery, match tasks to specialist agents:
 - Task about auth flow → security agent + architect
@@ -212,6 +240,27 @@ Phase Deep / Wave 4 -- Step 4.M -- task audit in progress.
 - [ ] No new unstated assumptions
 
 Step 4.M -- done (6-point task audit cleared, task verified, progress.md updated).
+
+### POST-WAVE MERGE (worktree sub-waves only)
+
+After every sub-wave in a wave has reported done, merge worktree branches back
+into the parent branch in the order emitted by `mergeOrder(manifest)`:
+
+```
+for sub in $(mergeOrder); do
+  git merge --no-ff "$sub" || { echo "CONFLICT on $sub"; break; }
+done
+```
+
+Shared sub-waves are skipped -- they already committed to the parent.
+
+On conflict: do NOT auto-resolve. Halt the wave, emit via the workflow
+audit-gate narration:
+`Phase Deep / Wave 4 -- Step 4.M -- merge conflict on <sub-wave> (files: <paths>). Escalating for human resolution.`
+Then surface the conflicted file list, wait for user direction, and only
+resume `git merge --continue` after explicit approval.
+
+Clean up worktrees only after a successful merge: `git worktree remove <path>`.
 
 ### PHASE AUDIT (at milestones)
 
