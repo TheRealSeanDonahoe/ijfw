@@ -25,7 +25,7 @@ Any IJFW-compatible agent reads from this directory.
 
 ---
 
-## Domain Templates (starting points -- always customise to the project)
+## Domain Templates (starting points -- always customize to the project)
 
 ### Software Development
 - **product-lead** (sonnet) -- requirements, user stories, acceptance criteria
@@ -82,7 +82,7 @@ Examples of non-standard teams:
 - **Event planning**: event-director, logistics-coordinator, vendor-manager, creative-designer
 - **Education**: curriculum-designer, subject-expert, assessment-writer, accessibility-reviewer
 
-The templates above are starting points. Every team is customised to the specific project.
+The templates above are starting points. Every team is customized to the specific project.
 
 ---
 

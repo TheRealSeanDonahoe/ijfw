@@ -2,7 +2,7 @@
 //
 // Knows what specialists belong on a project's swarm. On first use the
 // orchestrator calls loadSwarmConfig(projectDir); the result is written to
-// <projectDir>/.ijfw/swarm.json so the user can customise later.
+// <projectDir>/.ijfw/swarm.json so the user can customize later.
 //
 // Never writes at require/install time. ESM. Zero external deps.
 

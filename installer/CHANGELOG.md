@@ -20,4 +20,4 @@ coding agents (Claude Code, Codex, Gemini CLI, Cursor, Windsurf, Copilot).
   summary, full-log redirection to `~/.ijfw/install.log`.
 - Zero runtime dependencies; 4 KB tarball.
 
-Full project changelog at <https://github.com/TradeCanyon/ijfw/blob/main/CHANGELOG.md>.
+Full project changelog at <https://github.com/SeanDonahoe/ijfw/blob/main/CHANGELOG.md>.

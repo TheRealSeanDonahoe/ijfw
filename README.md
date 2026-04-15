@@ -15,9 +15,11 @@ Three seconds. Six AI coding agents configured. Nothing to log into.
 **Windows** (PowerShell 5.1 or 7+):
 
 ```powershell
-iwr https://raw.githubusercontent.com/TradeCanyon/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
+iwr https://raw.githubusercontent.com/SeanDonahoe/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
 .\install.ps1
 ```
+
+**Preflight (all platforms):** Node 18 or newer, Git, and a bash shell (Git for Windows ships one). Windows users do not need WSL. If execution policy blocks the script, run PowerShell as `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
 
 What you see:
 
@@ -53,13 +55,27 @@ Every existing config gets a `.bak.<timestamp>` backup. Your existing MCP server
 
 ---
 
+## What makes it feel smart
+
+Three invariants run through every surface.
+
+**On-demand skill loading.** IJFW ships roughly fifteen skills (workflow, commit, handoff, review, critique, compress, team setup, debug, memory audit, cross-audit, summarize, and more). Only the core skill (under 100 lines) is always loaded. Everything else hot-loads on trigger and unloads when done. Your context window stays lean; your token bill stays low.
+
+**Natural-language invocation, context-aware.** Say "cross-audit this" and IJFW picks up the file you are looking at, the diff you just staged, or the range you just referenced. Say "plan this feature" and the workflow skill opens the Quick or Deep flow with the brief already seeded from your current conversation. You describe what you want; IJFW figures out the where.
+
+**Superpowers assist.** If you have other Claude Code skills installed (UX/UI design, frontend-design, domain-specific libraries), IJFW surfaces them at the right moment: "You have the UX/UI skill available. Want to bring it in for the design phase?" One line, one-word yes. No registries to maintain. No configuration. It just notices what you have and suggests it.
+
+**Visual companion for software builds.** For Deep-mode software projects, IJFW offers a live visual companion at EXECUTE entry: Mermaid diagrams for architecture, component boundaries, data model, API surface, and security posture. Written to `.ijfw/visual/` and refreshed at every phase audit, so the picture never rots. Opt-in with one word; skipped cleanly for non-software work.
+
+---
+
 ## The five engines
 
 IJFW is not one thing. It is five connected engines under one install.
 
 ### 1. Token economy
 
-Every prompt gets routed to the right model for the job, not the same model for everything. Reads to Haiku, code to Sonnet, architecture to Opus. Output rules strip the verbose preamble at the source. Prompt-cache discipline compounds across sessions so your second turn is ten percent of the first turn's input cost. Every session ends with a receipt so the savings are not a claim, they are a log entry.
+In Claude Code, tasks get dispatched to the right model via sub-agent tiers: reads to Haiku, code to Sonnet, architecture to Opus. Across every platform, output rules strip the verbose preamble at the source and prompt-cache discipline compounds across sessions so your second turn is ten percent of the first turn's input cost. Every session ends with a receipt so the savings are not a claim, they are a log entry.
 
 ```
 [ijfw] This session: ~14.3k tokens saved vs baseline (~$0.087)
@@ -67,7 +83,7 @@ Every prompt gets routed to the right model for the job, not the same model for 
 [ijfw] Next: ship the auth migration after Trident review.
 ```
 
-Typical observed: 25 percent or more output reduction vs unmanaged baseline. Your mileage will vary by task. The savings are logged so you can audit them.
+Typical observed: 25 percent or more output reduction vs an unmanaged baseline (same task, same prompt, no IJFW rules or routing applied). Your mileage varies by task, model, and cache state. The savings are logged per session, so you can audit every claim against your own metrics.
 
 ### 2. Disciplined workflow
 
@@ -75,9 +91,9 @@ IJFW ships an opinionated brainstorm, plan, execute, verify, ship spine. Two mod
 
 **Quick mode** (five moves, 3 to 5 minutes) for features, fixes, ideas. FRAME. WHY. SHAPE. STRESS. LOCK. Every move has one input slot. The AI proposes three approaches so you never face a blank page. A pre-mortem flash surfaces the risk you had not thought of. One word locks the brief.
 
-**Deep mode** (six modules, 20 to 45 minutes) for new projects, major refactors, launches. FRAME. RECON. HMW. DIVERGE. CONVERGE. LOCK. Plus auto-triggered modules for external-facing briefs (mini PR / FAQ), anti-scope ("what we will not do"), and Trident cross-critique before the brief is finalised.
+**Deep mode** (six modules, 20 to 45 minutes) for new projects, major refactors, launches. FRAME. RECON. HMW. DIVERGE. CONVERGE. LOCK. Plus auto-triggered modules for external-facing briefs (mini PR / FAQ), anti-scope ("what we will not do"), and Trident cross-critique before the brief is finalized.
 
-Every phase is conversational. One question at a time. No monologues. Every artifact is summarised in chat before it is written. Every gate is a user-facing checklist, not a silent pass. No "plan complete, 25 tasks ready to dispatch" surprises.
+Every phase is conversational. One question at a time. No monologues. Every artifact is summarized in chat before it is written. Every gate is a user-facing checklist, not a silent pass. No "plan complete, 25 tasks ready to dispatch" surprises.
 
 ### 3. Custom agent teams, per project
 
@@ -143,7 +159,7 @@ Already using `claude-mem`? IJFW absorbs its SQLite store into your local markdo
 
 ### The Claude Code plugin (richest integration)
 
-- **19 slash commands**: `/workflow`, `/handoff`, `/cross-audit`, `/cross-research`, `/cross-critique`, `/recall`, `/memory-audit`, `/memory-why`, `/mode`, `/team`, `/consolidate`, `/ship`, `/plan`, `/execute`, `/verify`, `/status`, `/doctor`, `/demo`, `/update`.
+- **Slash commands for every move**: `/workflow`, `/handoff`, `/cross-audit`, `/cross-research`, `/cross-critique`, `/memory-audit`, `/memory-consent`, `/memory-why`, `/metrics`, `/mode`, `/team`, `/consolidate`, `/compress`, `/status`, `/doctor`, `/ijfw-plan`, `/ijfw-execute`, `/ijfw-verify`, `/ijfw-ship`, `/ijfw-audit`, `/ijfw` (help).
 - **6 deterministic bash hooks**: SessionStart (memory injection + welcome-back beat), SessionEnd (token-savings receipt + memory pointer), UserPromptSubmit (vague-prompt detector), PreToolUse (pattern detection), PostToolUse (output trim + signal capture), PreCompact (session preservation).
 - **10+ on-demand skills**: workflow, memory, commit, handoff, review, critique, compress, team setup, debug, cross-audit. Hot-loaded when triggered, unloaded when done.
 
@@ -229,15 +245,18 @@ Five engines. One workflow. One memory. One Trident. One install.
 
 ## Cross-platform parity
 
-| Capability | Claude Code | Codex / Gemini / others | Natural language |
-|------------|-------------|-------------------------|------------------|
-| Status | `/ijfw-status` | `ijfw status` | "what's my status?" |
-| Health check | `/ijfw-doctor` | `ijfw doctor` | "run the doctor" |
-| Live demo | `/ijfw-demo` | `ijfw demo` | "show me the demo" |
-| Cross audit | `/ijfw-cross-audit` | `ijfw cross audit <file>` | "cross audit this file" |
-| Cross research | `/ijfw-cross-research` | `ijfw cross research <topic>` | "research this topic" |
-| Memory recall | `/ijfw-recall` | `ijfw recall <query>` | "recall my last handoff" |
-| Update | `/ijfw-update` | `ijfw update` | "update IJFW" |
+| Capability | Claude Code | Shell CLIs | Natural language |
+|------------|-------------|-----------|------------------|
+| Status | `/status` | `ijfw status` | "what's my status?" |
+| Health check | `/doctor` | `ijfw doctor` | "run the doctor" |
+| Cross audit | `/cross-audit` | `ijfw cross audit <file>` | "cross audit this file" |
+| Cross research | `/cross-research` | `ijfw cross research <topic>` | "research this topic" |
+| Cross critique | `/cross-critique` | `ijfw cross critique <range>` | "critique the last commit" |
+| Handoff | `/handoff` | `ijfw handoff` | "save a handoff" |
+| Plan | `/ijfw-plan` | (via workflow) | "plan this feature" |
+| Ship | `/ijfw-ship` | (via workflow) | "ship it" |
+
+**Natural language is a first-class input.** In any IJFW-enabled agent, saying "cross audit this file" or "let's cross-audit the auth module" routes to the same engine as the slash command, and the target is picked up from context (your current file, your last commit, your open diff). You do not have to remember syntax. You do not have to copy a path. You tell the agent what you want and it figures out the where.
 
 ---
 
@@ -257,13 +276,14 @@ Five engines. One workflow. One memory. One Trident. One install.
 
 ## Privacy
 
-Nothing leaves your machine. Not one byte.
+**Your code and memory never leave your machine unless you ask them to.**
 
-- No telemetry. No analytics. No phone-home.
-- No IJFW account required, ever.
-- MCP server speaks stdio only. No sockets.
+- IJFW itself is zero-telemetry, zero-cloud, zero-account. It never phones home.
+- The MCP server speaks stdio only. No sockets. No daemon. No listening port.
 - Hooks are deterministic bash. No LLM calls from hooks.
-- External AI calls happen only when you invoke `ijfw cross`, and only to the auditor CLI or API key you have already configured.
+- All memory (`.ijfw/memory/`) is plain markdown on your disk.
+
+The only time bytes leave is when **you** invoke `ijfw cross`, and then only to the external AI auditor you have already configured (your existing CLI or your existing API key). Every cross-AI run is logged in a local receipt and capped by a per-session spend limit (default $2, configurable via `IJFW_AUDIT_BUDGET_USD`).
 
 Full accounting in [NO_TELEMETRY.md](NO_TELEMETRY.md). Every data path, every file location, every "does this leave your machine?" answered in a table.
 
@@ -306,7 +326,7 @@ ijfw demo
 
 Two commands. Three seconds of setup. Coffee for the demo.
 
-Open any project in Claude Code, Codex, Gemini, Cursor, Windsurf, or Copilot. Your AI wakes up with memory loaded, tokens optimised, workflow ready, and the Trident a `cross audit` away.
+Open any project in Claude Code, Codex, Gemini, Cursor, Windsurf, or Copilot. Your AI wakes up with memory loaded, tokens optimized, workflow ready, and the Trident a `cross audit` away.
 
 ---
 
@@ -320,6 +340,6 @@ If you ship code with AI, you need this. If you write with AI, run a business wi
 
 ---
 
-[github.com/TradeCanyon/ijfw](https://github.com/TradeCanyon/ijfw)   MIT License   Local only   No telemetry   No account   One install   Six platforms   Five engines   Three AIs   Zero apologies
+[github.com/SeanDonahoe/ijfw](https://github.com/SeanDonahoe/ijfw) | MIT License | Local-only. No telemetry, no account, no cloud. One install, six platforms, five engines, three AIs, zero apologies.
 
 **Install it. Inspect it. Fork it. Ship it. It just fucking works.**

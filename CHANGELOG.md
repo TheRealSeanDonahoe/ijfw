@@ -175,7 +175,7 @@ positive-framed summary.
 
 **Theme:** Define the problem, choose the constraints, commit to the design.
 
-- Establishes the no-proxy principle: IJFW configures agent behaviour, never intercepts network traffic.
+- Establishes the no-proxy principle: IJFW configures agent behavior, never intercepts network traffic.
 - Locks the plugin architecture: one canonical source per platform, shipped as native packages the platform already understands.
 - Defines the three design principles: Sutherland (smarter, not cheaper), Krug (zero config, smart defaults), Donahoe (one install, it just works).
 - Sets the memory storage contract: plain markdown for hot recall, SQLite FTS5 for warm search, optional vectors for cold semantic lookup.

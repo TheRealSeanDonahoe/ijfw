@@ -1,12 +1,12 @@
 ---
 name: ijfw-summarize
-description: "Generate optimised project context from codebase scan. Trigger: new project, no CLAUDE.md, /ijfw-summarize"
+description: "Generate optimized project context from codebase scan. Trigger: new project, no CLAUDE.md, /ijfw-summarize"
 context: fork
 model: haiku
 effort: low
 ---
 
-Scan the codebase and generate an optimised project context file.
+Scan the codebase and generate an optimized project context file.
 
 ## Process
 

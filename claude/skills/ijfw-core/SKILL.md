@@ -35,7 +35,7 @@ If `IJFW_TERSE_ONLY` or mode=brutal: code-only + 1-sentence answers; no explanat
 
 ## Memory
 `<ijfw-memory>` block at session start IS project memory; if missing call `ijfw_memory_prelude`. If neither block nor tool is available, check `.ijfw/memory/knowledge.md` directly -- it is plain markdown.
-"Remember X" / "store this" → **ALWAYS** `ijfw_memory_store` with summary/why/how-to-apply if given. Note: content cap is 5000 chars; summarise before storing if needed.
+"Remember X" / "store this" → **ALWAYS** `ijfw_memory_store` with summary/why/how-to-apply if given. Note: content cap is 5000 chars; summarize before storing if needed.
 
 ## Routing (smart mode, opusplan-style)
 - Explore/read/search → scout, Haiku. Build/boilerplate/tests → builder, Sonnet.

@@ -220,6 +220,18 @@ After LOCK, the brief drives every downstream phase. Same discipline, same memor
 **Phase audit** -- at wave/milestone boundaries:
 - Brief still accurate? Speed respectful? Security invisible? Memory updated?
 
+### VISUAL COMPANION (software projects, opt-in)
+
+For software builds, the workflow can surface a visual companion that tracks
+architecture, component boundaries, data model, API surface, and security
+posture. Auto-offered at EXECUTE entry for Deep-mode software phases; one-word
+`yes` activates it. Produces `.ijfw/visual/<phase>.md` with Mermaid diagrams
+the user can render in any markdown viewer. Updated at every phase audit so
+the picture never rots.
+
+Skip for non-software projects (books, campaigns, research) where the brief
+and plan carry enough structure.
+
 ## VERIFY
 
 - Audit the result against the **brief**, not the plan. (Tasks can pass while brief goals miss.)

@@ -150,7 +150,7 @@ Before building Phase 2, audit the Phase 1 scaffold for correctness and quality:
 - [ ] Test: does it actually suppress filler when loaded as a skill?
 - [ ] Test: does the routing section correctly trigger agent delegation?
 - [ ] Test: does the clarity override engage for destructive actions?
-- [ ] Verify the Karpathy additions ("state assumptions", "touch only what asked") actually change agent behaviour.
+- [ ] Verify the Karpathy additions ("state assumptions", "touch only what asked") actually change agent behavior.
 
 ### 2. Hook Scripts Audit
 **Files:** `claude/hooks/scripts/*.sh`
@@ -190,7 +190,7 @@ Before building Phase 2, audit the Phase 1 scaffold for correctness and quality:
 - [ ] Verify each platform's MCP config points to the correct server.js path.
 - [ ] Test: can each platform (Codex, Gemini, Cursor, Windsurf, Copilot) actually connect to the MCP server?
 - [ ] Verify all platform rules files contain identical core rules (Karpathy additions included).
-- [ ] Test the universal rules file: paste into a raw agent prompt, verify it changes behaviour.
+- [ ] Test the universal rules file: paste into a raw agent prompt, verify it changes behavior.
 
 ### 6. Cross-Platform Memory Test
 - [ ] Store a decision in Claude Code.
@@ -232,7 +232,7 @@ All presented as positive framing: "Imported 47 observations from existing memor
 ### Startup Report UX
 Positive framing ONLY. Examples in docs/DESIGN.md. Key rules:
 - NO "not found", "missing", "error", "warning" language
-- If something was created: "Optimised project context created (Next.js / TypeScript)"
+- If something was created: "Optimized project context created (Next.js / TypeScript)"
 - If memory was imported: "Imported 47 observations from existing memory"
 - If effort was upgraded: "Upgraded thinking depth"
 - If nothing to report: just "Ready."
@@ -381,7 +381,7 @@ Before building Phase 2, research these topics:
 
 4. **Compaction token budget** — verify the 5,000 tokens per skill / 25,000 combined re-attachment budget. Test with our actual skill set.
 
-5. **MCP tool search behaviour** — on platforms with tool search (Claude Code), are our 4 tool schemas deferred or loaded upfront? Measure actual token cost.
+5. **MCP tool search behavior** — on platforms with tool search (Claude Code), are our 4 tool schemas deferred or loaded upfront? Measure actual token cost.
 
 6. **Cross-platform MCP protocol differences** — does Copilot's "tools only" limitation affect our memory server? Does Gemini's MCP implementation handle all our JSON-RPC messages?
 

@@ -626,7 +626,7 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
     return { text: 'content is required and must be a string.', isError: true };
   }
   if (content.length > MAX_STORE_LENGTH) {
-    return { text: `content exceeds ${MAX_STORE_LENGTH} character limit (got ${content.length}). Summarise and retry.`, isError: true };
+    return { text: `content exceeds ${MAX_STORE_LENGTH} character limit (got ${content.length}). Summarize and retry.`, isError: true };
   }
   if (!VALID_MEMORY_TYPES.includes(type)) {
     return { text: `type must be one of: ${VALID_MEMORY_TYPES.join(', ')}`, isError: true };

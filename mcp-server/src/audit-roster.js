@@ -85,7 +85,7 @@ export function detectSelf(env = process.env) {
 }
 
 // Probe whether the auditor's CLI is on PATH. Cached per process.
-// Exported so tests can prime the cache for deterministic behaviour.
+// Exported so tests can prime the cache for deterministic behavior.
 export const _installedCache = new Map();
 export function isInstalled(id) {
   if (_installedCache.has(id)) return _installedCache.get(id);

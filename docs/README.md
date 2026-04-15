@@ -7,7 +7,7 @@ One install. Zero config. Makes your AI coding agent smarter, more efficient, an
 - **Smarter output** -- no filler, no preamble, no narration. Lead with the answer.
 - **Smart routing** -- right model for the right task. Haiku for reads, Sonnet for code, Opus for architecture.
 - **Persistent memory** -- remembers decisions, patterns, and context across sessions and platforms.
-- **Auto-configuration** -- detects your environment, fixes bad defaults, optimises project context.
+- **Auto-configuration** -- detects your environment, fixes bad defaults, optimizes project context.
 - **Context discipline** -- targeted reads, input stripping, smart compaction, session handoff.
 - **Cross-platform** -- one MCP memory server shared across Claude Code, Codex, Gemini CLI, Cursor, Windsurf, Copilot.
 
@@ -121,7 +121,7 @@ IJFW remembers automatically. Decisions, patterns, handoffs -- all captured and 
 On session start, IJFW silently:
 1. Detects your environment (OpenRouter, Ollama, local models)
 2. Loads project memory and last session handoff
-3. Checks and optimises settings (effort level, project context)
+3. Checks and optimizes settings (effort level, project context)
 4. Shows a clean, positive startup summary
 
 ### Per Turn

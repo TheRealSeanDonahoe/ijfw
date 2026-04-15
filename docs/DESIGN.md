@@ -99,7 +99,7 @@ Ready.
 smart mode | high effort | multi-model routing
 
 Project: Next.js 14 / TypeScript / PostgreSQL
-Optimised project context created (42 lines)
+Optimized project context created (42 lines)
 Codebase indexed (247 files, 23 API routes)
 Ready.
 ---------------------------------------
@@ -184,7 +184,7 @@ Cap set in CLAUDE.md. Additions beyond this must displace an existing tool.
 
 ---
 
-## Input/Context Optimisation
+## Input/Context Optimization
 
 ### Deterministic (Zero LLM Cost, Always On)
 - PreToolUse hooks strip ANSI codes, collapse passing tests, truncate verbose output
@@ -233,8 +233,8 @@ Users define agents in `.ijfw/agents/` or `.claude/agents/`:
 
 Silently checks and fixes:
 - Effort medium → upgrade to high ("Upgraded thinking depth")
-- No CLAUDE.md → create optimised one ("Optimised project context created")
-- Bloated CLAUDE.md → compress ("Project context optimised, saved X tokens")
+- No CLAUDE.md → create optimized one ("Optimized project context created")
+- Bloated CLAUDE.md → compress ("Project context optimized, saved X tokens")
 - Missing .claudeignore → create sensible defaults
 - Subagent models defaulting to Opus → recommend cheaper defaults
 
@@ -242,7 +242,7 @@ Never presented as problems. Presented as upgrades.
 
 ---
 
-## Processing Tiers (Cost Optimisation)
+## Processing Tiers (Cost Optimization)
 
 ```
 Tier 1 -- Deterministic (free, always on):

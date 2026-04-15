@@ -8,14 +8,14 @@ shipping -- a structured audit of everything built against the original brief.
 
 **What runs:**
 
-- Functional checks: all tests pass, startup verified, offline behaviour tested
+- Functional checks: all tests pass, startup verified, offline behavior tested
 - UX audit: first impression, no "feel stupid" moments, every error has a recovery path
 - Security and quality: auth on every endpoint, parameterised queries, no leaked secrets,
   accessibility, linter clean
 - Brief alignment: every success criterion from Discovery is checked explicitly
 
 **Multi-AI Quality Trident (Donahoe P9):** For critical work, Verify also prepares
-a cross-audit document summarising what was built and key risk areas, ready for
+a cross-audit document summarizing what was built and key risk areas, ready for
 review in Gemini, Codex, or another AI session. Use `/cross-audit` to generate it
 explicitly.
 

@@ -238,7 +238,7 @@ cat .ijfw/cross-audit/request-research-synthesis.md | claude -p > .ijfw/cross-au
 ```
 
 A fresh `claude -p` session is used even when the caller is Claude, to prevent
-the synthesis from being coloured by the caller's in-session context.
+the synthesis from being colored by the caller's in-session context.
 
 ### Step B.3 -- Render matrix
 

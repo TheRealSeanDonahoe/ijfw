@@ -80,7 +80,7 @@ export function mergeMarketplace(settingsPath = claudeSettingsPath()) {
 
   settings.extraKnownMarketplaces = settings.extraKnownMarketplaces || {};
   settings.extraKnownMarketplaces.ijfw = {
-    source: { source: 'github', repo: 'TradeCanyon/ijfw' },
+    source: { source: 'github', repo: 'SeanDonahoe/ijfw' },
   };
   settings.enabledPlugins = settings.enabledPlugins || {};
   settings.enabledPlugins['ijfw-core@ijfw'] = true;

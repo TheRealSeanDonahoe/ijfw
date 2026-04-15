@@ -1,6 +1,6 @@
 # @ijfw/install
 
-One-command installer for [IJFW](https://github.com/TradeCanyon/ijfw) -- the AI
+One-command installer for [IJFW](https://github.com/SeanDonahoe/ijfw) -- the AI
 efficiency layer for Claude Code, Codex, Gemini, Cursor, Windsurf, Copilot.
 
 ## Install
@@ -10,7 +10,7 @@ npm install -g @ijfw/install
 ijfw demo
 ```
 
-IJFW configures every agent on your machine. The options below let you customise the install location, branch, or skip specific steps -- all are optional.
+IJFW configures every agent on your machine. The options below let you customize the install location, branch, or skip specific steps -- all are optional.
 
 ### Options
 
@@ -36,7 +36,7 @@ Requires `node >=18`, `git`, `bash`. On native Windows use the PowerShell
 installer (PS 5.1+), which shells Git Bash under the hood -- no WSL required:
 
 ```powershell
-iwr https://raw.githubusercontent.com/TradeCanyon/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
+iwr https://raw.githubusercontent.com/SeanDonahoe/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
 .\install.ps1 -Dir $env:USERPROFILE\.ijfw
 ```
 

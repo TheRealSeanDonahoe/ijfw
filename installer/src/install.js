@@ -8,7 +8,7 @@ import { homedir, platform } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { mergeMarketplace, claudeSettingsPath } from './marketplace.js';
 
-const DEFAULT_REPO = 'https://github.com/TradeCanyon/ijfw.git';
+const DEFAULT_REPO = 'https://github.com/SeanDonahoe/ijfw.git';
 const DEFAULT_BRANCH = 'main';
 
 function parseArgs(argv) {
