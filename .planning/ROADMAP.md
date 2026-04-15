@@ -8,6 +8,18 @@
 
 ## V1.1 — "Work across projects"
 
+### R0 — Sutherland polish tail (deferred from P10 10E.6)
+
+**What:** Two HIGH findings from the Phase 10 principle cross-audit were closed at the core level (positive framing, ASCII) but their Sutherland "propagate the value posture" enhancement was judged enhancement-not-blocker:
+- **C06 doctor enhancement** — add per-auditor value lines ("unlocks OpenAI-family audits", etc.) + closing summary ("N of 6 auditors reachable — full Trident available / partial coverage available").
+- **S6.1 hero-line propagation** — surface the hero-line format in session-start banner, `/ijfw-status`, workflow SHIP gate, installer post-run, and demo closer.
+
+**Why V1.1:** The publish-blocking part (negative framing and Unicode leak) was closed in P10. The enhancement would require copy changes across 5+ surfaces and is a Sutherland-reframe project, not a fix — better shipped once V1.0 has live user reactions to inform the value messaging.
+
+**Effort:** 0.5-1 day once prioritized.
+
+---
+
 ### R1 — Cross-project audit / search
 
 **What:** `/ijfw-cross-project-search <pattern>` + `/ijfw-cross-project-audit <rule>` via a registry of known IJFW project dirs.
