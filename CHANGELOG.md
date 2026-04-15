@@ -34,11 +34,11 @@
 
 **Theme:** Cross-AI critique is automatic, visible, and owns its own execution loop.
 
-- Enforces ownership discipline: no IJFW surface names a foreign plugin (gsd, superpowers, hookify) as an action verb.
-- Ships a live cross-orchestrator CLI (`bin/ijfw`) so users can invoke IJFW cross-audit from the terminal without opening a chat session.
-- Records every cross-audit session as a structured JSONL receipt, auto-archived and prunable.
-- Makes cross-audit auto-fire on a 2-second default: the Trident fires external auditors via background bash — no manual paste required.
-- Adds family-diversity logic: the default Trident always picks one OpenAI-family and one Google-family auditor, maximising perspective spread.
+- IJFW narration is now clean of foreign-plugin names: every surface uses its own verbs so the mental model stays coherent.
+- Cross-audit is now a terminal command (`bin/ijfw`): invoke the Trident from the command line without opening a chat session.
+- Every cross-audit session now leaves a receipt -- duration, consensus findings, cache hits -- auto-archived and prunable with `ijfw cross purge`.
+- The Trident now auto-fires on a 2-second default: external auditors run via background bash, no manual paste or prompt required.
+- Perspective diversity is now guaranteed: the default Trident always picks one OpenAI-family and one Google-family auditor so blind spots never share a lineage.
 
 ---
 

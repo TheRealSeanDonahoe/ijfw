@@ -16,7 +16,7 @@ Author: Sean Donahoe
 - `docs/` — README, DESIGN.md
 
 ## Key Conventions
-- Core skill (ijfw-core/SKILL.md) hard cap: **55 lines**. Single source of truth — supersedes any older 40/51 references in handoff/instructions docs. Currently 51 lines.
+- Core skill (ijfw-core/SKILL.md) hard cap: **55 lines**. Single source of truth — supersedes any older 40/51 references in handoff/instructions docs. Currently 53 lines.
 - On-demand skills: hot-load only when triggered, unload when done.
 - Hooks: shell scripts only, deterministic, no LLM calls.
 - MCP server: ≤8 tools (recall, store, search, status, prelude; Phase 3 adds metrics + prompt_check). Phase 1's cap of 4 outgrown by Phase 2/3 needs; ≤8 keeps the surface scannable while leaving room for Phase 4.

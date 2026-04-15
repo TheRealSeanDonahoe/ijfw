@@ -1,6 +1,6 @@
 # IJFW — It Just Fucking Works.
 
-Multi-AI orchestration layer for 7 platforms. One install, zero config, persistent memory.
+Multi-AI orchestration layer for 6 native platforms + universal paste-anywhere rules. One install, zero config, persistent memory.
 
 Three AIs review every diff. Cache-hit savings logged per run. Your memory follows you across all seven agents.
 
@@ -19,7 +19,8 @@ Installs IJFW across every AI coding agent you have running, fires a live demo, 
 ## Demo Output
 
 ```
-IJFW v1.0.0 — It Just Fucking Works.
+# sample output -- your platform list and memory count will vary
+IJFW — It Just Fucking Works.
 
 Platforms detected:   Claude Code, Codex, Gemini CLI, Cursor
 Memory:               247 entries across 4 projects
@@ -96,7 +97,7 @@ Paste `universal/ijfw-rules.md` into your agent's system prompt or rules file. N
 Claude Code ----+
 Codex ----------+
 Gemini CLI -----+
-Cursor ---------+---> IJFW Core (ijfw-core/SKILL.md, ~51 lines)
+Cursor ---------+---> IJFW Core (ijfw-core/SKILL.md, ~53 lines)
 Windsurf -------+         |
 Copilot --------+         +---> MCP Memory Server (stdio, zero deps)
 Universal ------+                    |
@@ -107,7 +108,7 @@ Universal ------+                    |
                         .ijfw/memory/  .ijfw/db/
 ```
 
-**Core layer (~51 lines, ~700 tokens):** terse output, smart model routing, context discipline, quality gates on destructive actions.
+**Core layer (~53 lines, ~700 tokens):** terse output, smart model routing, context discipline, quality gates on destructive actions.
 
 **MCP server (7 tools):** `recall`, `store`, `search`, `status`, `prelude`, `prompt_check`, `metrics` — shared across all platforms via stdio. No sockets. No cloud.
 
@@ -115,6 +116,24 @@ Universal ------+                    |
 - Hot: plain markdown, instant reads, written on every session end
 - Warm: SQLite, full-text search across sessions and projects
 - Team: `.ijfw/team/` — PR-reviewed conventions shared by the whole team
+
+---
+
+## Cross-Platform Invocation
+
+Every IJFW capability is available on every platform -- each via its native interaction pattern.
+
+| Capability      | Claude Code              | Codex CLI                          | Gemini CLI                        | Natural language              |
+|-----------------|--------------------------|------------------------------------|-----------------------------------|-------------------------------|
+| Status          | `/ijfw-status`           | `ijfw status`                      | `ijfw status`                     | "what's my status?"           |
+| Health check    | `/ijfw-doctor`           | `ijfw doctor`                      | `ijfw doctor`                     | "run the doctor"              |
+| Live demo       | `/ijfw-demo`             | `ijfw demo`                        | `ijfw demo`                       | "show me the demo"            |
+| Cross-audit     | `/ijfw-cross-audit`      | `ijfw cross audit <file>`          | `ijfw cross audit <file>`         | "cross-audit this file"       |
+| Cross-research  | `/ijfw-cross-research`   | `ijfw cross research <topic>`      | `ijfw cross research <topic>`     | "research this topic"         |
+| Cross-critique  | `/ijfw-cross-critique`   | `ijfw cross critique <file>`       | `ijfw cross critique <file>`      | "critique this approach"      |
+| Memory recall   | `/ijfw-recall`           | `ijfw recall <query>`              | `ijfw recall <query>`             | "recall my last handoff"      |
+
+Claude Code: slash commands via the plugin. Shell CLIs: `ijfw` binary directly. Gemini: intent phrases route through the MCP tools and `ijfw` CLI automatically.
 
 ---
 
