@@ -60,10 +60,10 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | K1.1 | HIGH [closed] | claude/skills/ijfw-workflow/SKILL.md:17                     | Promote `BUILD -> AUDIT -> FIX -> SHIP -> MEASURE -> REPEAT` to a fenced pre-block near top. |
 | K1.2 | HIGH [closed] | claude/skills/ijfw-workflow/SKILL.md:28                     | `QW` abbreviation undefined; expand to `Wave Q1` or define on first use. |
 | K3.1 | HIGH [closed] | claude/commands/ijfw.md:18                                  | `/ijfw memory audit` is a dead link; route to `memory-audit.md` or add dispatcher. |
-| K1.3 | MED  | claude/skills/ijfw-workflow/SKILL.md:264                    | `P9` reference without inline Donahoe-22 pointer. |
-| K1.5 | MED  | claude/skills/ijfw-workflow/SKILL.md:305                    | `WHERE AM I` grammar inconsistent between example and STATE FILE schema. |
-| K2.1 | MED  | claude/skills/ijfw-core/SKILL.md:9                          | Five modes listed with no one-line glossary. |
-| K2.2 | MED  | claude/skills/ijfw-critique/SKILL.md:43                     | Template has placeholder slots but no worked example. |
+| K1.3 [closed] | MED  | claude/skills/ijfw-workflow/SKILL.md:264                    | `P9` reference without inline Donahoe-22 pointer. |
+| K1.5 [closed] | MED  | claude/skills/ijfw-workflow/SKILL.md:305                    | `WHERE AM I` grammar inconsistent between example and STATE FILE schema. |
+| K2.1 [closed] | MED  | claude/skills/ijfw-core/SKILL.md:9                          | Five modes listed with no one-line glossary. |
+| K2.2 [closed] | MED  | claude/skills/ijfw-critique/SKILL.md:43                     | Template has placeholder slots but no worked example. |
 | K3.2 | MED [closed] | claude/commands/cross-audit.md:125                          | Six auditor names with no one-liner each. |
 | K3.3 | MED [closed] | claude/commands/cross-audit.md:175                          | Wave-A "Next step: open new terminal, paste..." contradicts auto-fire requirement at line 153. |
 | K3.4 | MED [closed] | claude/commands/doctor.md:6                                 | `$IJFW_REPO`/`$IJFW_HOME` resolution fallback undocumented. |
@@ -99,16 +99,16 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | S8.1 [closed] | HIGH | installer/src/install.js:138-143                            | Post-install closer misses receipt: "N platforms configured, M MCP tools registered, existing configs merged not clobbered". |
 | S10.1| HIGH [closed] | README.md:1-13                                              | Opening missing numeric wow line above install command. |
 | S10.3| HIGH [closed] | README.md:117-123                                           | Why-IJFW bullets do not mention Trident -- the most distinctive asset is absent. |
-| S1.3 | MED  | claude/skills/ijfw-workflow/SKILL.md:264-276                | Covered by C14. |
-| S2.3 | MED  | claude/skills/ijfw-review/SKILL.md:16                       | Covered by C13. |
+| S1.3 [closed via C14] | MED  | claude/skills/ijfw-workflow/SKILL.md:264-276                | Covered by C14. |
+| S2.3 [closed via C13] | MED  | claude/skills/ijfw-review/SKILL.md:16                       | Covered by C13. |
 | S3.2 | MED [closed] | claude/commands/cross-audit.md:196-207                      | Wave-B compare lacks value frame "N findings solo Claude missed". |
 | S3.3 | MED [closed] | claude/commands/cross-critique.md:253-267                   | Survival-score rubric invisible; add one-line disclosure. |
 | S4.3 | MED [closed] | mcp-server/src/cross-orchestrator-cli.js:220-290            | cmdDemo closes on CTA rather than wow receipt. |
 | S5.4 | MED [closed] | mcp-server/src/server.js:546-548                            | `ijfw_metrics` mechanical description; rewrite benefit-first. |
 | S6.2 | MED [closed] | mcp-server/src/receipts.js:49-105                           | renderReceipt lacks cache-savings translation; hero-line translates, receipts don't. |
 | S7.3 [closed] | MED  | claude/hooks/scripts/post-tool-use.sh:95-114                | Trim pipeline silent; emit one-line `[ijfw] trimmed N lines -> head/tail/signals`. |
-| S8.2 | MED  | scripts/install.sh:206                                      | Covered by C17. |
-| S9.2 | MED  | universal/ijfw-rules.md:6-15                                | No line quantifying the saving; add "Typical session: 30-50% fewer output tokens vs default". |
+| S8.2 [closed via C17] | MED  | scripts/install.sh:206                                      | Covered by C17. |
+| S9.2 [closed] | MED  | universal/ijfw-rules.md:6-15                                | No line quantifying the saving; add "Typical session: 30-50% fewer output tokens vs default". |
 | S10.4| MED [closed] | CHANGELOG.md:33-42                                          | P8 bullets use feature verbs; rewrite benefit-first. |
 | S1.4 | LOW  | claude/skills/ijfw-workflow/SKILL.md:300-310                | Optional progress-so-far line on WHERE AM I. |
 | S2.2 | LOW  | claude/skills/ijfw-compress/SKILL.md:21                     | Add dollar/minute conversion to savings line. |
@@ -140,18 +140,18 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | D8.3 [closed]  | HIGH | installer/src/install.js:86,91,100                              | Raw `git pull failed` / `git clone failed` / `scripts/install.sh exited N` bubbles to user stderr. Wrap user layer. |
 | D8.4 [closed]  | HIGH | installer/src/install.js:97                                     | `scripts/install.sh missing at X.` banned "missing"; rewrite. |
 | D8.6 [closed]  | HIGH | scripts/install.sh:42                                           | `Launcher missing at X -- aborting.` two banned words one line; rewrite. |
-| D1.1  | MED  | claude/skills/ijfw-workflow/SKILL.md:83-88                      | Read-only filesystem fallback note absent. |
-| D1.2  | MED  | claude/skills/ijfw-workflow/SKILL.md:264-275                    | Covered by C14. |
-| D2.1  | MED  | claude/skills/ijfw-core/SKILL.md:40-42                          | `<ijfw-memory>` block + prelude-tool absence case not documented; point to plain-markdown fallback. |
+| D1.1 [closed] | MED  | claude/skills/ijfw-workflow/SKILL.md:83-88                      | Read-only filesystem fallback note absent. |
+| D1.2 [closed via C14] | MED  | claude/skills/ijfw-workflow/SKILL.md:264-275                    | Covered by C14. |
+| D2.1 [closed] | MED  | claude/skills/ijfw-core/SKILL.md:40-42                          | `<ijfw-memory>` block + prelude-tool absence case not documented; point to plain-markdown fallback. |
 | D3.1  | MED [closed] | claude/commands/cross-audit.md:191-198                          | Compare table uses unicode check/cross/diamond glyphs; replace with ASCII `[yes]`/`[new]`/`[dispute]`. |
 | D3.2  | MED [closed] | claude/commands/cross-critique.md:82-90                         | Open menu lacks default; add `Default: [C] All three -- press enter.`. |
 | D4.9  | MED [closed] | mcp-server/src/cross-orchestrator-cli.js:378-382                | Three consecutive negative lines on no-auditor path; consolidate after C01/C02/D4.5 fixes. |
 | D5.2  | MED [closed] | mcp-server/src/server.js:656                                    | `journal write failed (code): message` raw bubble; wrap. |
-| D7.1  | MED  | claude/hooks/scripts/session-start.sh:29                        | Covered by K7.3 (same file:line). |
+| D7.1 [closed via K7.3] | MED  | claude/hooks/scripts/session-start.sh:29                        | Covered by K7.3 (same file:line). |
 | D8.7 [closed]  | MED  | scripts/install.sh:55-57                                        | `ok()` uses Unicode check mark U+2713; replace with `[ok]`. |
-| D8.8  | MED  | scripts/install.sh:222                                          | Covered by C17. |
-| D9.3  | MED  | universal/ijfw-rules.md:13                                      | Em-dash (covered by C10). |
-| D9.4  | MED  | copilot/copilot-instructions.md                                 | Likely same em-dash issue; grep-replace across all platform rules. |
+| D8.8 [closed via C17] | MED  | scripts/install.sh:222                                          | Covered by C17. |
+| D9.3 [closed via C10] | MED  | universal/ijfw-rules.md:13                                      | Em-dash (covered by C10). |
+| D9.4 [closed] | MED  | copilot/copilot-instructions.md                                 | Likely same em-dash issue; grep-replace across all platform rules. |
 | D10.4 | MED [closed] | README.md:3                                                     | "7 platforms" ambiguous; tighten to "6 native platforms + universal paste-anywhere rules". |
 | D1.3  | LOW  | claude/skills/ijfw-workflow/SKILL.md:392-400                    | Foreign-plugin-verb ban enumerates six prefixes; restate as general rule. |
 | D1.4  | LOW  | claude/skills/ijfw-workflow/SKILL.md:315-321                    | Mid-step ping threshold author-tuned; document only. |
@@ -171,7 +171,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | D9.5  | LOW  | universal/ijfw-rules.md:19                                      | No action. |
 | D9.6  | LOW  | [no-file-ref]                                                   | `codex/` and `cursor/` top-level dirs look empty on GitHub; add README stub. |
 | D10.5 | LOW  | README.md:20-31                                                 | No action. |
-| D10.6 | MED  | PUBLISH-CHECKLIST.md:24                                         | No action -- internal. |
+| D10.6 [closed] | MED  | PUBLISH-CHECKLIST.md:24                                         | No action -- internal. |
 | D10.7 | LOW  | CHANGELOG.md:14                                                 | No action. |
 | D10.8 | LOW  | README.md:108-110                                               | No action. |
 
