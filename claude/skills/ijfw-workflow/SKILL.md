@@ -407,6 +407,11 @@ Every phase transition and audit gate requires visible task tracking.
 **At every phase boundary**, call `TaskCreate` for the upcoming phase before starting it.
 **At every audit gate**, call `TaskCreate` with the gate name before executing the checklist.
 **At every specialist dispatch** via `Agent(`, call `TaskCreate` with `agent_id` = the specialist role.
+**At every wave/swarm dispatch** (2+ parallel agents), call `TaskCreate` with one task per sub-wave
+BEFORE dispatching. Mark all tasks `in_progress` in the same turn as the Agent calls.
+On each agent-completion notification, flip the matching task to `completed` immediately — not batched.
+Rationale: without the live strikethrough surface, the user sits through multi-minute parallel runs
+with no feedback and assumes the system is broken. Krug + Donahoe + Sutherland all at once.
 Call `TaskUpdate` to `completed` when the phase, gate, or agent concludes successfully.
 
 Quick mode minimum: 3-5 tasks per cycle (Clarify, Plan, Quick Audit, Execute, Done Check).
