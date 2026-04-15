@@ -22,7 +22,7 @@ const INTENTS = [
       /\b(?:new project|starting a project|greenfield)\b/i,
       /\bhelp me (?:build|design|plan|figure)\b/i,
     ],
-    nudge: "Intent: brainstorm/plan. Use the ijfw-workflow skill (quick mode for rapid exploration, deep mode for full project planning). Do not jump to implementation — reach alignment on intent first.",
+    nudge: "Looks like you want to plan a new project. Try: /ijfw-workflow (quick mode for rapid exploration, deep mode for full project planning).",
   },
   {
     intent: 'ship',
@@ -33,7 +33,7 @@ const INTENTS = [
       /\bmake a commit\b/i,
       /\b(?:create|open) (?:a )?PR\b/i,
     ],
-    nudge: "Intent: ship. Use ijfw-commit for a terse conventional commit; if opening a PR follow the user's git conventions and ask before pushing.",
+    nudge: "Looks like you want to commit and ship your changes. Try: /ijfw-commit for a terse conventional commit, then open a PR following your git conventions.",
   },
   {
     intent: 'review',
@@ -43,7 +43,7 @@ const INTENTS = [
       /\b(?:code review|review (?:the|this|my) (?:code|diff|PR|change))/i,
       /\breview PR\b/i,
     ],
-    nudge: "Intent: code review. Use ijfw-review for one-line comments — no narration, just actionable findings.",
+    nudge: "Looks like you want to review code or a diff. Try: /ijfw-review for concise, actionable findings.",
   },
   {
     intent: 'remember',
@@ -54,7 +54,7 @@ const INTENTS = [
       /\b(?:this is|that'?s) important (?:to remember|for (?:later|next time))\b/i,
       /\b(?:note to self|save for later)\b/i,
     ],
-    nudge: "Intent: persist to memory. Call the ijfw_memory_store MCP tool with a type (decision|observation|pattern|handoff|preference), summary, and why/how-to-apply if stated.",
+    nudge: "Looks like you want to save something to memory. Try: ijfw_memory_store with a type (decision, observation, pattern, handoff, or preference) and a brief summary.",
   },
   {
     intent: 'recall',
@@ -65,7 +65,7 @@ const INTENTS = [
       /\b(?:recall|pull up|look up) (?:from|in) memory\b/i,
       /\bshow me what you remember\b/i,
     ],
-    nudge: "Intent: recall from memory. Call ijfw_memory_recall or ijfw_memory_search before answering from general knowledge.",
+    nudge: "Looks like you want to recall something from memory. Try: ijfw_memory_recall or ijfw_memory_search to pull up what was stored.",
   },
   {
     intent: 'cross-research',
@@ -78,7 +78,7 @@ const INTENTS = [
       /\bmulti[- ]?angle research\b/i,
       /\bresearch (?:this|that) from multiple angles\b/i,
     ],
-    nudge: "Intent: cross-research. Run /cross-research (auto-detects target; no args needed). Two-phase flow: Phase A fans Codex + Gemini in parallel (benchmarks + citations angles), Phase B Claude synthesis consumes their output. All requests auto-fire via background bash — no manual paste required.",
+    nudge: "Looks like you want to research a topic from multiple angles. Try: /cross-research (auto-detects target; no args needed). Phase A fans out to Codex and Gemini in parallel, Phase B synthesizes results — all via background bash.",
   },
   {
     intent: 'cross-critique',
@@ -92,7 +92,7 @@ const INTENTS = [
       /\bchallenge this from every angle\b/i,
       /\battack this from all sides\b/i,
     ],
-    nudge: "Intent: cross-critique. Run /cross-critique (auto-detects target). Parallel fan-out: Codex → technical weaknesses, Gemini → strategic weaknesses, fresh Claude → UX/adoption weaknesses. Results ranked by rebuttal-survival score. All auditors auto-fire via background bash.",
+    nudge: "Looks like you want to stress-test a claim or plan from multiple angles. Try: /cross-critique (auto-detects target). Codex covers technical weaknesses, Gemini covers strategic weaknesses, and a fresh Claude instance covers UX and adoption — all auto-fired via background bash.",
   },
   {
     intent: 'critique',
@@ -103,7 +103,7 @@ const INTENTS = [
       /\b(?:critique|poke holes|challenge this)\b/i,
       /\b(?:counter[- ]?argument|devil'?s advocate)\b/i,
     ],
-    nudge: "Intent: critique. Steelman the current plan first, then list 2-3 concrete counter-arguments with the conditions under which each applies. Use the ijfw-critique skill.",
+    nudge: "Looks like you want to pressure-test an idea or plan. Try: /ijfw-critique — steelmans the current approach, then surfaces 2-3 concrete counter-arguments with the conditions that trigger each.",
   },
   {
     intent: 'cross-audit',
@@ -116,7 +116,7 @@ const INTENTS = [
       /\bsecond[- ]model (?:review|opinion|audit)\b/i,
       /\b(?:peer|adversarial)[- ]?(?:review|audit)\b/i,
     ],
-    nudge: "Intent: cross-audit. Run /cross-audit (no args = auto-pick staged + recent-change files; --with <id> to force a specific auditor). It writes .ijfw/cross-audit/request.md, you paste into the auditor's CLI, run /cross-audit compare when they reply.",
+    nudge: "Looks like you want a second-model audit of your code. Try: /cross-audit (no args = auto-picks staged and recent-change files; --with <id> to target a specific auditor). Writes .ijfw/cross-audit/request.md and auto-fires the auditor via background bash.",
   },
   {
     intent: 'handoff',
@@ -126,7 +126,7 @@ const INTENTS = [
       /\b(?:session (?:handoff|summary)|wrapping up|end of session)\b/i,
       /\bcontext (?:is )?getting full\b/i,
     ],
-    nudge: "Intent: handoff. Use ijfw-handoff to write a structured session handoff with decisions, next steps, and open questions.",
+    nudge: "Looks like you want to wrap up this session cleanly. Try: /ijfw-handoff — writes a structured handoff with decisions made, next steps, and open questions.",
   },
   {
     intent: 'mode-brutal',
@@ -135,7 +135,7 @@ const INTENTS = [
     patterns: [
       /\b(?:brutal mode|be brutal|caveman mode|ultra[- ]?terse)\b/i,
     ],
-    nudge: "Intent: brutal mode. Set IJFW_TERSE_ONLY=1 for this session OR run /mode brutal. Output: code and single-sentence answers only; no explanation unless asked.",
+    nudge: "Looks like you want maximum terseness. Try: /ijfw-mode brutal — code and single-sentence answers only, no narration unless you ask.",
   },
 ];
 
