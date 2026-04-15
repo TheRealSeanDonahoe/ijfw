@@ -631,7 +631,9 @@ function cmdReceipt(sub = 'last') {
     return;
   }
   const last = receipts[receipts.length - 1];
-  const findings = Array.isArray(last.merged?.findings) ? last.merged.findings : [];
+  // Receipts schema: { findings: { items: [...] } }. Earlier draft read
+  // merged.findings -- caught by Trident audit on the polish pass.
+  const findings = Array.isArray(last.findings?.items) ? last.findings.items : [];
   const auditors = Array.isArray(last.auditors)
     ? last.auditors.map(a => a.id).filter(Boolean)
     : [];

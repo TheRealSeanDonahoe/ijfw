@@ -56,15 +56,13 @@ MIGRATION_MSGS_FILE="$IJFW_DIR/.migration-msgs"
 DETECTION_FILE="$IJFW_DIR/.detection"
 : > "$DETECTION_FILE" 2>/dev/null
 
-# --- Mode + effort upgrade ---
+# --- Mode + effort detection ---
+# Note: a child shell cannot mutate the parent process env, so we report the
+# effective effort but do NOT pretend to "upgrade" it from inside the hook.
+# Users wanting high effort set CLAUDE_CODE_EFFORT_LEVEL=high in their shell.
 MODE="${IJFW_MODE:-smart}"
 EFFORT="${CLAUDE_CODE_EFFORT_LEVEL:-high}"
 UPGRADED_EFFORT=""
-if [ "$EFFORT" = "medium" ]; then
-  export CLAUDE_CODE_EFFORT_LEVEL="high"
-  EFFORT="high"
-  UPGRADED_EFFORT="Upgraded thinking depth"
-fi
 
 # --- Routing detection (sync but cheap -- env vars + file checks only, no network) ---
 ROUTING=""
@@ -412,13 +410,32 @@ if [ -f "$RECEIPTS_FILE" ] && [ -s "$RECEIPTS_FILE" ]; then
   [ -z "$TRIDENT_RUNS" ] && TRIDENT_RUNS=0
   if [ "$TRIDENT_RUNS" -gt 0 ]; then
     # Sum cache_read_input_tokens across all lines.
+    # Uses POSIX awk only (sub + match without 3rd arg) -- the 3-arg `match`
+    # is gawk-only and fails on BSD/macOS awk per Trident audit finding.
     CACHE_TOKENS=$(awk '
-      match($0, /"cache_read_input_tokens":[[:space:]]*([0-9]+)/, a) { sum += a[1] }
+      {
+        s = $0
+        while (match(s, /"cache_read_input_tokens":[[:space:]]*[0-9]+/)) {
+          tok = substr(s, RSTART, RLENGTH)
+          gsub(/[^0-9]/, "", tok)
+          sum += tok + 0
+          s = substr(s, RSTART + RLENGTH)
+        }
+      }
       END { print (sum+0) }
     ' "$RECEIPTS_FILE" 2>/dev/null)
     [ -z "$CACHE_TOKENS" ] && CACHE_TOKENS=0
     # Sum findings: items-array shape OR numeric consensus+contested+unique fields.
     TOTAL_FINDINGS=$(awk '
+      function extract_num(line, key,    pat, t) {
+        pat = "\"" key "\":[[:space:]]*[0-9]+"
+        if (match(line, pat)) {
+          t = substr(line, RSTART, RLENGTH)
+          gsub(/[^0-9]/, "", t)
+          return t + 0
+        }
+        return 0
+      }
       {
         n = split($0, parts, /"items":\[/)
         if (n > 1) {
@@ -428,9 +445,9 @@ if [ -f "$RECEIPTS_FILE" ] && [ -s "$RECEIPTS_FILE" ]; then
             sum += cnt
           }
         } else {
-          if (match($0, /"consensus":[[:space:]]*([0-9]+)/, a)) sum += a[1]
-          if (match($0, /"contested":[[:space:]]*([0-9]+)/, a)) sum += a[1]
-          if (match($0, /"unique":[[:space:]]*([0-9]+)/, a)) sum += a[1]
+          sum += extract_num($0, "consensus")
+          sum += extract_num($0, "contested")
+          sum += extract_num($0, "unique")
         }
       }
       END { print (sum+0) }
