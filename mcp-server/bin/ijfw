@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IJFW CLI launcher — cross-audit/research/critique across AI families.
+# IJFW CLI launcher -- cross-audit/research/critique across AI families.
 # Resolves script location through symlinks (POSIX-portable).
 
 SOURCE="${BASH_SOURCE[0]:-$0}"

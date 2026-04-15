@@ -1,4 +1,4 @@
-// cross-orchestrator-cli.js — thin CLI for `ijfw cross <mode> <target>`.
+// cross-orchestrator-cli.js -- thin CLI for `ijfw cross <mode> <target>`.
 //
 // Commands:
 //   ijfw cross <mode> <target> [--confirm] [--with <id>] [--expand]
@@ -22,7 +22,7 @@ function printFindings(mode, merged) {
   if (mode === 'audit') {
     const items = Array.isArray(merged) ? merged : [];
     if (items.length === 0) {
-      console.log('  Auditors returned no findings — your target looks solid.');
+      console.log('  Auditors returned no findings -- your target looks solid.');
       console.log('  Run `ijfw cross audit <another-file>` to audit a different target.');
       return;
     }
@@ -53,7 +53,7 @@ function printFindings(mode, merged) {
   if (mode === 'critique') {
     const items = Array.isArray(merged) ? merged : [];
     if (items.length === 0) {
-      console.log('  No counter-arguments surfaced — argument appears well-supported.');
+      console.log('  No counter-arguments surfaced -- argument appears well-supported.');
       console.log('  Run `ijfw cross critique <another-target>` to challenge a different position.');
       return;
     }
@@ -118,6 +118,7 @@ function parseArgs(argv) {
 function printUsage() {
   console.log(`
 ijfw -- It Just Fucking Works CLI
+Fire 2-4 AIs at any target. Receipts logged. Cache hits tracked. Memory follows you.
 
 Usage:
   ijfw demo
@@ -145,8 +146,8 @@ Options for ijfw cross:
   --expand      Include extended swarm when available
 
 Environment:
-  IJFW_AUDIT_BUDGET_USD   Session spend cap (default $2.00). Enforces on 2nd+ calls;
-                          first-call cost is always allowed.
+  IJFW_AUDIT_BUDGET_USD   Session spend cap (default $2.00). First call is always
+                          allowed (no cap). Cap enforced from the 2nd call on.
 
 Examples:
   ijfw demo
@@ -226,12 +227,12 @@ async function cmdDemo() {
     process.exit(0);
   }
 
-  console.log('IJFW demo — 30-second tour of the Trident');
+  console.log('IJFW demo -- 30-second tour of the Trident');
   console.log('');
 
   const fixturePath = join(dirname(fileURLToPath(import.meta.url)), '../fixtures/demo-target.js');
   if (!existsSync(fixturePath)) {
-    console.log('Demo fixture not found — run `npm pack` or reinstall @ijfw/memory-server.');
+    console.log('Demo fixture not found -- run `npm pack` or reinstall @ijfw/memory-server.');
     process.exit(0);
   }
 
@@ -285,7 +286,10 @@ async function cmdDemo() {
     }
   }
 
+  const allItems = Array.isArray(result.merged) ? result.merged : [];
+  const consensusCritical = allItems.filter(i => i.severity === 'critical' || i.severity === 'high').length;
   console.log('');
+  console.log(`That was ${picks.length} AIs, one command. ${allItems.length} findings surfaced${consensusCritical > 0 ? `, ${consensusCritical} consensus-critical` : ''}.`);
   console.log('Try `ijfw cross audit <your-file>` next.');
 }
 
@@ -375,9 +379,7 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
   const { merged, picks, missing, note } = result;
 
   if (picks.length === 0) {
-    console.log('\n' + (note || 'No external auditors reachable yet.'));
-    console.log('Install one to get started: codex, gemini, opencode, aider, or copilot.');
-    console.log('Or set OPENAI_API_KEY / GEMINI_API_KEY to use API fallback.');
+    console.log('\nIJFW has the Trident ready -- install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY), then run `ijfw demo`.');
     console.log('Run `ijfw doctor` to see which auditors are available on this machine.');
     return;
   }
@@ -391,7 +393,7 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
   console.log('\nFindings:');
   printFindings(mode, merged);
 
-  console.log('\nReceipt: .ijfw/receipts/cross-runs.jsonl');
+  console.log('\nReceipt logged -- run `ijfw status` to see it.');
 }
 
 // ---------------------------------------------------------------------------

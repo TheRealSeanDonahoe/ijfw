@@ -12,7 +12,7 @@
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
-// Format-contract footer shared by all templates — tells auditors the exact
+// Format-contract footer shared by all templates -- tells auditors the exact
 // fenced block schema to use so parseResponse can extract it reliably.
 function formatContract(schema) {
   return `
@@ -20,7 +20,7 @@ function formatContract(schema) {
 
 Return your findings in **two parts**:
 
-1. A single fenced JSON block — the machine-readable payload:
+1. A single fenced JSON block -- the machine-readable payload:
 
 \`\`\`json
 ${schema}
@@ -39,7 +39,7 @@ Rules:
 const TEMPLATES = {
   audit: {
     general: {
-      system: `You are a precise, adversarial code and design auditor. You find real problems — not style preferences. Every finding must be actionable. If a dimension is clean, say so explicitly rather than omitting it. Positive framing in your prose is welcome; your findings must remain blunt.`,
+      system: `You are a precise, adversarial code and design auditor. You find real problems -- not style preferences. Every finding must be actionable. If a dimension is clean, say so explicitly rather than omitting it. Findings: blunt and specific. Wrapping prose: neutral tone.`,
       format: formatContract(`[
   {
     "severity": "high",
@@ -76,7 +76,7 @@ const TEMPLATES = {
 ]`),
     },
     synthesis: {
-      system: `You are a synthesis analyst. You have received research from THREE independent sources: Codex (benchmarks angle), Gemini (citations angle), and the in-session caller (observations angle). Your job is to find consensus, surface contradictions, flag open questions, and produce a coherent synthesis across all three — not a summary of each. Be rigorous: if two claims conflict, say so; do not average them. Cluster semantically equivalent claims even when the wording differs — that is your unique value over the lexical dispatcher merge.`,
+      system: `You are a synthesis analyst. You have received research from THREE independent sources: Codex (benchmarks angle), Gemini (citations angle), and the in-session caller (observations angle). Your job is to find consensus, surface contradictions, flag open questions, and produce a coherent synthesis across all three -- not a summary of each. Be rigorous: if two claims conflict, say so; do not average them. Cluster semantically equivalent claims even when the wording differs -- that is your unique value over the lexical dispatcher merge.`,
       format: formatContract(`[
   {
     "claim": "synthesised finding",
@@ -89,7 +89,7 @@ const TEMPLATES = {
   },
   critique: {
     technical: {
-      system: `You are a technical adversary. Your role is to find weaknesses in implementation, architecture, and engineering choices. Focus on correctness, scalability, failure modes, and technical debt. Be concrete — every counter-argument must name a condition under which the weakness manifests.`,
+      system: `You are a technical adversary. Your role is to find weaknesses in implementation, architecture, and engineering choices. Focus on correctness, scalability, failure modes, and technical debt. Be concrete -- every counter-argument must name a condition under which the weakness manifests.`,
       format: formatContract(`[
   {
     "counterArg": "the specific weakness or challenge",
@@ -100,7 +100,7 @@ const TEMPLATES = {
 ]`),
     },
     strategic: {
-      system: `You are a strategic adversary. Your role is to find weaknesses in positioning, market assumptions, prioritisation, and long-term viability. Focus on adoption risks, competitive landscape, and resource constraints. Be concrete — every counter-argument must name a condition under which the weakness manifests.`,
+      system: `You are a strategic adversary. Your role is to find weaknesses in positioning, market assumptions, prioritisation, and long-term viability. Focus on adoption risks, competitive landscape, and resource constraints. Be concrete -- every counter-argument must name a condition under which the weakness manifests.`,
       format: formatContract(`[
   {
     "counterArg": "the specific strategic weakness",
@@ -111,7 +111,7 @@ const TEMPLATES = {
 ]`),
     },
     ux: {
-      system: `You are a UX and adoption adversary. Your role is to find weaknesses in user experience, onboarding, learnability, and real-world adoption. Focus on friction points, mental models, and the gap between what the system does and what users expect. Be concrete — every counter-argument must name a condition under which the weakness manifests.`,
+      system: `You are a UX and adoption adversary. Your role is to find weaknesses in user experience, onboarding, learnability, and real-world adoption. Focus on friction points, mental models, and the gap between what the system does and what users expect. Be concrete -- every counter-argument must name a condition under which the weakness manifests.`,
       format: formatContract(`[
   {
     "counterArg": "the specific UX or adoption weakness",
@@ -150,7 +150,7 @@ const ROLE_PREFERENCES = {
   research: [
     { angle: 'benchmarks', preferred: ['codex', 'opencode', 'aider'] },
     { angle: 'citations',  preferred: ['gemini', 'claude', 'copilot'] },
-    { angle: 'synthesis',  preferred: ['claude'] }, // always Claude — see spec
+    { angle: 'synthesis',  preferred: ['claude'] }, // always Claude -- see spec
   ],
   critique: [
     { angle: 'technical',  preferred: ['codex', 'opencode', 'aider'] },
@@ -170,12 +170,12 @@ export function assignRoles(mode, roster, self) {
   const missing = [];
 
   for (const { angle, preferred } of roleDefs) {
-    // Synthesis in research always goes to a fresh Claude session —
+    // Synthesis in research always goes to a fresh Claude session --
     // even when self=claude. The spec is explicit: "synthesis is fresh Claude
     // not the caller." So for synthesis we never exclude Claude.
     const isSynthesis = mode === 'research' && angle === 'synthesis';
 
-    // Critique: caller's own angle is dropped — they contribute in-session.
+    // Critique: caller's own angle is dropped -- they contribute in-session.
     // We still assign it to someone else if possible.
     const assignablePreferred = preferred.filter(id => {
       if (!isSynthesis && id === self) return false;
@@ -208,7 +208,7 @@ export function buildRequest(mode, target, auditorId, angle, priorResponses = nu
   let priorSection = '';
   if (isSynthesis && priorResponses) {
     priorSection = `
-## Prior research (Phase A — synthesise across these)
+## Prior research (Phase A -- synthesise across these)
 
 ${priorResponses}
 
@@ -266,7 +266,7 @@ export function parseResponse(_mode, raw) {
 // scoreRebuttalSurvival
 // ---------------------------------------------------------------------------
 
-// Deterministic structural rubric — NOT length-based (length bias was a
+// Deterministic structural rubric -- NOT length-based (length bias was a
 // dogfood-critique finding, consensus between Codex + Gemini). Scores by
 // presence of falsifiability signals, actionable mitigation verbs, concrete
 // code-level evidence, and explicit severity tier. Same input → same score.
@@ -312,12 +312,12 @@ function normaliseClaim(claim) {
 }
 
 function mergeResearch(responses) {
-  // Lexical clustering only — exact normalised text match. Semantic clustering
+  // Lexical clustering only -- exact normalised text match. Semantic clustering
   // (paraphrases, opposing directions) is DELEGATED to the Claude synthesis
   // pass (see research template line: "if two claims conflict, say so"). If
   // the caller has not yet run Phase B, `synthesisPending` flags that the
   // consensus here is lexical-only and the authoritative matrix comes from
-  // synthesis. This was M2 in DOGFOOD-CRITIQUE.md — Codex flagged that exact
+  // synthesis. This was M2 in DOGFOOD-CRITIQUE.md -- Codex flagged that exact
   // normalisation misses semantic equivalence; delegating fixes it without
   // baking a similarity heuristic into the dispatcher.
   const hasSynthesis = responses.some(r => r && r.items && r.items.some(i => i && i.synthesis === true));
@@ -374,7 +374,7 @@ function mergeCritique(responses) {
 // ---------------------------------------------------------------------------
 
 // Rough per-token list prices (USD) for each provider family.
-// Used only for pre-flight estimation — not for billing.
+// Used only for pre-flight estimation -- not for billing.
 // Prices are input-side costs at standard rates as of 2026.
 const PROVIDER_PRICE_PER_TOKEN = {
   codex:     0.000_015,  // OpenAI o4-mini input ~$15/M
@@ -387,7 +387,7 @@ const PROVIDER_PRICE_PER_TOKEN = {
 };
 const DEFAULT_PRICE_PER_TOKEN = 0.000_010; // fallback for unknown providers
 
-// estimateCost(target, picks) — rough cost in USD for one runCrossOp call.
+// estimateCost(target, picks) -- rough cost in USD for one runCrossOp call.
 // char-count / 4 approximates token count; multiply by provider price.
 export function estimateCost(target, picks) {
   const charCount = typeof target === 'string' ? target.length : 0;
@@ -400,12 +400,12 @@ export function estimateCost(target, picks) {
   return total;
 }
 
-// checkBudget({ target, picks, receipts, sessionStart, env }) — returns null
+// checkBudget({ target, picks, receipts, sessionStart, env }) -- returns null
 // if within budget, or a string error message to emit to stderr before exit 2.
 //
 // Post-flight accumulation only: first call is always allowed; the guard
 // refuses when accumulated prior receipts + estimated next call exceed budget.
-// (first-call surprise is unavoidable — budget enforces on 2nd+ calls.)
+// (first-call surprise is unavoidable -- budget enforces on 2nd+ calls.)
 export function checkBudget({ target, picks, receipts, sessionStart, env = {} }) {
   const raw = env.IJFW_AUDIT_BUDGET_USD;
   const budget = raw !== undefined ? parseFloat(raw) : 2.00;

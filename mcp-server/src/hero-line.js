@@ -1,4 +1,4 @@
-// hero-line.js — one-line summary renderer for cross-run receipts.
+// hero-line.js -- one-line summary renderer for cross-run receipts.
 // Codex U1 caveat: delta is NEVER fabricated. If real data is insufficient,
 // the delta suffix is omitted entirely.
 
@@ -33,8 +33,8 @@ function countFindings(f) {
 const CACHE_SAVINGS_PER_TOKEN = 2.70 / 1_000_000;
 
 // renderHeroLine(receipts, sessions?)
-//   receipts — array of cross-runs.jsonl records
-//   sessions — array of sessions.jsonl v3 records (optional, default [])
+//   receipts -- array of cross-runs.jsonl records
+//   sessions -- array of sessions.jsonl v3 records (optional, default [])
 //
 // Returns a one-line string. Delta is only appended when:
 //   - receipts have real input_tokens (sum > 0)
@@ -43,7 +43,7 @@ const CACHE_SAVINGS_PER_TOKEN = 2.70 / 1_000_000;
 // Cache savings suffix appended when last receipt has cache_read_input_tokens > 0.
 export function renderHeroLine(receipts, sessions = []) {
   if (!receipts || receipts.length === 0) {
-    return 'No cross-audit runs yet';
+    return 'No cross-audit runs yet -- fire the Trident at any file with `ijfw cross audit <file>`. First run in ~20s.';
   }
 
   // Aggregate auditor IDs (unique across all receipts).
@@ -79,9 +79,11 @@ export function renderHeroLine(receipts, sessions = []) {
   // Value statement (Sutherland lens): what was delivered, not what was done.
   const baseline = `${auditorIds.size} AIs surfaced ${totalFindings} findings (${totalConsensus} consensus-critical) in ${fmtDuration(totalMs)}`;
 
-  // Cache savings suffix (10D.4): append only when cache reads occurred.
-  const cacheSuffix = totalCacheReadTokens > 0
-    ? ` (prompt cache hit -- ~$${(totalCacheReadTokens * CACHE_SAVINGS_PER_TOKEN).toFixed(2)} saved)`
+  // Cache savings suffix (10D.4): append only when cache reads produced a
+  // visible saving (>= $0.01). A sub-cent figure reads as anti-value.
+  const rawSaved = totalCacheReadTokens * CACHE_SAVINGS_PER_TOKEN;
+  const cacheSuffix = rawSaved >= 0.01
+    ? ` (prompt cache hit -- ~$${rawSaved.toFixed(2)} saved)`
     : '';
 
   // Codex U1: only compute delta when all guards pass.

@@ -1,4 +1,4 @@
-// api-client.js — API-key fallback for cross-audit/research/critique.
+// api-client.js -- API-key fallback for cross-audit/research/critique.
 //
 // Uses Node 19+ native fetch (Undici). Zero external deps.
 // Each provider gets its own request builder; the caller treats the
@@ -87,7 +87,7 @@ function buildAnthropic(system, user, model, key, timeoutMs) {
 }
 
 // ---------------------------------------------------------------------------
-// Text extractor — normalises the three provider response shapes
+// Text extractor -- normalises the three provider response shapes
 // ---------------------------------------------------------------------------
 
 function extractText(provider, json) {

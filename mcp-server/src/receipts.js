@@ -1,7 +1,7 @@
-// receipts.js — atomic append/read for cross-run JSONL receipts.
+// receipts.js -- atomic append/read for cross-run JSONL receipts.
 // ESM, zero deps, synchronous fs.
 //
-// renderReceipt(record, stepNum?) — human-readable text for one receipt.
+// renderReceipt(record, stepNum?) -- human-readable text for one receipt.
 //   Header:  Phase N / Wave NA -- <operation> -- <timestamp>
 //   Body:    Step N.M -- <finding>
 //   cache_stats fields (cache_creation_input_tokens, cache_read_input_tokens)
@@ -46,9 +46,12 @@ export function purgeReceipts(projectDir) {
   return count;
 }
 
+// Anthropic cache-read savings rate (mirrors hero-line.js constant).
+const CACHE_SAVINGS_PER_TOKEN = 2.70 / 1_000_000;
+
 // renderReceipt(record, phaseWave?, stepNum?)
-//   phaseWave — e.g. "Phase 10 / Wave 10A" (default "Phase 10 / Wave 10A")
-//   stepNum   — N.M index for body lines (default 1)
+//   phaseWave -- e.g. "Phase 10 / Wave 10A" (default "Phase 10 / Wave 10A")
+//   stepNum   -- N.M index for body lines (default 1)
 // Returns a multi-line string. JSONL schema is never modified.
 export function renderReceipt(record, phaseWave = 'Phase 10 / Wave 10A', stepNum = 1) {
   const op = record.mode || 'cross';
@@ -96,7 +99,9 @@ export function renderReceipt(record, phaseWave = 'Phase 10 / Wave 10A', stepNum
         lines.push(`Step ${stepNum}.4 -- cache created: ${cs.cache_creation_input_tokens} tokens`);
       }
       if (typeof cs.cache_read_input_tokens === 'number') {
-        lines.push(`Step ${stepNum}.5 -- cache read: ${cs.cache_read_input_tokens} tokens`);
+        const saved = cs.cache_read_input_tokens * CACHE_SAVINGS_PER_TOKEN;
+        const savedStr = saved >= 0.01 ? ` (~$${saved.toFixed(2)} saved)` : '';
+        lines.push(`Step ${stepNum}.5 -- cache read: ${cs.cache_read_input_tokens} tokens${savedStr}`);
       }
     }
   }

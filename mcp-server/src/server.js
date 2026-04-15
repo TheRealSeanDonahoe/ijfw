@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * IJFW Memory Server — Cross-platform MCP memory for AI coding agents
+ * IJFW Memory Server -- Cross-platform MCP memory for AI coding agents
  * By Sean Donahoe | "It Just Fucking Works"
  *
  * 4 tools: recall, store, search, status
@@ -25,7 +25,7 @@ import { checkPrompt } from './prompt-check.js';
 import { applyCaps, CAP_CONTENT } from './caps.js';
 import { ensureSchemaHeader, SCHEMA_HEADER } from './schema.js';
 import { searchCorpus } from './search-bm25.js';
-// R2-E — single source of truth for markdown/HTML/control-char defanger.
+// R2-E -- single source of truth for markdown/HTML/control-char defanger.
 import { sanitizeContent } from './sanitizer.js';
 
 // --- Constants ---
@@ -34,7 +34,7 @@ const MAX_STORE_LENGTH = CAP_CONTENT;
 const MAX_TAGS = 20;
 const MAX_TAG_LEN = 50;
 const MAX_SEARCH_RESULTS = 20;
-const MAX_FILE_READ = 5_000_000;       // 5MB — large enough that unbounded growth doesn't hit during normal lifetime
+const MAX_FILE_READ = 5_000_000;       // 5MB -- large enough that unbounded growth doesn't hit during normal lifetime
 const VALID_MEMORY_TYPES = ['decision', 'observation', 'pattern', 'handoff', 'preference'];
 
 // --- Project root resolution (path-traversal-safe; cross-platform) ---
@@ -70,7 +70,7 @@ const DEFAULT_FACET = 'preferences';
 const REGISTRY_FILE = join(homedir(), '.ijfw', 'registry.md');
 // Phase 3 #8: team memory tier. Project-local, faceted, committed alongside
 // personal memory but distinguished as shared decisions/patterns/stack/members.
-// Precedence: team > personal > global. Empty by default — no behavior change
+// Precedence: team > personal > global. Empty by default -- no behavior change
 // until user creates .ijfw/team/<facet>.md (commits it for teammates).
 const TEAM_DIR_NAME = 'team';
 const TEAM_FACETS = ['decisions', 'patterns', 'stack', 'members'];
@@ -78,7 +78,7 @@ const TEAM_FACETS = ['decisions', 'patterns', 'stack', 'members'];
 // Claude Code's native auto-memory lives at ~/.claude/projects/<encoded>/memory/
 // where <encoded> is the project path with `/` → `-`. IJFW reads these files
 // and surfaces them via MCP so all platforms (not just Claude) see the same
-// memories — no fighting Claude's native "Remember X" handler.
+// memories -- no fighting Claude's native "Remember X" handler.
 const NATIVE_CLAUDE_DIR = join(
   homedir(), '.claude', 'projects',
   PROJECT_DIR.replace(/\//g, '-'),
@@ -100,7 +100,7 @@ try {
   if (!existsSync(GLOBAL_DIR)) mkdirSync(GLOBAL_DIR, { recursive: true });
 } catch { /* handleStore reports on attempted write */ }
 
-// R2-E — sanitizeContent moved to mcp-server/src/sanitizer.js so MCP stores
+// R2-E -- sanitizeContent moved to mcp-server/src/sanitizer.js so MCP stores
 // and auto-memorize stores share a single implementation. Imported above.
 
 // --- Atomic write (write to .tmp, fsync, rename) ---
@@ -129,7 +129,7 @@ function atomicWrite(filepath, content) {
 //
 // Returns { ok: true, content } on success including empty file.
 // Returns { ok: false, reason } so callers can distinguish "absent" from
-// "permission denied" / "too big" / "I/O error" — silent null was the
+// "permission denied" / "too big" / "I/O error" -- silent null was the
 // previous root of multiple bugs.
 function readMarkdownFile(filepath) {
   if (!existsSync(filepath)) return { ok: false, reason: 'absent' };
@@ -189,7 +189,7 @@ function appendToJournal(entry) {
   return appendLine(journalPath, line);
 }
 
-// Structured append for decisions/patterns — produces a richer frontmatter block
+// Structured append for decisions/patterns -- produces a richer frontmatter block
 // similar to Claude's native auto-memory format: YAML frontmatter plus a body with
 // Why / How-to-apply sections. This is the format users retrieve well from.
 function appendStructuredToKnowledge({ type, summary, content, why, howToApply, tags }) {
@@ -229,11 +229,11 @@ function appendStructuredToKnowledge({ type, summary, content, why, howToApply, 
 //
 // Phase 2: writes go to faceted files. facet is inferred from tags when present
 // (tag matches facet name → that facet; else preferences). Legacy global file is
-// read but not written — future migration can merge it into facets.
+// read but not written -- future migration can merge it into facets.
 function appendToGlobalPrefs(entry, tags = []) {
   try {
     if (!existsSync(GLOBAL_FACETS_DIR)) mkdirSync(GLOBAL_FACETS_DIR, { recursive: true });
-  } catch { /* best-effort — if HOME is RO we can't write global */ }
+  } catch { /* best-effort -- if HOME is RO we can't write global */ }
   const facet = GLOBAL_FACETS.find(f => tags.some(t => t.toLowerCase() === f)) || DEFAULT_FACET;
   const namespaced = `[ns:${PROJECT_HASH}] ${entry}`;
   return appendLine(join(GLOBAL_FACETS_DIR, `${facet}.md`), namespaced);
@@ -259,7 +259,7 @@ function readNativeClaudeMemory() {
     for (const f of files) {
       const r = readMarkdownFile(join(NATIVE_CLAUDE_DIR, f));
       if (!r.ok) continue;
-      // Strip YAML frontmatter for brevity in prelude — keep the body that
+      // Strip YAML frontmatter for brevity in prelude -- keep the body that
       // already includes the **Why:** / **How to apply:** sections.
       const body = r.content.replace(/^---[\s\S]*?---\n/, '').trim();
       if (body) parts.push(body);
@@ -270,7 +270,7 @@ function readNativeClaudeMemory() {
   }
 }
 
-// Phase 3 #8: team memory — shared, project-local, committed. Read-only here.
+// Phase 3 #8: team memory -- shared, project-local, committed. Read-only here.
 // Faceted (decisions/patterns/stack/members) for parity with global tier;
 // each facet is a plain markdown file that teammates edit via PR.
 function readTeamKnowledge() {
@@ -297,7 +297,7 @@ function readGlobalKnowledge() {
       if (raw) sources.push(`### ${facet}\n${raw}`);
     }
   }
-  // Legacy single-file (pre-Phase 2) — still surface if present, unfaceted
+  // Legacy single-file (pre-Phase 2) -- still surface if present, unfaceted
   const legacy = readOr(LEGACY_GLOBAL_FILE);
   if (legacy) sources.push(`### legacy\n${legacy}`);
 
@@ -324,7 +324,7 @@ function getSessionCount() {
 function getDecisionCount() {
   const journal = readOr(join(MEMORY_DIR, 'project-journal.md'));
   if (!journal) return 0;
-  // Match only journal entry lines (we now prefix with - [timestamp]) — not
+  // Match only journal entry lines (we now prefix with - [timestamp]) -- not
   // arbitrary list bullets that might appear in seeded content.
   return (journal.match(/^- \[\d{4}-\d{2}-\d{2}T/gm) || []).length;
 }
@@ -410,7 +410,7 @@ function searchAcrossProjects(query, limit) {
 }
 
 // --- Search ---
-// P5.1 / H4 — BM25 ranking over line-level docs. Source tags and line
+// P5.1 / H4 -- BM25 ranking over line-level docs. Source tags and line
 // numbers preserved so callers get the same output shape; scoring is
 // BM25 (IDF + TF + length-normalized) with per-source boost. Team tier
 // ranks first via a score bump for ties.
@@ -462,7 +462,7 @@ function searchMemory(query, limit = 10, scope = 'project') {
 const TOOLS = [
   {
     name: 'ijfw_memory_recall',
-    description: 'Get project context fast -- past decisions, handoff state, and knowledge base in one call. Use at session start or when you need to remember why something was built a certain way. Pass from_project to pull from a different IJFW project (by absolute path, 12-char hash, or basename).',
+    description: 'Wake up with project context intact -- past decisions, handoff state, and knowledge base in one call. Use at session start or when you need to remember why something was built a certain way. Pass from_project to pull from a different IJFW project by basename (simplest), 12-char hash, or absolute path.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -485,15 +485,15 @@ const TOOLS = [
   },
   {
     name: 'ijfw_memory_store',
-    description: 'Store a decision, observation, or session state. For decisions and patterns, provide summary/why/how_to_apply for a richer knowledge-base entry. Returns isError on storage failure.',
+    description: 'Persist a decision, observation, or session state so it survives context resets. For decisions and patterns, add summary/why/how_to_apply for a richer knowledge-base entry. Returns isError on storage failure.',
     inputSchema: {
       type: 'object',
       properties: {
         content: { type: 'string', description: 'Full statement of what to remember. Max 5000 chars. Sanitised on storage.' },
-        type: { type: 'string', enum: VALID_MEMORY_TYPES, description: 'decision/pattern promote to knowledge base with frontmatter block. preference → project-namespaced global. handoff → overwrites handoff.md. observation → journal only.' },
+        type: { type: 'string', enum: VALID_MEMORY_TYPES, description: 'Memory tier: decision or pattern -> knowledge base (frontmatter). handoff -> overwrites handoff.md. preference -> project-namespaced global. observation -> journal only.' },
         summary: { type: 'string', description: 'Optional 1-line summary (≤80 chars). Used as the frontmatter name for decisions/patterns.' },
-        why: { type: 'string', description: 'Optional rationale — why this decision was made. Populates the Why section in the knowledge base entry.' },
-        how_to_apply: { type: 'string', description: 'Optional guidance — when and how to apply this. Populates the How-to-apply section.' },
+        why: { type: 'string', description: 'Optional rationale -- why this decision was made. Populates the Why section in the knowledge base entry.' },
+        how_to_apply: { type: 'string', description: 'Optional guidance -- when and how to apply this. Populates the How-to-apply section.' },
         tags: { type: 'array', items: { type: 'string' }, description: 'Up to 20 tags, 50 chars each.' }
       },
       required: ['content', 'type']
@@ -519,7 +519,7 @@ const TOOLS = [
   },
   {
     name: 'ijfw_memory_prelude',
-    description: 'CALL THIS AT SESSION START. Returns all relevant project memory in one pass — knowledge base, handoff state, recent activity. Eliminates the need to grep/search/recall separately. Call once at the start of a session before answering the user.',
+    description: 'CALL THIS AT SESSION START. Returns all relevant project memory in one pass -- knowledge base, handoff state, recent activity. Eliminates the need to grep/search/recall separately. Call once at the start of a session before answering the user.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -534,7 +534,7 @@ const TOOLS = [
   },
   {
     name: 'ijfw_prompt_check',
-    description: 'CALL THIS on the first turn of a new request when the user prompt is short and could be vague. Returns whether the prompt is under-specified and a sharpening suggestion. Deterministic regex detector — no LLM call. Use for Codex/Cursor/Windsurf/Copilot/Gemini where pre-prompt hooks aren\'t available.',
+    description: 'Call on the first turn when the user prompt is short (<30 tokens) or likely vague. Returns whether the prompt is under-specified and a sharpening suggestion. Deterministic regex detector -- no LLM call. Use for Codex/Cursor/Windsurf/Copilot/Gemini where pre-prompt hooks are not available.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -545,7 +545,7 @@ const TOOLS = [
   },
   {
     name: 'ijfw_metrics',
-    description: 'Aggregate session metrics (tokens, cost, sessions, routing) from .ijfw/metrics/sessions.jsonl. Tolerates mixed v1/v2 lines.',
+    description: 'See tokens/spend, model routing mix, and session totals -- the receipts behind your IJFW sessions. Aggregates from .ijfw/metrics/sessions.jsonl. Tolerates mixed v1/v2 lines.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -619,7 +619,7 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
     return { text: `type must be one of: ${VALID_MEMORY_TYPES.join(', ')}`, isError: true };
   }
   if (!Array.isArray(tags)) tags = [];
-  // S2 — tag whitelist. Rejects path-traversal / null bytes / punctuation
+  // S2 -- tag whitelist. Rejects path-traversal / null bytes / punctuation
   // in tag values that are later used as grep arguments or filenames.
   tags = tags
     .filter(t => typeof t === 'string')
@@ -637,7 +637,7 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
   why = capped.why;
   how_to_apply = capped.how_to_apply;
 
-  // Sanitize ALL text fields — never store raw user/agent text in markdown
+  // Sanitize ALL text fields -- never store raw user/agent text in markdown
   // that gets re-injected into a future LLM context.
   const safeContent = sanitizeContent(content);
   if (!safeContent) {
@@ -653,7 +653,7 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
   // 1. Always append to journal (one-line timeline). Hard failure → report.
   const journalResult = appendToJournal(journalEntry);
   if (!journalResult.ok) {
-    return { text: `journal write failed (${journalResult.code}): ${journalResult.message}`, isError: true };
+    return { text: `Memory journal is not writable (${journalResult.code}) -- check .ijfw/ directory permissions and retry.`, isError: true };
   }
 
   // 2. Type-specific secondary writes. Each tracked so we report partial
@@ -698,7 +698,7 @@ function handleStore({ content, type, tags = [], summary, why, how_to_apply }) {
   return { text: `Stored ${type}${tagStr}` };
 }
 
-// Universal first-turn recall — call once at session start to hydrate context.
+// Universal first-turn recall -- call once at session start to hydrate context.
 // Returns a compact, structured block that agents on any platform can ingest
 // without cascading into multiple exploratory tool calls.
 function handlePrelude({ detail_level = 'summary' } = {}) {
@@ -712,7 +712,7 @@ function handlePrelude({ detail_level = 'summary' } = {}) {
   parts.push('Project memory hydrated. Treat as background context -- no further recall needed unless the user asks something not covered here.');
   parts.push('');
 
-  // Team knowledge first — shared decisions/patterns/stack rank above personal.
+  // Team knowledge first -- shared decisions/patterns/stack rank above personal.
   const team = readTeamKnowledge();
   if (team) {
     const body = team.split('\n').slice(0, TM_LINES).join('\n').trim();
@@ -730,7 +730,7 @@ function handlePrelude({ detail_level = 'summary' } = {}) {
     if (body) parts.push('## Knowledge base', body, '');
   }
 
-  // Claude Code's native auto-memory — Claude's own skill writes here on
+  // Claude Code's native auto-memory -- Claude's own skill writes here on
   // "Remember X". Surfacing it via IJFW makes those memories available to
   // Codex/Gemini/Cursor too, fulfilling the cross-platform promise without
   // fighting Claude's native handler.
@@ -789,7 +789,7 @@ function handleMetrics({ period = '7d', metric = 'tokens' } = {}) {
   const file = join(IJFW_DIR, 'metrics', 'sessions.jsonl');
   const r = readMarkdownFile(file);
   if (!r.ok) {
-    return { text: 'Ready to track — run a session and metrics will populate here.' };
+    return { text: 'Ready to track -- run a session and metrics will populate here.' };
   }
 
   const lines = r.content.split('\n').filter(l => l.trim());
@@ -798,7 +798,7 @@ function handleMetrics({ period = '7d', metric = 'tokens' } = {}) {
     try { rows.push(JSON.parse(line)); } catch { /* skip malformed line */ }
   }
   if (rows.length === 0) {
-    return { text: 'Ready to track — run a session and metrics will populate here.' };
+    return { text: 'Ready to track -- run a session and metrics will populate here.' };
   }
 
   // Window filter (UTC day comparison via ISO prefix).
@@ -813,7 +813,7 @@ function handleMetrics({ period = '7d', metric = 'tokens' } = {}) {
     return Number.isFinite(t) && t >= cutoff;
   });
   if (within.length === 0) {
-    return { text: `Window ${period}: no sessions yet. Earlier history available — try period: 'all'.` };
+    return { text: `Window ${period}: no sessions yet. Earlier history available -- try period: 'all'.` };
   }
 
   if (metric === 'sessions') {
@@ -852,7 +852,7 @@ function handleMetrics({ period = '7d', metric = 'tokens' } = {}) {
     const total = days.reduce((s, d) => s + byDay[d].cost, 0);
     const lines = ['Day        | sessions | cost (USD)'];
     for (const d of days) lines.push(`${d} | ${String(byDay[d].n).padStart(8)} | $${byDay[d].cost.toFixed(4)}`);
-    lines.push(`Total: $${total.toFixed(4)} across ${within.length} session(s) — clean session-ends only.`);
+    lines.push(`Total: $${total.toFixed(4)} across ${within.length} session(s) -- clean session-ends only.`);
     return { text: lines.join('\n') };
   }
 
@@ -951,7 +951,7 @@ function handleMessage(msg) {
             const pc = checkPrompt((args && args.prompt) || '');
             const text = pc.vague
               ? `vague: yes\nsignals: ${pc.signals.join(', ')}\nsuggestion: ${pc.suggestion}`
-              : `vague: no${pc.bypass_reason ? ` (bypass: ${pc.bypass_reason})` : pc.signals.length ? ` (signals: ${pc.signals.join(', ')} — below threshold)` : ''}`;
+              : `vague: no${pc.bypass_reason ? ` (bypass: ${pc.bypass_reason})` : pc.signals.length ? ` (signals: ${pc.signals.join(', ')} -- below threshold)` : ''}`;
             result = { text };
             break;
           }
@@ -1029,5 +1029,5 @@ process.on('unhandledRejection', (err) => {
   process.stderr.write(`IJFW: unhandled rejection: ${err}\n`);
 });
 
-// Export for tests (Node ESM allows this — only consumed when imported, not on stdio run)
+// Export for tests (Node ESM allows this -- only consumed when imported, not on stdio run)
 export { sanitizeContent, atomicWrite, readMarkdownFile, PROJECT_HASH };

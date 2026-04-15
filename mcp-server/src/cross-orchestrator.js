@@ -1,4 +1,4 @@
-// cross-orchestrator.js — Trident execution flow.
+// cross-orchestrator.js -- Trident execution flow.
 //
 // runCrossOp: probe roster → diversity pick → swarm resolve →
 //             parallel fire → merge → receipt write → return.
@@ -6,7 +6,7 @@
 // Stamp note (U7): buildRequest stamps internally with new Date() per call.
 // The orchestrator's runStamp is used exclusively in the receipt and as the
 // archive identity for this run. We don't patch buildRequest to accept an
-// override — simpler, and the receipt is the authoritative record.
+// override -- simpler, and the receipt is the authoritative record.
 //
 // Specialist swarm (U6): isInstalled is cached per-process in audit-roster;
 // pickAuditors already calls it. We do not re-probe here.
@@ -37,7 +37,7 @@ function timeoutForPick(pick, resolvedTimeoutSec) {
   return PROVIDER_TIMEOUT_MS[pick.id] ?? DEFAULT_TIMEOUT_MS;
 }
 
-// parsePosInt — parse a raw string to a positive integer in [min, max].
+// parsePosInt -- parse a raw string to a positive integer in [min, max].
 // Returns fallback on non-numeric, NaN, ≤0, or >max.
 function parsePosInt(raw, fallback, min = 1, max = Infinity) {
   if (raw === undefined || raw === null || raw === '') return fallback;
@@ -112,7 +112,7 @@ function angleFor(mode, id) {
   throw new Error(`Unknown mode: ${mode}`);
 }
 
-// spawnCli — single-settlement guard + SIGKILL on timeout or abort signal.
+// spawnCli -- single-settlement guard + SIGKILL on timeout or abort signal.
 // Returns { stdout, stderr, exitCode, timedOut, aborted } or null on spawn error.
 function spawnCli(pick, request, timeoutMs, signal = null) {
   return new Promise((resolve) => {
@@ -180,7 +180,7 @@ function spawnCli(pick, request, timeoutMs, signal = null) {
   });
 }
 
-// fireExternal — CLI with API-key fallback.
+// fireExternal -- CLI with API-key fallback.
 // Returns { stdout, stderr, exitCode, status, source, elapsedMs }
 // status: 'ok' | 'empty' | 'failed' | 'timeout' | 'fallback-used' | 'aborted' | null (cli normal)
 // source: 'cli' | 'api' | 'none'
@@ -204,7 +204,7 @@ async function fireExternal(pick, request, timeoutMs, env = process.env, signal 
     return { mode, angle, target };
   }
 
-  // API-only pick (preferredSource: 'api') — skip spawnCli entirely.
+  // API-only pick (preferredSource: 'api') -- skip spawnCli entirely.
   if (pick.preferredSource === 'api' && pick.apiFallback && isReachable(pick.id, env).api) {
     if (signal?.aborted) return { stdout: '', stderr: 'aborted', exitCode: null, status: 'aborted', source: 'none', elapsedMs: elapsed() };
     const { mode, angle, target } = extractApiParams();
@@ -222,7 +222,7 @@ async function fireExternal(pick, request, timeoutMs, env = process.env, signal 
     return { stdout: '', stderr: 'aborted', exitCode: null, status: 'aborted', source: 'none', elapsedMs: elapsed() };
   }
 
-  // Explicit timeout — attempt API fallback before giving up.
+  // Explicit timeout -- attempt API fallback before giving up.
   if (raw && raw.timedOut) {
     if (pick.apiFallback && isReachable(pick.id, env).api) {
       const { mode, angle, target } = extractApiParams();
@@ -234,7 +234,7 @@ async function fireExternal(pick, request, timeoutMs, env = process.env, signal 
     return { stdout: '', stderr: 'timeout', exitCode: null, status: 'timeout', source: 'none', elapsedMs: elapsed() };
   }
 
-  // CLI failed — try API fallback
+  // CLI failed -- try API fallback
   const cliOk = raw !== null && raw.exitCode === 0;
   if (!cliOk && pick.apiFallback && isReachable(pick.id, env).api) {
     const { mode, angle, target } = extractApiParams();
@@ -253,7 +253,7 @@ async function fireExternal(pick, request, timeoutMs, env = process.env, signal 
   return { stdout: raw.stdout, stderr: raw.stderr, exitCode: raw.exitCode, status: null, source: 'cli', elapsedMs: elapsed() };
 }
 
-// fanOut — rolling concurrency window; zero-dep semaphore.
+// fanOut -- rolling concurrency window; zero-dep semaphore.
 async function fanOut(tasks, concurrency = 3) {
   const results = new Array(tasks.length);
   let next = 0;
@@ -269,7 +269,7 @@ async function fanOut(tasks, concurrency = 3) {
   return results;
 }
 
-// minResponsesFanOut — abort stragglers once minResponses auditors settle.
+// minResponsesFanOut -- abort stragglers once minResponses auditors settle.
 // Takes a shared AbortController (runAc) so pending picks get killed on threshold.
 async function minResponsesFanOut(requests, picks, resolvedTimeoutSec, env, concurrency, minResponses, runAc) {
   const total = requests.length;
@@ -320,9 +320,9 @@ export async function runCrossOp({
   projectDir,
   env,
   runStamp,
-  expand,              // reserved — passed through but unused in current CLI context
+  expand,              // reserved -- passed through but unused in current CLI context
   only,
-  confirm,             // reserved — handled by caller (CLI layer)
+  confirm,             // reserved -- handled by caller (CLI layer)
   perAuditorTimeoutSec,
   minResponses,
   quiet = false,        // suppress uxGate stderr warnings (used by demo)
@@ -333,7 +333,7 @@ export async function runCrossOp({
 
   const start = Date.now();
 
-  // Shared abort controller for this run — used by minResponsesFanOut to kill stragglers.
+  // Shared abort controller for this run -- used by minResponsesFanOut to kill stragglers.
   const runAc = new AbortController();
 
   const rawTimeoutSec = env.IJFW_AUDIT_TIMEOUT_SEC;
@@ -348,11 +348,11 @@ export async function runCrossOp({
 
   // 2. Short-circuit when no auditors are available
   if (picks.length === 0) {
-    process.stderr.write('No external auditors ready — install codex or gemini for full Trident.\n');
+    process.stderr.write('No external auditors ready -- install codex or gemini for full Trident.\n');
     return { merged: null, picks: [], missing, note };
   }
 
-  // 2b. Budget guard — post-flight accumulation check (2nd+ calls in session)
+  // 2b. Budget guard -- post-flight accumulation check (2nd+ calls in session)
   const sessionStart = new Date(Date.now() - process.uptime() * 1000);
   const priorReceipts = readReceipts(projectDir);
   const budgetMsg = checkBudget({ target, picks, receipts: priorReceipts, sessionStart, env });
@@ -361,7 +361,7 @@ export async function runCrossOp({
     process.exit(2);
   }
 
-  // 3. UX gate — emit status line or prompt before firing
+  // 3. UX gate -- emit status line or prompt before firing
   const proceed = await uxGate(picks, missing, confirm, quiet);
   if (!proceed) process.exit(0);
 
@@ -431,7 +431,7 @@ export async function runCrossOp({
   if (auditorResults.length > 0 && auditorResults.every(r => r.status === 'timeout')) {
     const currentVal = resolvedTimeoutSec ?? env.IJFW_AUDIT_TIMEOUT_SEC ?? 'default';
     process.stderr.write(
-      `All auditors timed out — check network or raise IJFW_AUDIT_TIMEOUT_SEC (currently ${currentVal})\n`
+      `All auditors timed out -- check network or raise IJFW_AUDIT_TIMEOUT_SEC (currently ${currentVal})\n`
     );
     return {
       merged: null, picks, missing, note, auditorResults,
