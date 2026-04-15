@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# IJFW PreCompact — preserve key decisions before context compression.
-# NOTE: no `set -e` — hooks must NEVER crash Claude Code.
+# IJFW PreCompact -- preserve key decisions before context compression.
+# NOTE: no `set -e` -- hooks must NEVER crash Claude Code.
 [ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 
 IJFW_DIR=".ijfw"
@@ -9,7 +9,7 @@ SESSION_FILE="$IJFW_DIR/sessions/session_$TIMESTAMP.md"
 
 mkdir -p "$IJFW_DIR/sessions"
 
-# W4.3 / B5 — auto-preserve last 3 user/assistant turns via a hint.
+# W4.3 / B5 -- auto-preserve last 3 user/assistant turns via a hint.
 # Also instructs the compaction to retain feedback/signal files verbatim
 # since auto-memorize needs them intact at session end.
 cat << 'EOF'
@@ -30,7 +30,7 @@ Drop from compacted context:
 - Intermediate discussion that led to a final decision
 - Full file contents already committed
 
-Protected (do not touch — auto-memorize reads these at session end):
+Protected (do not touch -- auto-memorize reads these at session end):
 - .ijfw/.session-signals.jsonl
 - .ijfw/.session-feedback.jsonl
 - .ijfw/.prompt-check-state

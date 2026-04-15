@@ -1,6 +1,6 @@
 # @ijfw/install
 
-One-command installer for [IJFW](https://github.com/TradeCanyon/ijfw) — the AI
+One-command installer for [IJFW](https://github.com/TradeCanyon/ijfw) -- the AI
 efficiency layer for Claude Code, Codex, Gemini, Cursor, Windsurf, Copilot.
 
 ## Install
@@ -10,7 +10,7 @@ npm install -g @ijfw/install
 ijfw demo
 ```
 
-That's it. IJFW configures every agent on your machine and you're ready to go.
+IJFW configures every agent on your machine. The options below let you customise the install location, branch, or skip specific steps -- all are optional.
 
 ### Options
 

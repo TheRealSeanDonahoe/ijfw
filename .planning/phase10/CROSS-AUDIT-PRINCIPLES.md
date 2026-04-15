@@ -41,11 +41,11 @@ Match rules: exact file:line overlap, or same file within 5 lines, or same theme
 | C10 [closed] | universal/ijfw-rules.md (file-truth + em-dash)               | K,D    | HIGH          | K flags manifest/README/CLAUDE.md disagreement about path and line budget (19 lines vs documented 15). D flags em-dash on line 13 violating ASCII-only. | Pick canonical path, align manifest + README + CLAUDE.md; replace em-dash with ASCII `--`. |
 | C11 [closed] | gemini/GEMINI.md em-dash + install precondition              | K,D    | HIGH          | D flags em-dashes on lines 19, 23 (ASCII violation). K flags line 38 tells user to run `ijfw cross ...` before install precondition documented. | Replace em-dashes with `--` or `:`; prepend install precondition line. |
 | C12 [closed] | cursor/.cursorrules:23 em-dash                               | D      | HIGH (single-lens, kept visible for grep consistency with C10/C11) | Same em-dash pattern in cursor rules file. | Same fix as C10/C11. |
-| C13 | claude/skills/ijfw-review/SKILL.md:16 empty state            | K,S    | MED           | `Clean. No findings.` teaches nothing; empty state should name what was checked. | `Clean. Reviewed N lines across bug/warn/suggest/nice gates. No findings.`. |
-| C14 | claude/skills/ijfw-workflow/SKILL.md Trident framing (264-276) | K,S,D | MED          | Trident block is a to-do for the user (S), cites `P9` with no in-file definition (K), and assumes external CLI reachability with no fallback (D). | Rewrite block: one-line Donahoe-22 pointer; value reframe ("2 models will independently challenge this"); explicit fallback to Agent-dispatched specialist swarm when no external CLI reachable. |
-| C15 | claude/skills/ijfw-workflow/SKILL.md state-file enumeration (83 vs 384) | K | LOW (single-lens; tracked for closure) | Two different lists of state files in same skill (5 vs 6 including design.md). | Unify into one state-file table at top. |
+| C13 [closed] | claude/skills/ijfw-review/SKILL.md:16 empty state            | K,S    | MED           | `Clean. No findings.` teaches nothing; empty state should name what was checked. | `Clean. Reviewed N lines across bug/warn/suggest/nice gates. No findings.`. |
+| C14 [closed] | claude/skills/ijfw-workflow/SKILL.md Trident framing (264-276) | K,S,D | MED          | Trident block is a to-do for the user (S), cites `P9` with no in-file definition (K), and assumes external CLI reachability with no fallback (D). | Rewrite block: one-line Donahoe-22 pointer; value reframe ("2 models will independently challenge this"); explicit fallback to Agent-dispatched specialist swarm when no external CLI reachable. |
+| C15 [closed] | claude/skills/ijfw-workflow/SKILL.md state-file enumeration (83 vs 384) | K | LOW (single-lens; tracked for closure) | design.md appears only in the tree diagram (optional visual companion); header list of 5 is authoritative. Treated as accurate. |
 | C16 | mcp-server/src/server.js tool descriptions (488-557)         | K,S    | MED           | Descriptions lead with mechanics ("Retrieve context from IJFW memory") not user benefit (S); also routing ambiguity between prelude and prompt_check both shouting "CALL THIS" (K). | Rewrite descriptions benefit-first; keep prelude as canonical onboarding pointer; soften prompt_check opener to a trigger-specific clause. |
-| C17 | Installer post-run messaging (install.sh:206, install.js:138) | S,D   | MED           | S: no value receipt of what was accomplished. D: `No .git directory found -- skipping post-commit hook` negative empty-state. | Add one summary line pre-done: `<N> agents now share memory and rules.`; rewrite empty-state to `Git repo not initialised here -- post-commit hook is available once you run git init`. |
+| C17 [closed] | Installer post-run messaging (install.sh:206, install.js:138) | S,D   | MED           | S: no value receipt of what was accomplished. D: `No .git directory found -- skipping post-commit hook` negative empty-state. | Add one summary line pre-done: `<N> agents now share memory and rules.`; rewrite empty-state to `Git repo not initialised here -- post-commit hook is available once you run git init`. |
 
 Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some rows absorb 2 lenses, some 3).
 
@@ -70,18 +70,18 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | K4.3 | MED  | mcp-server/src/cross-orchestrator-cli.js:148                | Budget wording forces user to translate explanation to policy. |
 | K5.2 | MED  | mcp-server/src/server.js:464                                | `ijfw_memory_recall` has three identifier forms without priority order. |
 | K6.3 | LOW  | mcp-server/src/cross-dispatcher.js:40                       | "Positive framing + blunt findings" contradiction in template prompt. |
-| K7.1 | MED  | claude/hooks/scripts/session-start.sh:353                   | `[ijfw] Next: ...` banner silently truncates multi-line next action. |
-| K7.2 | MED  | claude/hooks/scripts/pre-prompt.sh:123                      | Vague-prompt override syntax buried at end of long string. |
-| K8.2 | MED  | installer/README.md:13                                      | "That's it" claim contradicts 20 lines of options below. |
-| K8.3 | MED  | scripts/install.sh:22                                       | Inside-repo self-guard exits 0 -- stranger thinks install succeeded. |
+| K7.1 [closed] | MED  | claude/hooks/scripts/session-start.sh:353                   | `[ijfw] Next: ...` banner silently truncates multi-line next action. |
+| K7.2 [closed] | MED  | claude/hooks/scripts/pre-prompt.sh:123                      | Vague-prompt override syntax buried at end of long string. |
+| K8.2 [closed] | MED  | installer/README.md:13                                      | "That's it" claim contradicts 20 lines of options below. |
+| K8.3 [closed] | MED  | scripts/install.sh:22                                       | Inside-repo self-guard exits 0 -- stranger thinks install succeeded. |
 | K10.3| MED [closed] | README.md:20                                                | Demo output block hard-codes version string. |
 | K10.4| MED [closed] | PUBLISH-CHECKLIST.md:66                                     | Ambiguous pass condition for HIGH-finding grep. |
 | K1.6 | LOW  | claude/skills/ijfw-workflow/SKILL.md:394                    | OUTPUT RULES guardrail buried near EOF. |
 | K2.3 | LOW  | claude/skills/ijfw-review/SKILL.md:16                       | Covered by C13. |
 | K3.5 | LOW  | claude/commands/team.md:6                                   | `/team` listing format unspecified. |
 | K5.3 | LOW  | mcp-server/src/server.js:493                                | Stored `type` enum runs hot in one sentence. |
-| K7.3 | LOW  | claude/hooks/scripts/session-start.sh:29                    | Two-sentence `.ijfw` preflight could compress to one. |
-| K8.4 | LOW  | scripts/install.sh:124                                      | Mixed prefixes `ok`/`note`/`info` without legend. |
+| K7.3 [closed] | LOW  | claude/hooks/scripts/session-start.sh:29                    | Two-sentence `.ijfw` preflight could compress to one. |
+| K8.4 [closed] | LOW  | scripts/install.sh:124                                      | Mixed prefixes `ok`/`note`/`info` without legend. |
 
 ### Sutherland unique (not covered above)
 
@@ -106,7 +106,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | S4.3 | MED  | mcp-server/src/cross-orchestrator-cli.js:220-290            | cmdDemo closes on CTA rather than wow receipt. |
 | S5.4 | MED  | mcp-server/src/server.js:546-548                            | `ijfw_metrics` mechanical description; rewrite benefit-first. |
 | S6.2 | MED  | mcp-server/src/receipts.js:49-105                           | renderReceipt lacks cache-savings translation; hero-line translates, receipts don't. |
-| S7.3 | MED  | claude/hooks/scripts/post-tool-use.sh:95-114                | Trim pipeline silent; emit one-line `[ijfw] trimmed N lines -> head/tail/signals`. |
+| S7.3 [closed] | MED  | claude/hooks/scripts/post-tool-use.sh:95-114                | Trim pipeline silent; emit one-line `[ijfw] trimmed N lines -> head/tail/signals`. |
 | S8.2 | MED  | scripts/install.sh:206                                      | Covered by C17. |
 | S9.2 | MED  | universal/ijfw-rules.md:6-15                                | No line quantifying the saving; add "Typical session: 30-50% fewer output tokens vs default". |
 | S10.4| MED [closed] | CHANGELOG.md:33-42                                          | P8 bullets use feature verbs; rewrite benefit-first. |
@@ -118,10 +118,10 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | S5.3 | LOW  | mcp-server/src/server.js:521-522                            | Keep as reference pattern. |
 | S6.3 | LOW  | [no-file-ref]                                               | Auditor-pick rationale not communicated (family diversity). |
 | S6.4 | LOW  | mcp-server/src/hero-line.js:46                              | Covered by C04. |
-| S7.1 | LOW  | claude/hooks/scripts/session-start.sh:334-336               | Extend memory-loaded line with Trident-run count. |
+| S7.1 [closed] | LOW  | claude/hooks/scripts/session-start.sh:334-336               | Extend memory-loaded line with Trident-run count. |
 | S7.4 | LOW  | claude/hooks/scripts/pre-prompt.sh:117-125                  | Reference pattern; no action. |
 | S8.3 | LOW  | installer/README.md:13                                      | Reference pattern; no action. |
-| S8.4 | LOW  | scripts/install.sh:245-246                                  | Flip post-commit-hook tip benefit-first. |
+| S8.4 [closed] | LOW  | scripts/install.sh:245-246                                  | Flip post-commit-hook tip benefit-first. |
 | S9.1 | LOW  | universal/ijfw-rules.md:1-4                                 | Reference pattern; no action. |
 | S9.3 | LOW  | gemini/GEMINI.md:1-4                                        | Reference pattern; no action. |
 | S9.4 | LOW  | [no-file-ref]                                               | Platform parity message never surfaced in rules files. |
@@ -148,7 +148,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | D4.9  | MED  | mcp-server/src/cross-orchestrator-cli.js:378-382                | Three consecutive negative lines on no-auditor path; consolidate after C01/C02/D4.5 fixes. |
 | D5.2  | MED  | mcp-server/src/server.js:656                                    | `journal write failed (code): message` raw bubble; wrap. |
 | D7.1  | MED  | claude/hooks/scripts/session-start.sh:29                        | Covered by K7.3 (same file:line). |
-| D8.7  | MED  | scripts/install.sh:55-57                                        | `ok()` uses Unicode check mark U+2713; replace with `[ok]`. |
+| D8.7 [closed]  | MED  | scripts/install.sh:55-57                                        | `ok()` uses Unicode check mark U+2713; replace with `[ok]`. |
 | D8.8  | MED  | scripts/install.sh:222                                          | Covered by C17. |
 | D9.3  | MED  | universal/ijfw-rules.md:13                                      | Em-dash (covered by C10). |
 | D9.4  | MED  | copilot/copilot-instructions.md                                 | Likely same em-dash issue; grep-replace across all platform rules. |
@@ -164,7 +164,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | D5.3  | LOW  | mcp-server/src/server.js:488-557                                | No action. |
 | D5.4  | LOW  | mcp-server/src/server.js:521-534                                | No action. |
 | D6.4  | LOW  | mcp-server/src/receipts.js:39-46                                | No action. |
-| D7.3  | LOW  | claude/hooks/scripts/session-start.sh:472-475,537-540           | Em-dash inside CLAUDE.md marker string; replace with ASCII `--`. |
+| D7.3 [closed]  | LOW  | claude/hooks/scripts/session-start.sh:472-475,537-540           | Em-dash inside CLAUDE.md marker string; replace with ASCII `--`. |
 | D7.4  | LOW  | claude/hooks/scripts/session-start.sh:88-95                     | No action. |
 | D8.9  | LOW  | installer/README.md:35                                          | No action. |
 | D8.10 | LOW  | installer/README.md:31                                          | No action. |

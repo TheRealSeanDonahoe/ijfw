@@ -4,7 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-ok()   { printf "  ✓ %s\n" "$1"; }
+ok()   { printf "  [ok] %s\n" "$1"; }
 info() { printf "  -- %s\n" "$1"; }
 
 echo "IJFW health check"

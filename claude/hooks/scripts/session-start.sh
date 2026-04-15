@@ -26,7 +26,7 @@ MIGRATION_LOCK="$IJFW_DIR/.migration.lock"
 # --- Pre-flight: .ijfw must be a directory if it exists ---
 if [ -e "$IJFW_DIR" ] && [ ! -d "$IJFW_DIR" ]; then
   cat <<'EOF'
-[ijfw] A file named ".ijfw" exists in this project -- IJFW needs that name for its directory. Rename or remove the file, then start a new session.
+[ijfw] ".ijfw" is a file here -- IJFW needs it as a directory. Rename or remove it, then start a new session.
 EOF
   exit 0
 fi
@@ -332,7 +332,12 @@ fi
 [ -n "$NEEDS_COMPRESS" ] && printf '[ijfw] Project context optimised\n'
 
 if [ "$SESSION_COUNT" -gt 0 ] || [ "$DECISION_COUNT" -gt 0 ]; then
-  printf '[ijfw] Memory loaded (%s sessions, %s decisions)\n' "$SESSION_COUNT" "$DECISION_COUNT"
+  EARLY_TRIDENT=$(grep -c '{' "$IJFW_DIR/receipts/cross-runs.jsonl" 2>/dev/null || printf '0')
+  if [ "${EARLY_TRIDENT:-0}" -gt 0 ]; then
+    printf '[ijfw] Memory loaded (%s sessions, %s decisions, %s Trident runs)\n' "$SESSION_COUNT" "$DECISION_COUNT" "$EARLY_TRIDENT"
+  else
+    printf '[ijfw] Memory loaded (%s sessions, %s decisions)\n' "$SESSION_COUNT" "$DECISION_COUNT"
+  fi
 fi
 
 # W3.11 / H9 -- surface one most-recent auto-memorized entry as the
@@ -350,7 +355,7 @@ if [ -f "$IJFW_DIR/memory/handoff.md" ]; then
   LAST_STATUS=$(grep -A1 "### Status" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//')
   NEXT_STEP=$(grep -A1 "### Next Steps" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//;s/^[0-9]*\. //')
   [ -n "$LAST_STATUS" ] && printf '[ijfw] Last session: %s\n' "$LAST_STATUS"
-  [ -n "$NEXT_STEP" ] && printf '[ijfw] Next: %s\n' "$NEXT_STEP"
+  [ -n "$NEXT_STEP" ] && printf '[ijfw] Next (top): %s -- see handoff.md for full list\n' "$NEXT_STEP"
 fi
 
 # Codebase index -- MVP text index at .ijfw/index/files.md.

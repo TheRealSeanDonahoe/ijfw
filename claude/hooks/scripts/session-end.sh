@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# IJFW SessionEnd (Stop hook) — save session state, write metrics, manage journal.
-# NOTE: no `set -e` — hooks must NEVER crash Claude Code.
+# IJFW SessionEnd (Stop hook) -- save session state, write metrics, manage journal.
+# NOTE: no `set -e` -- hooks must NEVER crash Claude Code.
 
-# E4 — universal disable switch. Any hook respects IJFW_DISABLE=1.
+# E4 -- universal disable switch. Any hook respects IJFW_DISABLE=1.
 [ "${IJFW_DISABLE:-}" = "1" ] && exit 0
 #
 # Hardened against:
@@ -83,8 +83,8 @@ if command -v node >/dev/null 2>&1; then
       }
     } catch {}
 
-    // Pricing table (USD per million tokens). Conservative — unknown family = 0.
-    // Hardcoded (no proxy/no network rule). Y3 — match by FAMILY prefix so a
+    // Pricing table (USD per million tokens). Conservative -- unknown family = 0.
+    // Hardcoded (no proxy/no network rule). Y3 -- match by FAMILY prefix so a
     // minor bump (4-6 → 4-7) still resolves and we never silently render $0.
     const FAMILIES = [
       { prefix: "claude-opus-",   p: { in: 15.0, out: 75.0, cr: 1.50, cc: 18.75 } },
@@ -131,11 +131,11 @@ if command -v node >/dev/null 2>&1; then
       cache_creation_tokens: usage.cache_creation_input_tokens,
       cost_usd: cost(),
       model: model,
-      // Phase 4 W1.3 — schema v3.
+      // Phase 4 W1.3 -- schema v3.
       baseline_tokens_estimate: baselineOut,
       compression_ratio: compression,
       baseline_factor: baseFactor,
-      // Phase 3 #2 — populated by pre-prompt hook.
+      // Phase 3 #2 -- populated by pre-prompt hook.
       prompt_check_fired: false,
       prompt_check_signals: []
     };
@@ -160,7 +160,7 @@ if command -v node >/dev/null 2>&1; then
   fi
 fi
 
-# Session marker — fixed-format, no user input interpolated.
+# Session marker -- fixed-format, no user input interpolated.
 {
   echo "<!-- ijfw schema:1 -->"
   echo "# Session: $TIMESTAMP"
@@ -179,12 +179,12 @@ if [ ! -f "$JOURNAL" ]; then
 fi
 printf -- '- [%s] session-end: #%s\n' "$ISO_TIMESTAMP" "$SESSION_NUM" >> "$JOURNAL" 2>/dev/null
 
-# Dream cycle trigger — APPEND, never clobber.
+# Dream cycle trigger -- APPEND, never clobber.
 if [ "$SESSION_NUM" -gt 0 ] && [ $(( SESSION_NUM % 5 )) -eq 0 ]; then
   echo "IJFW_NEEDS_CONSOLIDATE=1" >> "$IJFW_DIR/.startup-flags" 2>/dev/null
 fi
 
-# W4.6 / R6 — session-dir pruning. Keep newest 30 markers; archive older
+# W4.6 / R6 -- session-dir pruning. Keep newest 30 markers; archive older
 # to .ijfw/archive/sessions/ as gzip if gzip is available, else rm.
 if [ -d "$IJFW_DIR/sessions" ]; then
   PRUNE_COUNT=$(ls -1 "$IJFW_DIR/sessions" 2>/dev/null | wc -l | tr -d ' ')
@@ -202,7 +202,7 @@ if [ -d "$IJFW_DIR/sessions" ]; then
   fi
 fi
 
-# W4.6 / R3 — memory archival for journal entries >90 days old. Line-based
+# W4.6 / R3 -- memory archival for journal entries >90 days old. Line-based
 # journal entries have ISO timestamps in [YYYY-MM-DD...] prefix; we keep the
 # newest window and archive the rest monthly.
 if [ -f "$IJFW_DIR/memory/project-journal.md" ] && command -v node >/dev/null 2>&1; then
@@ -240,11 +240,11 @@ if [ -f "$IJFW_DIR/memory/project-journal.md" ] && command -v node >/dev/null 2>
   ' 2>/dev/null
 fi
 
-# W4.6 / ST3 — hook error log. Any captured stderr from this session is
+# W4.6 / ST3 -- hook error log. Any captured stderr from this session is
 # appended here so /doctor can surface it next startup. Per-hook hooks
 # redirect their stderr to this file if they choose; this block just
 # ensures the file exists and is rotated weekly.
-# P5.2 / H1 — invoke auto-memorize synthesizer. Silent if consent not set.
+# P5.2 / H1 -- invoke auto-memorize synthesizer. Silent if consent not set.
 # Resolve the binary: plugin cache first, HOME-installed second, dev repo third.
 MEMORIZE=""
 for candidate in \
@@ -258,7 +258,7 @@ if [ -n "$MEMORIZE" ]; then
   if [ -n "$MEMO_OUT" ]; then
     echo "$MEMO_OUT"
   fi
-  # Clear the signal files so next session starts fresh (ran or not — only
+  # Clear the signal files so next session starts fresh (ran or not -- only
   # clear after the synthesizer had its chance).
   [ -f "$IJFW_DIR/.session-signals.jsonl" ]  && : > "$IJFW_DIR/.session-signals.jsonl"
   [ -f "$IJFW_DIR/.session-feedback.jsonl" ] && : > "$IJFW_DIR/.session-feedback.jsonl"
@@ -276,7 +276,7 @@ if [ -f "$HOOK_LOG" ]; then
   fi
 fi
 
-# Positive-framed status — no jargon, no negatives, no paths.
+# Positive-framed status -- no jargon, no negatives, no paths.
 printf '[ijfw] Session #%s saved.\n' "$SESSION_NUM"
 
 # Savings reframe (W1.3 / C1). Reads the JSONL line we just appended and

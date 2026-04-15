@@ -19,8 +19,8 @@ set -u
 REPO_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [ -f "$REPO_ROOT/.ijfw-source" ]; then
-  printf "Running inside IJFW source repo -- skipping platform-rule writes to protect your dev tree. Run outside the repo to install.\n"
-  exit 0
+  printf "IJFW source-repo detected -- platform-rule writes skipped to protect your dev tree. Run this script from your project directory to install.\n"
+  exit 1
 fi
 LAUNCHER="$REPO_ROOT/mcp-server/bin/ijfw-memory"
 
@@ -52,8 +52,8 @@ for d in "$HOME/.codex" "$HOME/.gemini" "$HOME/.codeium/windsurf" ".vscode" ".cu
     | while IFS= read -r old; do rm -f "$old" 2>/dev/null; done
 done
 
-ok()   { printf "  ✓ %s\n" "$1"; }
-note() { printf "  → %s\n" "$1"; }
+ok()   { printf "  [ok] %s\n" "$1"; }
+note() { printf "  [--] %s\n" "$1"; }
 info() { printf "  -- %s\n" "$1"; }
 
 backup() {
@@ -120,6 +120,7 @@ merge_toml() {
   mv "$tmp" "$dst"
 }
 
+# Output legend: [ok] = done, [--] = informational
 echo "IJFW install -- launcher: $LAUNCHER"
 echo
 
@@ -203,7 +204,8 @@ for target in "${TARGETS[@]}"; do
   echo
 done
 
-echo "Done. Backups (if any): <config>.bak.$TS"
+PLATFORM_COUNT=${#TARGETS[@]}
+echo "${PLATFORM_COUNT} agent platform(s) configured -- memory + rules active. Backups (if any): <config>.bak.$TS"
 echo "Verify with: node $REPO_ROOT/mcp-server/test.js"
 
 # --- Post-commit hook (opt-in only) ---
@@ -219,7 +221,7 @@ ijfw_post_commit
 
 install_post_commit_hook() {
   if [ ! -d ".git" ]; then
-    note "No .git directory found -- skipping post-commit hook."
+    note "Post-commit hook is available once you run git init here -- skipping for now."
     return
   fi
   HOOK_FILE=".git/hooks/post-commit"
@@ -243,5 +245,5 @@ if [ "$INSTALL_POST_COMMIT_HOOK" -eq 1 ]; then
   install_post_commit_hook
   echo
 elif [ -d ".git" ]; then
-  note "Tip: run with --post-commit-hook to enable background Trident critique on every commit."
+  note "Tip: background Trident critique on every commit -- run with --post-commit-hook to enable."
 fi

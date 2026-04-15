@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# IJFW codebase indexer — MVP text-based index.
+# IJFW codebase indexer -- MVP text-based index.
 # Writes .ijfw/index/files.md with path, language, size, first meaningful line.
 # Incremental: only rewrites if any source file changed since last build.
 # Scout agent queries this instead of grepping the whole tree.
@@ -15,7 +15,7 @@ STAMP="$INDEX_DIR/.last-build"
 ROOT="${1:-.}"
 mkdir -p "$INDEX_DIR" 2>/dev/null
 
-# Skip if fresh (index newer than any source file in the last 60 seconds —
+# Skip if fresh (index newer than any source file in the last 60 seconds --
 # this is a quick-run check; full incremental detection happens on save).
 if [ -f "$STAMP" ] && [ -f "$INDEX_FILE" ]; then
   NEWER=$(find "$ROOT" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.rs" -o -name "*.go" -o -name "*.rb" -o -name "*.java" -o -name "*.kt" -o -name "*.swift" -o -name "*.php" -o -name "*.md" \) -newer "$STAMP" -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/.next/*' -not -path '*/target/*' -not -path '*/.ijfw/*' 2>/dev/null | head -1)
@@ -64,7 +64,7 @@ FILE_COUNT=$(wc -l < "$INDEX_DIR/.files.tmp" | tr -d ' ')
     EXT="${f##*.}"
     # First non-comment, non-blank line as a "what-is-this" hint.
     FIRSTLINE=$(grep -Ev '^[[:space:]]*(//|#|/\*|\*|--|"""|\*\*|$)' "$f" 2>/dev/null | head -1 | sed 's/["]/\\"/g' | cut -c1-120)
-    echo "- \`$f\` ($SIZE lines, .$EXT) — ${FIRSTLINE:-<empty>}"
+    echo "- \`$f\` ($SIZE lines, .$EXT) -- ${FIRSTLINE:-<empty>}"
     echo "$EXT" >> "$BY_LANG"
   done < "$INDEX_DIR/.files.tmp"
 

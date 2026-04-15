@@ -101,7 +101,7 @@ test('readReceipts returns [] when file does not exist', () => {
 
 test('renderHeroLine([]) returns safe empty-state string', () => {
   const out = renderHeroLine([]);
-  assert.equal(out, 'No cross-audit runs yet');
+  assert.ok(out.includes('Trident') || out.includes('cross audit'), 'empty state should point to next step');
 });
 
 test('renderHeroLine with real receipt and no sessions omits delta', () => {

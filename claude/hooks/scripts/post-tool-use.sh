@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-# E4 — universal disable switch.
+# E4 -- universal disable switch.
 [ "${IJFW_DISABLE:-}" = "1" ] && exit 0
-# IJFW PostToolUse — parses the Claude Code hook JSON payload, extracts
+# IJFW PostToolUse -- parses the Claude Code hook JSON payload, extracts
 # tool_response text, trims noise, captures ERROR/FAIL signals into
 # .session-signals.jsonl, and emits a hookSpecificOutput envelope with
 # additionalContext so the cleaned output flows back into the agent.
 #
 # Round-2 audit fixes:
-#   R2-A (critical) — previously piped raw JSON envelope through sed/awk.
+#   R2-A (critical) -- previously piped raw JSON envelope through sed/awk.
 #     Now extracts tool_response via node JSON parse; trimmer sees only
 #     the actual output string.
-#   R2-A (sub) — signal regex scoped to tool_response only, so a user
+#   R2-A (sub) -- signal regex scoped to tool_response only, so a user
 #     prompt containing "Error in foo.js" doesn't trigger a false
 #     recurring-error memory.
 
 IJFW_DIR=".ijfw"
 FLAGS_FILE="$IJFW_DIR/.startup-flags"
 
-# If RTK or context-mode is active, they handle stripping — we skip.
+# If RTK or context-mode is active, they handle stripping -- we skip.
 if [ -f "$FLAGS_FILE" ]; then
   if grep -q "IJFW_RTK_ACTIVE=1" "$FLAGS_FILE" 2>/dev/null; then exit 0; fi
   if grep -q "IJFW_CONTEXT_MODE_ACTIVE=1" "$FLAGS_FILE" 2>/dev/null; then exit 0; fi
@@ -76,7 +76,7 @@ CLEANED=$(printf '%s' "$RESPONSE_TEXT" | sed -E '
   /^$/ { if (blank) next; blank=1; print; next }
   { blank=0; print }
 ' | sed -E '
-  /^[[:space:]]*(✓|√|PASS )/d
+  /^[[:space:]]*(PASS )/d
   /^[[:space:]]*\.\.\.\./d
   /^collecting/d
   /^[[:space:]]*npm (warn|notice)/d
@@ -101,13 +101,13 @@ if [ "${LINE_COUNT:-0}" -gt 500 ]; then
     HEAD_PART=$(printf '%s\n' "$CLEANED" | head -100)
     TAIL_PART=$(printf '%s\n' "$CLEANED" | tail -30)
     ERRORS=$(printf '%s\n' "$CLEANED" | grep -En -B1 -A1 -iE '\b(error|warn(ing)?|failed|traceback|fatal|critical)\b' 2>/dev/null | head -120)
-    OUT=$(printf '%s\n\n... [trimmed: %s lines → head 100 + key signals + tail 30] ...\n\n%s\n\n... tail ...\n\n%s\n' \
-      "$HEAD_PART" "$LINE_COUNT" "$ERRORS" "$TAIL_PART")
+    OUT=$(printf '[ijfw] trimmed %s lines -> head 100 + key signals + tail 30\n\n%s\n\n%s\n\n... tail ...\n\n%s\n' \
+      "$LINE_COUNT" "$HEAD_PART" "$ERRORS" "$TAIL_PART")
   else
     HEAD_PART=$(printf '%s\n' "$CLEANED" | head -250)
     TAIL_PART=$(printf '%s\n' "$CLEANED" | tail -50)
-    OUT=$(printf '%s\n\n... [truncated: %s lines — showing first 250 + last 50] ...\n\n%s\n' \
-      "$HEAD_PART" "$LINE_COUNT" "$TAIL_PART")
+    OUT=$(printf '[ijfw] trimmed %s lines -> head 250 + tail 50\n\n%s\n\n%s\n' \
+      "$LINE_COUNT" "$HEAD_PART" "$TAIL_PART")
   fi
 else
   OUT="$CLEANED"
