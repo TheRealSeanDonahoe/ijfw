@@ -1,86 +1,125 @@
-# Publish checklist — `@ijfw/install`
+# Publish checklist -- @ijfw/install
 
-Self-contained. Pick this up any time. Current state: **Wave 1 merged to main, build verified, awaiting publish.**
+Self-contained. Run every gate top to bottom before `npm publish`.
+P10-era additions are marked `[P10]`.
 
-## Current state (2026-04-14)
+---
 
-- Version in `installer/package.json`: **0.4.0-rc.1**
-- `dist/install.js` + `dist/uninstall.js`: rebuild from `npm run build` before publish (dist/ is gitignored by design)
-- `npm pack --dry-run` → 4.2 KB, 4 files
-- Scope check: `npm view @ijfw/install` → 404 at last check → scope is **open**
-- npm auth on this machine: **not logged in** (blocker)
-
-## Prerequisites (one-time setup)
-
-1. **npm account.** https://www.npmjs.com/signup — username, email, password, verify email.
-2. **Enable 2FA.** Profile → Account Settings → Two-Factor Authentication → "Authorization and publishing" (safest). Scan QR with authenticator app. **Save recovery codes in a password manager.**
-3. **Create `ijfw` organization.** Profile → Add Organization → name `ijfw`, plan **Free**. This gives you the `@ijfw` scope.
-
-If `ijfw` org name is taken, fall back to one of: `@tradecanyon/ijfw`, `@donahoe/ijfw`, `@ijfw-ai/install`. Tell me which and I bump `installer/package.json` + README references.
-
-## Publish (rc.1)
+## Gate 1 -- CI / health
 
 ```bash
-cd /Users/seandonahoe/dev/ijfw/installer
+# [P10] Run full check suite; expect exit 0
+bash scripts/check-all.sh
 
-npm login                                   # web or CLI 2FA flow
-npm whoami                                  # sanity check
-
-npm run build                               # regenerates dist/ (~4.2KB)
-npm pack --dry-run                          # confirm 4 files, ~4.2KB
-
-npm publish --access public --tag next      # <-- the publish
-                                            # `--access public` is required
-                                            # for scoped free-plan packages
-                                            # `--tag next` keeps default
-                                            # npx users from pulling the RC
+# [P10] MCP server unit tests; expect 83/83 (or current passing count)
+cd mcp-server && npm test
 ```
 
-You'll be prompted for a 6-digit 2FA code during publish.
+---
 
-## Verify
+## Gate 2 -- Binary + package integrity
 
 ```bash
-npm view @ijfw/install versions     # expect: [ '0.4.0-rc.1' ]
-npm view @ijfw/install dist-tags    # expect: { next: '0.4.0-rc.1' }
+# [P10] Verify bin/ijfw is executable
+test -x bin/ijfw && echo "OK" || echo "FAIL -- chmod +x bin/ijfw"
 
-# Test install (optional)
-npx @ijfw/install@next --help       # should print the installer help
+# [P10] Verify package.json files array includes what should ship
+#       Expect: fixtures/, bin/, dist/, README.md, CHANGELOG.md
+#       Must NOT include: .env, node_modules/, .planning/, *.test.*
+cat installer/package.json | jq .files
+
+# [P10] Verify fixtures/ dir is present (required by package.json files array)
+ls fixtures/
 ```
 
-Browser: https://www.npmjs.com/package/@ijfw/install
+---
 
-## Promote to latest (after 24h soak)
+## Gate 3 -- Dry-run publish
 
 ```bash
-cd /Users/seandonahoe/dev/ijfw/installer
+# [P10] Dry-run from installer/ -- review tarball contents before real publish
+cd installer && npm publish --access public --dry-run
+```
 
-# Edit package.json: "version": "0.4.0"  (drop -rc.1)
+Expected: tarball lists only dist/, bin/, fixtures/, package.json, README, CHANGELOG.
+Red flag: .planning/, .env, test files, node_modules in tarball.
+
+---
+
+## Gate 4 -- npm auth + org
+
+```bash
+# [P10] Confirm logged in as correct publisher
+npm whoami
+# Expected output: seandonahoe
+
+# [P10] Confirm @ijfw org exists and you are a member
+npm org ls ijfw
+```
+
+---
+
+## Gate 5 -- Audit closure
+
+```bash
+# [P10] Principle audit: zero unresolved HIGH items
+grep "HIGH" .planning/phase10/CROSS-AUDIT-PRINCIPLES.md
+# Expected: no output (or only resolved/closed lines)
+
+# [P10] Dogfood receipts archived
+ls .planning/phase10/DOGFOOD-CRITIQUE-P10.md
+```
+
+---
+
+## Publish day procedure
+
+Run these in order after all gates above pass.
+
+```bash
+# 1. Log in (web flow handles 2FA)
+npm login
+npm whoami                        # confirm: seandonahoe
+
+# 2. Build dist/ (gitignored; must be fresh)
+cd /Users/seandonahoe/dev/ijfw/installer
 npm run build
-npm publish --access public                 # default tag = 'latest'
 
-npm dist-tag rm @ijfw/install next          # optional: clean up rc tag
+# 3. Final dry-run (last sanity check on tarball)
+npm publish --access public --dry-run
+
+# 4. Real publish
+npm publish --access public
+
+# 5. Verify on registry
+npm view @ijfw/install version
+npm view @ijfw/install dist-tags
+
+# 6. Tag release in git
+git tag v$(node -p "require('./package.json').version")
+git push origin --tags
+
+# 7. Announce
+#    - GitHub release notes from CHANGELOG.md latest section
+#    - Community post / social if applicable
 ```
 
-Verify default install works:
-
-```bash
-npx @ijfw/install --help
-```
+---
 
 ## Common errors
 
 | Error | Meaning | Fix |
 |-------|---------|-----|
 | `402 Payment Required` | Scoped package defaulting to private | Add `--access public` |
-| `403 Forbidden` | Not a member of the `ijfw` org, or 2FA OTP wrong | Re-enter 2FA, verify org membership |
+| `403 Forbidden` | Not org member or wrong 2FA OTP | Re-enter 2FA, verify org membership |
 | `409 Conflict` | Version already published | Bump version; npm versions are immutable |
-| `E404` on `npm view` | Package not found (also what we want before first publish) | — |
+| `E404` on `npm view` | Package not published yet | Expected before first publish |
 | `ENEEDAUTH` | Not logged in | `npm login` |
-| `captcha failed` | Flaky network | Try later on a stable connection |
+| `captcha failed` | Flaky network | Retry on stable connection |
 
-## When this lands
+---
 
-Reply **"rc published"** to resume Wave 2 (intent router, `/mode brutal`, lazy prelude, output trimmer, prompt rewrite — the "brainstorm auto-fires" feature).
+## Pre-P10 notes (archived)
 
-After 24h + no reported issues, reply **"publish latest"** to promote 0.4.0 + close Phase 4 Wave 1.
+Phase 4 Wave 1 context: rc.1 publish flow, 0.4.0-rc.1, dist/ rebuild note.
+Superseded by Gate 3 dry-run procedure above. Kept here for history only.
