@@ -1,5 +1,11 @@
 // receipts.js — atomic append/read for cross-run JSONL receipts.
 // ESM, zero deps, synchronous fs.
+//
+// renderReceipt(record, stepNum?) — human-readable text for one receipt.
+//   Header:  Phase N / Wave NA -- <operation> -- <timestamp>
+//   Body:    Step N.M -- <finding>
+//   cache_stats fields (cache_creation_input_tokens, cache_read_input_tokens)
+//   are rendered when present; absence is a no-op.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,6 +22,59 @@ export function writeReceipt(projectDir, record) {
   const dir = path.dirname(dest);
   fs.mkdirSync(dir, { recursive: true });
   fs.appendFileSync(dest, JSON.stringify(record) + '\n');
+}
+
+// renderReceipt(record, phaseWave?, stepNum?)
+//   phaseWave — e.g. "Phase 10 / Wave 10A" (default "Phase 10 / Wave 10A")
+//   stepNum   — N.M index for body lines (default 1)
+// Returns a multi-line string. JSONL schema is never modified.
+export function renderReceipt(record, phaseWave = 'Phase 10 / Wave 10A', stepNum = 1) {
+  const op = record.mode || 'cross';
+  const ts = record.timestamp ? record.timestamp.slice(0, 19).replace('T', ' ') : '';
+  const lines = [];
+
+  // Header: Phase N / Wave NA -- <operation> -- <timestamp>
+  lines.push(`${phaseWave} -- ${op} -- ${ts}`);
+
+  // Auditors
+  if (Array.isArray(record.auditors) && record.auditors.length > 0) {
+    const ids = record.auditors.map(a => a.id).filter(Boolean).join(', ');
+    lines.push(`Step ${stepNum}.1 -- auditors: ${ids}`);
+  }
+
+  // Findings
+  const findings = record.findings;
+  if (findings) {
+    if (Array.isArray(findings.items)) {
+      lines.push(`Step ${stepNum}.2 -- findings: ${findings.items.length} items`);
+    } else {
+      const c = typeof findings.consensus === 'number' ? findings.consensus : 0;
+      const ct = typeof findings.contested === 'number' ? findings.contested : 0;
+      const u = typeof findings.unique === 'number' ? findings.unique : 0;
+      lines.push(`Step ${stepNum}.2 -- findings: ${c} consensus, ${ct} contested, ${u} unique`);
+    }
+  }
+
+  // Duration
+  if (typeof record.duration_ms === 'number') {
+    const dur = record.duration_ms < 1000
+      ? `${Math.round(record.duration_ms)}ms`
+      : `${Math.round(record.duration_ms / 1000)}s`;
+    lines.push(`Step ${stepNum}.3 -- duration: ${dur}`);
+  }
+
+  // Cache stats (Step 10D.1 addendum: reserved; rendered when present, no-op when absent)
+  const cs = record.cache_stats;
+  if (cs) {
+    if (typeof cs.cache_creation_input_tokens === 'number') {
+      lines.push(`Step ${stepNum}.4 -- cache created: ${cs.cache_creation_input_tokens} tokens`);
+    }
+    if (typeof cs.cache_read_input_tokens === 'number') {
+      lines.push(`Step ${stepNum}.5 -- cache read: ${cs.cache_read_input_tokens} tokens`);
+    }
+  }
+
+  return lines.join('\n');
 }
 
 // Read and parse all lines; skip corrupt lines; return array.

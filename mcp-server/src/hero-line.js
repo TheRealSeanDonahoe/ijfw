@@ -67,7 +67,8 @@ export function renderHeroLine(receipts, sessions = []) {
     }
   }
 
-  const baseline = `${auditorIds.size} AIs · ${fmtDuration(totalMs)} · ${totalFindings} findings, ${totalConsensus} consensus-critical`;
+  // Value statement (Sutherland lens): what was delivered, not what was done.
+  const baseline = `${auditorIds.size} AIs surfaced ${totalFindings} findings (${totalConsensus} consensus-critical) in ${fmtDuration(totalMs)}`;
 
   // Codex U1: only compute delta when all guards pass.
   if (!hasReceiptsTokens || receiptsInputTokens <= 0) {
