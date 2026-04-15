@@ -17,6 +17,11 @@
 set -u
 
 REPO_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ -f "$REPO_ROOT/.ijfw-source" ]; then
+  printf "Running inside IJFW source repo — skipping platform-rule writes to protect your dev tree. Run outside the repo to install.\n"
+  exit 0
+fi
 LAUNCHER="$REPO_ROOT/mcp-server/bin/ijfw-memory"
 
 # Parse flags and platform targets from args.
