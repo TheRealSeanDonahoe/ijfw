@@ -39,7 +39,7 @@ if [ ! -x "$LAUNCHER" ]; then
   chmod +x "$LAUNCHER" 2>/dev/null
 fi
 if [ ! -f "$LAUNCHER" ]; then
-  printf "Launcher missing at %s — aborting.\n" "$LAUNCHER" >&2
+  printf "IJFW launcher not found at %s -- reinstall @ijfw/install to restore it.\n" "$LAUNCHER" >&2
   exit 1
 fi
 

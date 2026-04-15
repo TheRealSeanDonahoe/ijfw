@@ -121,7 +121,7 @@ test('renderHeroLine with real receipt and sufficient sessions includes measured
   const out = renderHeroLine([receipt], sessions);
   assert.ok(out.includes('measured'), `expected measured Δ in: ${out}`);
   assert.ok(out.includes('%'), `expected % in: ${out}`);
-  assert.ok(out.includes('3×'), `expected sample count in: ${out}`);
+  assert.ok(out.includes('3x'), `expected sample count in: ${out}`);
 });
 
 test('renderHeroLine with only 1 session (insufficient) omits delta', () => {

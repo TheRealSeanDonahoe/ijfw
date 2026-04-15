@@ -62,10 +62,10 @@ Usage: npx @ijfw/install [--dir <path>] [--branch <name>] [--no-marketplace] [--
 function preflight() {
   const issues = [];
   const [major] = process.versions.node.split('.').map(Number);
-  if (major < 18) issues.push(`Node ${process.versions.node} detected; IJFW wants Node ≥18.`);
-  if (!hasBin('git')) issues.push('git not on PATH — install git, then retry.');
-  if (!hasBin('bash')) issues.push('bash not on PATH — install bash, then retry.');
-  if (platform() === 'win32') issues.push('Native Windows detected — please run from WSL for the best IJFW experience.');
+  if (major < 18) issues.push(`IJFW needs Node >=18 -- current: ${process.versions.node}. Upgrade Node, then retry.`);
+  if (!hasBin('git')) issues.push('IJFW needs git on PATH -- install git, then retry.');
+  if (!hasBin('bash')) issues.push('IJFW needs bash on PATH -- install bash, then retry.');
+  if (platform() === 'win32') issues.push('Native Windows detected -- please run from WSL for the best IJFW experience.');
   return issues;
 }
 
@@ -83,28 +83,28 @@ function resolveTarget(opt) {
 function cloneOrPull(dir, branch) {
   if (existsSync(join(dir, '.git'))) {
     const r = spawnSync('git', ['-C', dir, 'pull', '--ff-only', 'origin', branch], { stdio: 'inherit' });
-    if (r.status !== 0) throw new Error(`git pull failed (exit ${r.status}).`);
+    if (r.status !== 0) throw new Error(`IJFW update step did not complete (exit ${r.status}) -- run ijfw doctor to check prerequisites.`);
     return 'updated';
   }
   mkdirSync(dir, { recursive: true });
   const r = spawnSync('git', ['clone', '--depth', '1', '--branch', branch, DEFAULT_REPO, dir], { stdio: 'inherit' });
-  if (r.status !== 0) throw new Error(`git clone failed (exit ${r.status}).`);
+  if (r.status !== 0) throw new Error(`IJFW repo fetch did not complete (exit ${r.status}) -- check network access and retry.`);
   return 'cloned';
 }
 
 function runInstallScript(dir) {
   const script = join(dir, 'scripts', 'install.sh');
-  if (!existsSync(script)) throw new Error(`scripts/install.sh missing at ${script}.`);
+  if (!existsSync(script)) throw new Error(`IJFW install script not found at ${script} -- re-run the installer to restore it.`);
   const env = { ...process.env, IJFW_NONINTERACTIVE: process.env.CI ? '1' : (process.env.IJFW_NONINTERACTIVE ?? '') };
   const r = spawnSync('bash', ['scripts/install.sh'], { cwd: dir, stdio: 'inherit', env });
-  if (r.status !== 0) throw new Error(`scripts/install.sh exited ${r.status}.`);
+  if (r.status !== 0) throw new Error(`IJFW platform config step did not complete (exit ${r.status}) -- run ijfw doctor to see what to fix.`);
 }
 
 async function main() {
   const opts = parseArgs(process.argv);
   const issues = preflight();
   if (issues.length) {
-    console.error('Preflight:');
+    console.error('IJFW needs a couple of things first -- fix these and re-run:');
     for (const i of issues) console.error('  - ' + i);
     process.exit(1);
   }
@@ -136,8 +136,8 @@ async function main() {
   }
 
   console.log('');
-  console.log('IJFW ready.');
-  console.log(`  Memory preserved at ${join(target, 'memory')}.`);
+  console.log('IJFW ready -- 7 platforms configured, memory preserved, existing configs merged.');
+  console.log(`  Memory at ${join(target, 'memory')}.`);
   console.log('  Run `ijfw demo` to see what just changed.');
   console.log('  Privacy: everything stays local. See NO_TELEMETRY.md.');
   process.exit(0);

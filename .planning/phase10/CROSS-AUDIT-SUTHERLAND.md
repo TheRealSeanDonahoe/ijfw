@@ -286,10 +286,13 @@ post-tool-use.sh, pre-prompt.sh.
   indexed files, last status) -- strong Sutherland posture. Missing: no
   cumulative-value line (tokens saved to date, cache hit rate, findings
   caught by Trident). Hook does the work; the receipt never surfaces.
-  -- Severity: HIGH
+  -- Severity: HIGH [closed]
   -- Action: Append a single hero-line style summary when receipts file
      exists, so the wake-up moment shows CUMULATIVE asymmetric value.
      "Cumulative: ~$X in cache savings, N findings caught."
+  -- Closed: Wave 10E.6 S7 -- added Trident cumulative block (lines 385-430,
+     session-start.sh). Emits "[ijfw] Trident: N runs, M findings caught,
+     ~$X in cache savings" when .ijfw/receipts/cross-runs.jsonl exists.
 
 - Finding 7.3 -- `claude/hooks/scripts/post-tool-use.sh:95-114` -- The trim
   pipeline saves significant tokens per session (cuts 500-line outputs to

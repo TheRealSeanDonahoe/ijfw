@@ -86,11 +86,11 @@
 ## System 9: Platform Configs
 
 **Canonical entries:** `codex/`, `gemini/`, `cursor/`, `windsurf/`, `copilot/`, `universal/`
-- Representative files: `cursor/.cursorrules`, `gemini/GEMINI.md`, `universal/rules.txt`
+- Representative files: `cursor/.cursorrules`, `gemini/GEMINI.md`, `universal/ijfw-rules.md`
 
 **Audit target:** Core rules identity across platforms, platform-specific formatting fidelity, parity matrix cell completeness (all cells L or explicitly deferred), ASCII-only constraint in all files.
 
-**Known considerations:** universal/rules.txt is 15-line paste-anywhere baseline. Platform-specific files adapt format (JSON, YAML, markdown, plain text) while preserving rule logic. Parity matrix tracks feature coverage per platform.
+**Known considerations:** universal/ijfw-rules.md is 19-line paste-anywhere baseline. Platform-specific files adapt format (JSON, YAML, markdown, plain text) while preserving rule logic. Parity matrix tracks feature coverage per platform.
 
 ---
 

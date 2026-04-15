@@ -382,6 +382,51 @@ if [ "$SESSION_COUNT" -gt 0 ] && [ $(( SESSION_COUNT % 5 )) -eq 0 ]; then
   echo "IJFW_NEEDS_CONSOLIDATE=1" >> "$IJFW_DIR/.startup-flags"
 fi
 
+# S7.2 -- cumulative Trident value line. Silent when no receipts exist yet.
+# Reads .ijfw/receipts/cross-runs.jsonl (JSONL, one record per line).
+# Extracts: run count, total findings (items[] length or numeric sum),
+# cumulative cache-read savings ($2.70/M tokens).
+RECEIPTS_FILE="$IJFW_DIR/receipts/cross-runs.jsonl"
+if [ -f "$RECEIPTS_FILE" ] && [ -s "$RECEIPTS_FILE" ]; then
+  TRIDENT_RUNS=$(grep -c '{' "$RECEIPTS_FILE" 2>/dev/null)
+  [ -z "$TRIDENT_RUNS" ] && TRIDENT_RUNS=0
+  if [ "$TRIDENT_RUNS" -gt 0 ]; then
+    # Sum cache_read_input_tokens across all lines.
+    CACHE_TOKENS=$(awk '
+      match($0, /"cache_read_input_tokens":[[:space:]]*([0-9]+)/, a) { sum += a[1] }
+      END { print (sum+0) }
+    ' "$RECEIPTS_FILE" 2>/dev/null)
+    [ -z "$CACHE_TOKENS" ] && CACHE_TOKENS=0
+    # Sum findings: items-array shape OR numeric consensus+contested+unique fields.
+    TOTAL_FINDINGS=$(awk '
+      {
+        n = split($0, parts, /"items":\[/)
+        if (n > 1) {
+          sub(/\].*/, "", parts[2])
+          if (parts[2] ~ /[^[:space:]]/) {
+            cnt = gsub(/,/, ",", parts[2]) + 1
+            sum += cnt
+          }
+        } else {
+          if (match($0, /"consensus":[[:space:]]*([0-9]+)/, a)) sum += a[1]
+          if (match($0, /"contested":[[:space:]]*([0-9]+)/, a)) sum += a[1]
+          if (match($0, /"unique":[[:space:]]*([0-9]+)/, a)) sum += a[1]
+        }
+      }
+      END { print (sum+0) }
+    ' "$RECEIPTS_FILE" 2>/dev/null)
+    [ -z "$TOTAL_FINDINGS" ] && TOTAL_FINDINGS=0
+    if [ "$CACHE_TOKENS" -gt 0 ]; then
+      SAVINGS_DOLLARS=$(awk "BEGIN { printf \"%.2f\", $CACHE_TOKENS * 2.70 / 1000000 }" 2>/dev/null)
+      printf '[ijfw] Trident: %s runs, %s findings caught, ~$%s in cache savings\n' \
+        "$TRIDENT_RUNS" "$TOTAL_FINDINGS" "$SAVINGS_DOLLARS"
+    else
+      printf '[ijfw] Trident: %s runs, %s findings caught\n' \
+        "$TRIDENT_RUNS" "$TOTAL_FINDINGS"
+    fi
+  fi
+fi
+
 printf '[ijfw] Ready.\n'
 } > "$BANNER_BUF"
 

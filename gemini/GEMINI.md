@@ -16,11 +16,11 @@ Active every response. No revert. No filler drift.
 
 ## Context
 - Read specific line ranges, not whole files. Don't re-read files in context.
-- **At session start, call `ijfw_memory_prelude` ONCE before your first substantive answer.** This hydrates project memory, handoffs, and recent activity in one request — no grep/search cascade needed.
+- **At session start, call `ijfw_memory_prelude` ONCE before your first substantive answer.** This hydrates project memory, handoffs, and recent activity in one request -- no grep/search cascade needed.
 - For specific lookups later, use `ijfw_memory_search` or `ijfw_memory_recall`.
 
 ## Quality
-- State assumptions before implementing. If ambiguous, ask — don't guess.
+- State assumptions before implementing. If ambiguous, ask -- don't guess.
 - Touch only what was asked. Don't improve adjacent code, comments, or formatting.
 - No speculative features. No abstractions for single-use code. Simplest solution.
 - Self-verify before destructive actions. Plan before complex tasks.
