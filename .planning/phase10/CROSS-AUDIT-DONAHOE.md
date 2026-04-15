@@ -72,8 +72,8 @@ candidates for a copy-the-pattern reference when fixing the rest.
 
 | # | Sev | Surface | Finding | Recommended action |
 |---|-----|---------|---------|--------------------|
-| 3.1 | MED | `claude/commands/cross-audit.md:191-198` | Compare table uses Unicode markers: `check`, `diamond`, `cross` rendered as non-ASCII glyphs. Violates the ASCII-only constraint in AUDIT-REPORT-POLICY for new content; strangers on terminals without emoji fonts see boxes. | Replace with ASCII tokens: `[yes]`, `[new]`, `[dispute]`. |
-| 3.2 | MED | `claude/commands/cross-critique.md:82-90` | "Only `<id>` is installed locally. Install one more auditor (opencode, aider, etc.) to unlock complete angle coverage." -- good framing. Adjacent line 84 "Run cross-critique: [A] codex only (technical angle) [B] gemini only ..." offers open menu; Donahoe rule #always-recommend wants a default. | Add `Default: [C] All three -- press enter.` to match the always-recommend rule. |
+| 3.1 [closed] | MED | `claude/commands/cross-audit.md:191-198` | Compare table uses Unicode markers: `check`, `diamond`, `cross` rendered as non-ASCII glyphs. Violates the ASCII-only constraint in AUDIT-REPORT-POLICY for new content; strangers on terminals without emoji fonts see boxes. | Replace with ASCII tokens: `[yes]`, `[new]`, `[dispute]`. |
+| 3.2 [closed] | MED | `claude/commands/cross-critique.md:82-90` | "Only `<id>` is installed locally. Install one more auditor (opencode, aider, etc.) to unlock complete angle coverage." -- good framing. Adjacent line 84 "Run cross-critique: [A] codex only (technical angle) [B] gemini only ..." offers open menu; Donahoe rule #always-recommend wants a default. | Add `Default: [C] All three -- press enter.` to match the always-recommend rule. |
 | 3.3 | LOW | `claude/commands/ijfw.md:9-31` | Index is clean, grouped by intent, ASCII-only. Stranger-readable. | None. |
 | 3.4 | LOW | `claude/commands/cross-critique.md:265` | `Act on survival >=4 first.` uses `>=` ASCII form -- good. One stray arrow elsewhere but inside a code block; acceptable. | None. |
 

@@ -88,7 +88,7 @@ ijfw.md.
   -- Action: Add a one-line pre-list value reframe: "IJFW -- one interface,
      7 platforms. Memory, routing, cross-audit, handoffs. Pick any:"
 
-- Finding 3.2 -- `claude/commands/cross-audit.md:196-207` -- Wave B compare
+- Finding 3.2 [closed] -- `claude/commands/cross-audit.md:196-207` -- Wave B compare
   output ends with "N findings. Overlap: X% (agreed). Y new for us to
   investigate. Top priority: <one-liner>." Strong, but the VALUE frame
   (what the user was saved from) is absent.
@@ -96,7 +96,7 @@ ijfw.md.
   -- Action: Append "N findings caught by Trident that a single model
      missed: Y." Names the asymmetric value.
 
-- Finding 3.3 -- `claude/commands/cross-critique.md:253-267` -- Ranked table
+- Finding 3.3 [closed] -- `claude/commands/cross-critique.md:253-267` -- Ranked table
   renders survival scores 1-5. Excellent mechanic, but the rubric
   (deterministic score derived from condition specificity + mitigation +
   evidence + severity + independence) is invisible. Users treat the score
@@ -106,7 +106,7 @@ ijfw.md.
      "Survival score: weighted across 5 rebuttal dimensions -- see
      scoreRebuttalSurvival in cross-dispatcher.js." Signals methodology.
 
-- Finding 3.4 -- `claude/commands/cross-critique.md:300-302` -- Footer note
+- Finding 3.4 [defer-p13] -- `claude/commands/cross-critique.md:300-302` -- Footer note
   "Positive framing throughout: no 'missing auditor error' -- 'install to
   unlock the full Trident.'" The copy is good, but the word "Trident" is
   underleveraged as a brand signal. It appears as a term of art but no

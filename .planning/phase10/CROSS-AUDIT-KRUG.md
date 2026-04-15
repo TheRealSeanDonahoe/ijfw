@@ -61,19 +61,19 @@ HIGH count: 1 | MED count: 3 | LOW count: 1
 Index lists `/ijfw memory audit` as a sub-command but the corresponding file is `claude/commands/memory-audit.md` (top-level) -- the slash form `/ijfw memory audit` does not actually route anywhere in Claude Code's command model (which uses filename-based routing). User typing the documented path gets nothing; this is a dead link in the help index.
 Recommended: Either document the actual command as `/memory-audit` / `/memory-why` / `/memory-consent`, or add a dispatcher command file that implements the sub-command routing.
 
-### Finding 3.2 [MED] claude/commands/cross-audit.md:125
+### Finding 3.2 [MED] [closed] claude/commands/cross-audit.md:125
 "Default pick order: codex -> gemini -> opencode -> aider -> copilot -> claude" -- six names, no one-line description of each. A user seeing this for the first time has no idea that `opencode` is an OSS CLI vs a model; friction to understand is one external lookup.
 Recommended: Add parenthetical one-liners per auditor, e.g. `codex (OpenAI), gemini (Google), opencode (OSS CLI)`.
 
-### Finding 3.3 [MED] claude/commands/cross-audit.md:175
+### Finding 3.3 [MED] [closed] claude/commands/cross-audit.md:175
 "Tell the user (one block, positive-framed)" template includes `Next step: open a new terminal, run <invoke>, paste the file contents, save the response...` -- that is 4 manual steps. Elsewhere the doc (line 153) says auto-fire is required; the two instructions contradict and the human will pick the worse one.
 Recommended: Remove the manual-paste Next-step copy from Wave A or mark it clearly as "fallback only when auto-fire is unavailable".
 
-### Finding 3.4 [MED] claude/commands/doctor.md:6
+### Finding 3.4 [MED] [closed] claude/commands/doctor.md:6
 Doctor command indirects through `$IJFW_REPO`/`$IJFW_HOME`/`scripts/doctor.sh` -- a user who runs `/doctor` in a fresh project with neither env var set gets undefined behaviour with no visible failure path.
 Recommended: Document the resolution fallback and the output expected at each branch; or have the command inline-detect and print a positive-framed "run `ijfw install` first" hint.
 
-### Finding 3.5 [LOW] claude/commands/team.md:6
+### Finding 3.5 [LOW] [closed] claude/commands/team.md:6
 `/team` with no args "List current team" but the file does not say what the listing shows (names? roles? file paths?). User guesses.
 Recommended: One-line example of the listing output.
 

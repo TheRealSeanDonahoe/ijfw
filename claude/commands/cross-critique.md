@@ -78,9 +78,11 @@ When invoked, do this in order:
      [B] gemini only (strategic angle)
      [C] Both + claude ux -- recommended (Donahoe Trident)
      [D] Cancel / pick custom
+
+   Default: [C] All three -- press enter to confirm.
    ```
 
-   Default suggestion: **C (All three)** when ≥2 external auditors installed.
+   Default suggestion: **C (All three)** when >=2 external auditors installed.
 
 4. **If only one external auditor installed:**
 
@@ -255,6 +257,10 @@ from caller context.
 ## Cross-critique results -- <target>
 Auditors: codex (technical) -- gemini (strategic) -- claude/fresh (ux) -- caller
 
+Survival score: weighted across 5 rebuttal dimensions -- condition specificity,
+mitigation existence, evidence link, severity, and independence from caller context.
+See scoreRebuttalSurvival in cross-dispatcher.js for the exact weights.
+
 | Rank | Counter-argument | Angle | Survival | Conditions | Mitigation |
 |------|-----------------|-------|----------|------------|------------|
 |  1   | <summary>       | technical | 5/5  | <specific> | <action>   |
@@ -263,7 +269,7 @@ Auditors: codex (technical) -- gemini (strategic) -- claude/fresh (ux) -- caller
 
 **Top priority:** <rank-1 counter-arg one-liner>
 
-<N> counter-args total. Act on survival ≥4 first.
+<N> counter-args total. Act on survival >=4 first.
 ```
 
 Survival score 5 = survives most rebuttals under realistic conditions.

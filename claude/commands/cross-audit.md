@@ -122,9 +122,18 @@ Invoke `node -e "import('./mcp-server/src/audit-roster.js').then(m => console.lo
 - Who's available as auditors
 - Invocation command for each
 
-Default pick order (first non-self): `codex → gemini → opencode → aider → copilot → claude`.
+Default pick order (first non-self): `codex -> gemini -> opencode -> aider -> copilot -> claude`.
 
-Rationale: different training lineages first (Codex/Gemini), then OSS (opencode), then specialised (Aider/Copilot), then a fresh-session Claude as fallback.
+| Auditor | Lineage | Notes |
+|---------|---------|-------|
+| codex | OpenAI | cloud or local via Codex CLI |
+| gemini | Google | cloud via Gemini CLI |
+| opencode | OSS CLI | model-agnostic open-source runner |
+| aider | OSS CLI | git-aware; strong diff reasoning |
+| copilot | GitHub/Microsoft | IDE-native; broad language support |
+| claude | Anthropic | fresh session via `claude -p` |
+
+Rationale: different training lineages first (codex/gemini), then OSS (opencode), then specialised (aider/copilot), then a fresh-session claude as fallback.
 
 **If the user asks for `list`:** print `formatRoster()` output verbatim. Do not generate a prompt.
 
@@ -178,9 +187,10 @@ Rules:
 Cross-audit request prepared.
   Auditor:    <name>   (<invoke>)
   File:       .ijfw/cross-audit/request.md
-  Next step:  open a new terminal, run <invoke>, paste the file contents,
-              save the response to .ijfw/cross-audit/response.md,
-              then run /cross-audit compare here.
+  Firing now via background bash (auto-fire required -- see Default flow above).
+  Fallback only when auditor binary is unavailable: open a new terminal, run <invoke>,
+  paste the file contents, save the response to .ijfw/cross-audit/response.md,
+  then run /cross-audit compare here.
 ```
 
 ## Wave B — Compare (`/cross-audit compare`)
@@ -190,20 +200,21 @@ Cross-audit request prepared.
 3. Render a side-by-side table:
 
 ```
-| # | Finding (auditor) | Severity | Dimension | Our take        |
-|---|-------------------|----------|-----------|-----------------|
-| 1 | <summary>         | high     | security  | ✓ agreed        |
-| 2 | <summary>         | medium   | correct.  | ◆ new to us     |
-| 3 | <summary>         | low      | maint.    | ✗ disputed (why) |
+| # | Finding (auditor) | Severity | Dimension | Our take           |
+|---|-------------------|----------|-----------|--------------------|
+| 1 | <summary>         | high     | security  | [yes] agreed       |
+| 2 | <summary>         | medium   | correct.  | [new] new to us    |
+| 3 | <summary>         | low      | maint.    | [dispute] (why)    |
 ```
 
 For each finding classify:
-- **✓ agreed** — Claude's own review previously identified this or agrees after reading
-- **◆ new** — Genuinely new; Claude adds it to the to-investigate list
-- **✗ disputed** — Claude can explain why the finding doesn't apply; show the explanation
+- **[yes]** -- agreed: Claude's own review previously identified this or agrees after reading
+- **[new]** -- genuinely new; Claude adds it to the to-investigate list
+- **[dispute]** -- Claude can explain why the finding doesn't apply; show the explanation
 
 End with:
 > `N findings. Overlap: X% (agreed). Y new for us to investigate. Top priority: <one-liner>.`
+> `Trident advantage: Y of N findings were caught by the second auditor that a solo Claude review missed.`
 
 4. **Archive**: move both `request.md` and `response.md` into `.ijfw/cross-audit/archive/<YYYY-MM-DDTHHMM>-<auditor_id>/`.
 

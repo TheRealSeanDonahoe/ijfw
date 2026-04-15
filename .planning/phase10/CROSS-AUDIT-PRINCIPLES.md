@@ -64,9 +64,9 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | K1.5 | MED  | claude/skills/ijfw-workflow/SKILL.md:305                    | `WHERE AM I` grammar inconsistent between example and STATE FILE schema. |
 | K2.1 | MED  | claude/skills/ijfw-core/SKILL.md:9                          | Five modes listed with no one-line glossary. |
 | K2.2 | MED  | claude/skills/ijfw-critique/SKILL.md:43                     | Template has placeholder slots but no worked example. |
-| K3.2 | MED  | claude/commands/cross-audit.md:125                          | Six auditor names with no one-liner each. |
-| K3.3 | MED  | claude/commands/cross-audit.md:175                          | Wave-A "Next step: open new terminal, paste..." contradicts auto-fire requirement at line 153. |
-| K3.4 | MED  | claude/commands/doctor.md:6                                 | `$IJFW_REPO`/`$IJFW_HOME` resolution fallback undocumented. |
+| K3.2 | MED [closed] | claude/commands/cross-audit.md:125                          | Six auditor names with no one-liner each. |
+| K3.3 | MED [closed] | claude/commands/cross-audit.md:175                          | Wave-A "Next step: open new terminal, paste..." contradicts auto-fire requirement at line 153. |
+| K3.4 | MED [closed] | claude/commands/doctor.md:6                                 | `$IJFW_REPO`/`$IJFW_HOME` resolution fallback undocumented. |
 | K4.3 | MED  | mcp-server/src/cross-orchestrator-cli.js:148                | Budget wording forces user to translate explanation to policy. |
 | K5.2 | MED  | mcp-server/src/server.js:464                                | `ijfw_memory_recall` has three identifier forms without priority order. |
 | K6.3 | LOW  | mcp-server/src/cross-dispatcher.js:40                       | "Positive framing + blunt findings" contradiction in template prompt. |
@@ -78,7 +78,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | K10.4| MED [closed] | PUBLISH-CHECKLIST.md:66                                     | Ambiguous pass condition for HIGH-finding grep. |
 | K1.6 | LOW  | claude/skills/ijfw-workflow/SKILL.md:394                    | OUTPUT RULES guardrail buried near EOF. |
 | K2.3 | LOW  | claude/skills/ijfw-review/SKILL.md:16                       | Covered by C13. |
-| K3.5 | LOW  | claude/commands/team.md:6                                   | `/team` listing format unspecified. |
+| K3.5 | LOW [closed] | claude/commands/team.md:6                                   | `/team` listing format unspecified. |
 | K5.3 | LOW  | mcp-server/src/server.js:493                                | Stored `type` enum runs hot in one sentence. |
 | K7.3 [closed] | LOW  | claude/hooks/scripts/session-start.sh:29                    | Two-sentence `.ijfw` preflight could compress to one. |
 | K8.4 [closed] | LOW  | scripts/install.sh:124                                      | Mixed prefixes `ok`/`note`/`info` without legend. |
@@ -101,8 +101,8 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | S10.3| HIGH [closed] | README.md:117-123                                           | Why-IJFW bullets do not mention Trident -- the most distinctive asset is absent. |
 | S1.3 | MED  | claude/skills/ijfw-workflow/SKILL.md:264-276                | Covered by C14. |
 | S2.3 | MED  | claude/skills/ijfw-review/SKILL.md:16                       | Covered by C13. |
-| S3.2 | MED  | claude/commands/cross-audit.md:196-207                      | Wave-B compare lacks value frame "N findings solo Claude missed". |
-| S3.3 | MED  | claude/commands/cross-critique.md:253-267                   | Survival-score rubric invisible; add one-line disclosure. |
+| S3.2 | MED [closed] | claude/commands/cross-audit.md:196-207                      | Wave-B compare lacks value frame "N findings solo Claude missed". |
+| S3.3 | MED [closed] | claude/commands/cross-critique.md:253-267                   | Survival-score rubric invisible; add one-line disclosure. |
 | S4.3 | MED  | mcp-server/src/cross-orchestrator-cli.js:220-290            | cmdDemo closes on CTA rather than wow receipt. |
 | S5.4 | MED  | mcp-server/src/server.js:546-548                            | `ijfw_metrics` mechanical description; rewrite benefit-first. |
 | S6.2 | MED  | mcp-server/src/receipts.js:49-105                           | renderReceipt lacks cache-savings translation; hero-line translates, receipts don't. |
@@ -113,7 +113,7 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | S1.4 | LOW  | claude/skills/ijfw-workflow/SKILL.md:300-310                | Optional progress-so-far line on WHERE AM I. |
 | S2.2 | LOW  | claude/skills/ijfw-compress/SKILL.md:21                     | Add dollar/minute conversion to savings line. |
 | S2.4 | LOW  | [no-file-ref]                                               | Non-narrating skills silent on success; allow one-line completion receipt. |
-| S3.4 | LOW  | claude/commands/cross-critique.md:300-302                   | Trident term underleveraged; optional one-sentence origin note. |
+| S3.4 | LOW [defer-p13] | claude/commands/cross-critique.md:300-302                   | Trident term underleveraged; optional one-sentence origin note. Donahoe lens: no action needed. |
 | S4.4 | LOW  | mcp-server/src/cross-orchestrator-cli.js:118-159            | Usage text lacks headline value statement. |
 | S5.3 | LOW  | mcp-server/src/server.js:521-522                            | Keep as reference pattern. |
 | S6.3 | LOW  | [no-file-ref]                                               | Auditor-pick rationale not communicated (family diversity). |
@@ -143,8 +143,8 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 | D1.1  | MED  | claude/skills/ijfw-workflow/SKILL.md:83-88                      | Read-only filesystem fallback note absent. |
 | D1.2  | MED  | claude/skills/ijfw-workflow/SKILL.md:264-275                    | Covered by C14. |
 | D2.1  | MED  | claude/skills/ijfw-core/SKILL.md:40-42                          | `<ijfw-memory>` block + prelude-tool absence case not documented; point to plain-markdown fallback. |
-| D3.1  | MED  | claude/commands/cross-audit.md:191-198                          | Compare table uses unicode check/cross/diamond glyphs; replace with ASCII `[yes]`/`[new]`/`[dispute]`. |
-| D3.2  | MED  | claude/commands/cross-critique.md:82-90                         | Open menu lacks default; add `Default: [C] All three -- press enter.`. |
+| D3.1  | MED [closed] | claude/commands/cross-audit.md:191-198                          | Compare table uses unicode check/cross/diamond glyphs; replace with ASCII `[yes]`/`[new]`/`[dispute]`. |
+| D3.2  | MED [closed] | claude/commands/cross-critique.md:82-90                         | Open menu lacks default; add `Default: [C] All three -- press enter.`. |
 | D4.9  | MED  | mcp-server/src/cross-orchestrator-cli.js:378-382                | Three consecutive negative lines on no-auditor path; consolidate after C01/C02/D4.5 fixes. |
 | D5.2  | MED  | mcp-server/src/server.js:656                                    | `journal write failed (code): message` raw bubble; wrap. |
 | D7.1  | MED  | claude/hooks/scripts/session-start.sh:29                        | Covered by K7.3 (same file:line). |
