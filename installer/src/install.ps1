@@ -2,8 +2,8 @@
 # PowerShell 5.1+ / PowerShell Core on Windows. No WSL required.
 #
 # Mirrors installer/src/install.js flow:
-#   preflight → resolve target → clone/pull → run scripts/install.sh via Git Bash
-#   → merge marketplace into %USERPROFILE%\.claude\settings.json → summary.
+#   preflight -> resolve target -> clone/pull -> run scripts/install.sh via Git Bash
+#   -> merge marketplace into %USERPROFILE%\.claude\settings.json -> summary.
 #
 # Usage:
 #   Invoke-Expression (iwr https://raw.githubusercontent.com/TradeCanyon/ijfw/main/installer/src/install.ps1).Content
@@ -30,7 +30,10 @@ function Test-Command($cmd) {
 }
 
 function Get-Target {
-  if ($Dir) { return (Resolve-Path -LiteralPath $Dir -ErrorAction SilentlyContinue) ?? $Dir }
+  if ($Dir) {
+    $resolved = Resolve-Path -LiteralPath $Dir -ErrorAction SilentlyContinue
+    if ($resolved) { return $resolved.Path } else { return $Dir }
+  }
   if ($env:IJFW_HOME) { return $env:IJFW_HOME }
   return Join-Path $env:USERPROFILE ".ijfw"
 }
@@ -41,8 +44,8 @@ function Invoke-Preflight {
   if (-not $node -or ([int]($node -replace 'v(\d+)\..*','$1') -lt 18)) {
     $issues += "Node $node detected; IJFW wants Node >=18."
   }
-  if (-not (Test-Command git))  { $issues += "git not on PATH — install Git for Windows, then retry." }
-  if (-not (Test-Command bash)) { $issues += "bash not on PATH — install Git for Windows (includes Git Bash), then retry." }
+  if (-not (Test-Command git))  { $issues += "git not on PATH -- install Git for Windows, then retry." }
+  if (-not (Test-Command bash)) { $issues += "bash not on PATH -- install Git for Windows (includes Git Bash), then retry." }
   return $issues
 }
 
@@ -108,7 +111,7 @@ if ($issues.Count -gt 0) {
 }
 
 $target = Get-Target
-Write-Host "IJFW → $target"
+Write-Host "IJFW -> $target"
 
 $action = Invoke-CloneOrPull $target $Branch
 Write-Ok "repo $action"
