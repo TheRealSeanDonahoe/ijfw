@@ -142,3 +142,61 @@ test('mergeOrder returns worktree sub-waves in declaration order', () => {
   const order = mergeOrder(buildManifest(subs));
   assert.deepEqual(order, ['12A-a', '12A-c']);
 });
+
+// --- HIGH fixes from Trident audit ----------------------------------------
+
+test('parsePlan recognizes bullet sub-waves -- **11A-mcp**: form', () => {
+  const md = [
+    '### Wave 11A -- sweep',
+    '',
+    '- **11A-mcp**: MCP server cluster.',
+    '  Files: mcp-server/src/server.js',
+    '- **11A-cmd**: commands cluster.',
+    '  Files: claude/commands/status.md',
+  ].join('\n');
+  const parsed = parsePlan(md);
+  const subs = parsed.filter((s) => s.sub);
+  assert.equal(subs.length, 2);
+  assert.deepEqual(subs.map((s) => s.sub).sort(), ['11A-cmd', '11A-mcp']);
+  assert.deepEqual(subs.find((s) => s.sub === '11A-mcp').files, ['mcp-server/src/server.js']);
+});
+
+test('parsePlan accumulates multiple Files: lines instead of overwriting', () => {
+  const md = [
+    '### Wave 12Z',
+    '  Files: a.js',
+    '  Files: b.js, c.js',
+  ].join('\n');
+  const parsed = parsePlan(md);
+  assert.deepEqual(parsed[0].files.sort(), ['a.js', 'b.js', 'c.js']);
+});
+
+test('buildManifest -- glob overlaps with literal path go worktree', () => {
+  const subs = [
+    { wave: '12A', sub: '12A-glob',    files: ['claude/commands/*.md'] },
+    { wave: '12A', sub: '12A-literal', files: ['claude/commands/status.md'] },
+  ];
+  const m = buildManifest(subs);
+  assert.equal(m[0].mode, 'worktree');
+  assert.equal(m[1].mode, 'worktree');
+});
+
+test('buildManifest -- disjoint globs stay shared', () => {
+  const subs = [
+    { wave: '12A', sub: '12A-a', files: ['claude/commands/*.md'] },
+    { wave: '12A', sub: '12A-b', files: ['mcp-server/src/*.js'] },
+  ];
+  const m = buildManifest(subs);
+  assert.equal(m[0].mode, 'shared');
+  assert.equal(m[1].mode, 'shared');
+});
+
+test('buildManifest -- ** glob matches nested literal', () => {
+  const subs = [
+    { wave: '12A', sub: '12A-deep', files: ['src/**/*.js'] },
+    { wave: '12A', sub: '12A-nest', files: ['src/a/b/c.js'] },
+  ];
+  const m = buildManifest(subs);
+  assert.equal(m[0].mode, 'worktree');
+  assert.equal(m[1].mode, 'worktree');
+});

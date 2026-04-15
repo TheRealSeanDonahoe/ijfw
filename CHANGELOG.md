@@ -1,13 +1,57 @@
 # Changelog
 
-## [Unreleased] — V1.0
+## [1.0.0] -- 2026-04-15
 
-> Not yet published to npm. Package `@ijfw/install` is release-candidate staged.
-> All features below are shipping in V1.0.
+First stable release of `@ijfw/install`. Eleven phases of polish, audit, and
+dogfood compressed into a one-command install that configures IJFW across
+six AI coding agents (Claude Code, Codex, Gemini CLI, Cursor, Windsurf,
+Copilot) with per-platform auto-detection, graceful fallbacks, and a
+positive-framed summary.
+
+### Added in v1.0
+
+- `ijfw import <tool>` CLI with importers for claude-mem (SQLite via Node's
+  built-in `node:sqlite` on Node 22.5+) and RTK (metrics-only, opt-in).
+  Idempotent by default; `--dry-run` previews; `--force` overwrites.
+- `ijfw cross project-audit <rule-file>` walks every registered IJFW project
+  on the machine and aggregates findings into a portfolio doc.
+- `ijfw_cross_project_search` MCP tool -- BM25-ranked search across every
+  known IJFW project, tagged by project basename.
+- `mcp-server/src/dispatch-planner.js` + `bin/ijfw-dispatch-plan` -- decides
+  shared-branch vs worktree-isolated parallelism per sub-wave based on
+  declared file overlaps. Consumed by the ijfw-workflow skill.
+- Windows-native installer (`installer/src/install.ps1`): PS 5.1+ compatible,
+  explicit Git Bash resolution (no WSL decoys), state-machine JSONC parser
+  for marketplace merge, graceful fallback with manual `/plugin` hint when
+  user settings.json is unparseable.
+- Installer visual redesign: ANSI-colored boxed banner, Live-now /
+  Standing-by section summary, full-log redirection to `~/.ijfw/install.log`,
+  `--verbose` / `-v` tee-to-console mode.
+- `.ijfw-source` dev-tree guard moved from tracked file to gitignored
+  local-only marker so user clones install cleanly.
+
+### Changed in v1.0
+
+- MCP tool count now 8 (was 7): `ijfw_memory_recall`, `_store`, `_search`,
+  `_status`, `_prelude`, `ijfw_prompt_check`, `ijfw_metrics`, and the new
+  `ijfw_cross_project_search`. Pinned at the CLAUDE.md cap of 8.
+- `installer/package.json` version bumped from `0.4.0-rc.1` to `1.0.0`.
+  Description non-ASCII cleanup.
+
+### Fixed in v1.0
+
+- PS 5.1 `??` null-coalescing parse error in install.ps1 (Get-Target).
+- WSL-bash decoy: installer now resolves Git Bash explicitly from git.exe's
+  own install dir, bypassing PATH shims.
+- PS marketplace JSONC stripper mangled files containing `//` or `/*` inside
+  string values. Replaced with a state-machine cleaner that tracks string
+  and escape context.
 
 ---
 
-## P10 — Polish for Publish
+---
+
+## P10 -- Polish for Publish
 
 **Theme:** Crystal clear, professionally polished, publish-ready.
 
@@ -19,9 +63,9 @@
 
 ---
 
-## P9 — Robust for Strangers
+## P9 -- Robust for Strangers
 
-**Theme:** First-run reliability — IJFW works correctly the first time, on any machine, for anyone.
+**Theme:** First-run reliability -- IJFW works correctly the first time, on any machine, for anyone.
 
 - Adds graceful API fallback and per-provider timeouts so a slow or unavailable Codex or Gemini endpoint does not block the session.
 - Publishes a parity matrix showing which capabilities are available on each of the seven supported platforms.
@@ -30,7 +74,7 @@
 
 ---
 
-## P8 — Trident Enforced, Visible, Everywhere
+## P8 -- Trident Enforced, Visible, Everywhere
 
 **Theme:** Cross-AI critique is automatic, visible, and owns its own execution loop.
 
@@ -42,9 +86,9 @@
 
 ---
 
-## P7 — Cross-Research and Cross-Critique
+## P7 -- Cross-Research and Cross-Critique
 
-**Theme:** Two AIs are smarter than one — IJFW makes that the default, not an afterthought.
+**Theme:** Two AIs are smarter than one -- IJFW makes that the default, not an afterthought.
 
 - Introduces `/cross-research` and `/cross-critique` slash commands backed by a shared cross-dispatcher module.
 - Upgrades the Trident to a true three-way review: Claude specialist swarm (security, code-review, reliability, tests) + Codex + Gemini, results merged into a single response.
@@ -53,17 +97,17 @@
 
 ---
 
-## P6 — Audit Hardening
+## P6 -- Audit Hardening
 
-**Theme:** Close every finding the cross-audit surfaces — no carryovers.
+**Theme:** Close every finding the cross-audit surfaces -- no carryovers.
 
 - Closes all eleven Codex and Gemini cross-audit findings from Phase 5's first external review pass.
-- Fixes hook event semantics: `PreToolUse` warns on `tool_input`; `PostToolUse` trims and emits a structured JSON envelope — invariant baked into the hook scripts.
+- Fixes hook event semantics: `PreToolUse` warns on `tool_input`; `PostToolUse` trims and emits a structured JSON envelope -- invariant baked into the hook scripts.
 - Closes eight additional round-2 findings surfaced after the first fix batch, including output-format regressions and memory sanitizer gaps.
 
 ---
 
-## P5 — Adaptive Memory and Cross-Audit
+## P5 -- Adaptive Memory and Cross-Audit
 
 **Theme:** Memory that learns, and a second model always watching.
 
@@ -75,21 +119,21 @@
 
 ---
 
-## P4 — Intelligent and Visible
+## P4 -- Intelligent and Visible
 
 **Theme:** IJFW becomes smart about what you mean and honest about what it costs.
 
 - Adds a deterministic intent router: saying "brainstorm" or "ship this" fires the right IJFW skill automatically, no LLM guess needed.
-- Introduces `/mode brutal` — a caveman-mode output discipline that cuts every response to the minimum tokens.
+- Introduces `/mode brutal` -- a caveman-mode output discipline that cuts every response to the minimum tokens.
 - Ships lazy prelude loading: the session-context summary loads only when the conversation needs it, not on every turn.
 - Adds an error-aware output trimmer that reduces hook noise when nothing went wrong.
 - Delivers BM25 memory search, a vectors scaffold, auto-memorize with consent flow, and corruption recovery for the memory store.
 - Ships the `@ijfw/install` npx installer, a first-run welcome surface, a privacy posture statement, and an opinionated `.claudeignore` template.
-- Adds `/ijfw doctor` — a user-facing health check that shows ok or action-needed per service with install hints.
+- Adds `/ijfw doctor` -- a user-facing health check that shows ok or action-needed per service with install hints.
 
 ---
 
-## P3 — Intelligence Layer
+## P3 -- Intelligence Layer
 
 **Theme:** Memory that persists, prompts that improve, and a first real benchmark.
 
@@ -102,20 +146,20 @@
 
 ---
 
-## P2 — Platform Parity and Hardened Memory
+## P2 -- Platform Parity and Hardened Memory
 
 **Theme:** Every platform gets the same intelligence; memory becomes a first-class citizen.
 
 - Splits global memory into faceted per-topic files, making recall faster and keeping individual files human-readable.
 - Adds `ijfw_memory_prelude` as the fifth MCP tool so Gemini, Codex, and Cursor get the same first-turn context recall that Claude gets via CLAUDE.md.
-- Rewrites `scripts/install.sh` to parse and merge existing platform configs rather than overwriting them — safe to run on any existing setup.
+- Rewrites `scripts/install.sh` to parse and merge existing platform configs rather than overwriting them -- safe to run on any existing setup.
 - Hardens all seven platform packages with the same core rules, adapted for each platform's native format.
 - Introduces the cross-audit UX: a graduated offer at every workflow gate, dismissible in one keystroke.
 - Adds a `PostToolUse` hook that trims verbose tool output and emits a structured JSON envelope for downstream tooling.
 
 ---
 
-## P1 — Foundation
+## P1 -- Foundation
 
 **Theme:** One install, it just works.
 
@@ -127,7 +171,7 @@
 
 ---
 
-## P0 — Concept and Architecture
+## P0 -- Concept and Architecture
 
 **Theme:** Define the problem, choose the constraints, commit to the design.
 
@@ -135,4 +179,4 @@
 - Locks the plugin architecture: one canonical source per platform, shipped as native packages the platform already understands.
 - Defines the three design principles: Sutherland (smarter, not cheaper), Krug (zero config, smart defaults), Donahoe (one install, it just works).
 - Sets the memory storage contract: plain markdown for hot recall, SQLite FTS5 for warm search, optional vectors for cold semantic lookup.
-- Defines the hard cap: `ijfw-core` skill stays at or under 55 lines — the single source of truth for every agent session.
+- Defines the hard cap: `ijfw-core` skill stays at or under 55 lines -- the single source of truth for every agent session.

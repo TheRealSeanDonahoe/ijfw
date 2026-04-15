@@ -68,13 +68,14 @@ export async function runImport({ tool, dryRun = false, force = false, path = nu
   }
 
   try {
+    const cache = {}; // file path -> cached body (avoids O(n^2) re-reads)
     for await (const record of records) {
       const entry = importer.normalize(record);
       if (!entry) { bumpStat(stats, null, 'skipped'); continue; }
 
       const outcome = dryRun
         ? 'preview'
-        : writeEntry(memDir, entry, { force });
+        : writeEntry(memDir, entry, { force, cache });
 
       if (outcome === 'failed')       bumpStat(stats, entry, 'failed');
       else if (outcome === 'skipped') bumpStat(stats, entry, 'skipped');
@@ -84,6 +85,12 @@ export async function runImport({ tool, dryRun = false, force = false, path = nu
     }
   } catch (err) {
     return { ok: false, error: err.message || String(err), stats, samples };
+  }
+
+  // Per Trident MED finding: ok should reflect write health, not just that
+  // the iteration completed.
+  if (stats.failed > 0 && stats.total === stats.failed) {
+    return { ok: false, error: `All ${stats.failed} writes failed.`, stats, samples };
   }
 
   return {
@@ -98,74 +105,99 @@ export async function runImport({ tool, dryRun = false, force = false, path = nu
 }
 
 // Writer: returns 'ok' | 'skipped' | 'failed'.
-function writeEntry(memDir, entry, { force }) {
+// cache: { path -> body } to avoid re-reading the same memory file per entry.
+function writeEntry(memDir, entry, { force, cache }) {
   try {
     switch (entry.type) {
       case 'decision':
       case 'pattern':
-        return appendKnowledge(memDir, entry, force);
+        return appendKnowledge(memDir, entry, force, cache);
       case 'handoff':
-        return writeHandoff(memDir, entry, force);
+        return writeHandoff(memDir, entry, force, cache);
       case 'preference':
-        return appendFaceted(memDir, 'preferences.md', entry, force);
+        return appendFaceted(memDir, 'preferences.md', entry, force, cache);
       default:
-        return appendJournal(memDir, entry, force);
+        return appendJournal(memDir, entry, force, cache);
     }
   } catch { return 'failed'; }
 }
 
-function appendKnowledge(memDir, entry, force) {
+function getBody(file, cache) {
+  if (cache[file] !== undefined) return cache[file];
+  cache[file] = existsSync(file) ? readFileSync(file, 'utf8') : '';
+  return cache[file];
+}
+
+function appendAndCache(file, addition, cache) {
+  appendFileSync(file, addition);
+  cache[file] = (cache[file] || '') + addition;
+}
+
+// Content-hash dedup: two decisions with the same summary but different
+// bodies are NOT duplicates (Trident HIGH). Key is sha12(content).
+function appendKnowledge(memDir, entry, force, cache) {
   const file = join(memDir, 'knowledge.md');
-  const body = readIfExists(file);
-  const summary = entry.summary || entry.content.slice(0, 80);
-  if (!force && body.includes(`name: ${summary}\n`)) return 'skipped';
+  const body = getBody(file, cache);
+  const hash = sha12(entry.content);
+  if (!force && body.includes(`<!-- hash:${hash} -->`)) return 'skipped';
+  const summary = (entry.summary || entry.content.slice(0, 80)).replace(/\n/g, ' ');
   const block = [
     '',
     '---',
-    `name: ${summary}`,
+    `name: ${quoteYaml(summary)}`,
     `type: ${entry.type}`,
     `source: ${entry.source}`,
-    entry.tags.length > 0 ? `tags: [${entry.tags.join(', ')}]` : null,
+    entry.tags.length > 0 ? `tags: [${entry.tags.map(quoteYaml).join(', ')}]` : null,
+    `hash: ${hash}`,
     '---',
     '',
+    `<!-- hash:${hash} -->`,
     entry.content,
     entry.why ? `\n**Why:** ${entry.why}` : null,
     entry.how_to_apply ? `\n**How to apply:** ${entry.how_to_apply}` : null,
     '',
   ].filter((l) => l !== null).join('\n');
-  appendFileSync(file, block);
+  appendAndCache(file, block, cache);
   return 'ok';
 }
 
-function writeHandoff(memDir, entry, force) {
+// Last-one-wins per scope intent: a new handoff overwrites the existing one.
+function writeHandoff(memDir, entry, force, cache) {
   const file = join(memDir, 'handoff.md');
-  if (existsSync(file) && !force) return 'skipped';
   writeFileSync(file, entry.content + '\n');
+  cache[file] = entry.content + '\n';
   return 'ok';
 }
 
-function appendFaceted(memDir, name, entry, force) {
+function appendFaceted(memDir, name, entry, force, cache) {
   const file = join(memDir, name);
-  const body = readIfExists(file);
+  const body = getBody(file, cache);
   const hash = sha12(entry.content);
   if (!force && body.includes(`<!-- hash:${hash} -->`)) return 'skipped';
-  appendFileSync(file, `\n<!-- hash:${hash} -->\n${entry.content}\n`);
+  appendAndCache(file, `\n<!-- hash:${hash} -->\n${entry.content}\n`, cache);
   return 'ok';
 }
 
-function appendJournal(memDir, entry, force) {
+function appendJournal(memDir, entry, force, cache) {
   const file = join(memDir, 'project-journal.md');
-  const body = readIfExists(file);
+  const body = getBody(file, cache);
   const hash = sha12(entry.content);
   if (!force && body.includes(`<!-- hash:${hash} -->`)) return 'skipped';
   const iso = new Date().toISOString();
-  appendFileSync(file, `\n- [${iso}] <!-- hash:${hash} --> ${entry.content.replace(/\n+/g, ' ')}\n`);
+  // Preserve multi-line content; encode newlines as explicit \n rather than
+  // flattening. Recall surfaces still work (BM25 tokenizes per-line).
+  const inline = entry.content.replace(/\r?\n/g, ' \\n ');
+  appendAndCache(file, `\n- [${iso}] <!-- hash:${hash} --> ${inline}\n`, cache);
   return 'ok';
 }
 
-function readIfExists(file) {
-  if (!existsSync(file)) return '';
-  return readFileSync(file, 'utf8');
+// Minimal YAML quoting: wrap in double quotes if the value has special chars.
+function quoteYaml(s) {
+  const str = String(s);
+  if (/[:#[\]{}&*!|>'%"@`\n]/.test(str)) {
+    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+  return str;
 }
 
 function sha12(s) {

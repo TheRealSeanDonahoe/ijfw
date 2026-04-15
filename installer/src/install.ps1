@@ -103,6 +103,28 @@ function Invoke-InstallScript($target) {
   }
 }
 
+function ConvertTo-Hashtable($obj) {
+  # PS 5.1 compatibility: ConvertFrom-Json's -AsHashtable is PS 7+ only.
+  # Walk the PSCustomObject tree manually into hashtables + arrays.
+  if ($null -eq $obj) { return $null }
+  if ($obj -is [System.Collections.IDictionary]) {
+    $h = @{}
+    foreach ($k in $obj.Keys) { $h[$k] = ConvertTo-Hashtable $obj[$k] }
+    return $h
+  }
+  if ($obj -is [System.Management.Automation.PSCustomObject]) {
+    $h = @{}
+    foreach ($p in $obj.PSObject.Properties) { $h[$p.Name] = ConvertTo-Hashtable $p.Value }
+    return $h
+  }
+  if ($obj -is [System.Collections.IEnumerable] -and -not ($obj -is [string])) {
+    $out = @()
+    foreach ($item in $obj) { $out += ,(ConvertTo-Hashtable $item) }
+    return ,$out
+  }
+  return $obj
+}
+
 function ConvertFrom-Jsonc($raw) {
   # State-machine JSONC cleaner: strips // line comments, /* block comments */,
   # and trailing commas before } or ], but only when NOT inside a string.
@@ -162,8 +184,9 @@ function Merge-Marketplace {
     $raw = Get-Content -Raw -LiteralPath $settingsPath
     $cleaned = ConvertFrom-Jsonc $raw
     try {
-      $parsed = ConvertFrom-Json $cleaned -AsHashtable -ErrorAction Stop
-      if ($parsed -is [hashtable]) { $settings = $parsed }
+      $parsed = ConvertFrom-Json $cleaned -ErrorAction Stop
+      $settings = ConvertTo-Hashtable $parsed
+      if ($null -eq $settings) { $settings = @{} }
     } catch {
       # Graceful fallback: back up the unparseable file, surface the manual
       # next step, return without throwing so the rest of the install stands.
