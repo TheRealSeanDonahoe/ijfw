@@ -1,3 +1,4 @@
+<!-- IJFW: narration-not-applicable -->
 ---
 name: ijfw-review
 description: "One-line code review comments. Trigger: review, code review, PR review, /ijfw-review"
@@ -7,7 +8,7 @@ Review code changes. One-line comments per finding.
 
 Format: L<line>: <severity> <problem>. <fix>.
 
-Severity: 🔴 bug | 🟡 warning | 🔵 suggestion | 🟢 nice
+Severity: [bug] | [warn] | [suggest] | [nice]
 
 Rules:
 - Lead with bugs. Then warnings. Then suggestions.

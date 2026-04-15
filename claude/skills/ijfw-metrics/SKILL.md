@@ -1,3 +1,4 @@
+<!-- IJFW: narration-not-applicable -->
 ---
 name: ijfw-metrics
 description: "Internal session metrics tracking. Auto-triggered at session boundaries. Tracks tokens, agent usage, efficiency gains. View with /ijfw-status."
@@ -70,20 +71,20 @@ If smart routing sent 40% of turns to Haiku instead of Opus:
 When user runs `/ijfw-status` or asks about performance:
 
 ```
-━━━ IJFW Status ━━━━━━━━━━━━━━━━━━━━━━
+IJFW Status
 Mode: smart | Effort: high | OpenRouter
 
 This Session:
   12 turns | 3 agents dispatched | 2 decisions stored
 
 All Time (47 sessions):
-  Smart routing: 340 turns → scout, 580 → builder, 127 → architect
+  Smart routing: 340 turns -> scout, 580 -> builder, 127 -> architect
   Estimated savings: ~$43 in model routing
   Memory: 89 decisions, 12 patterns, 4 consolidations
   Continuity: 94% sessions with handoff
 
 Context health: 34% used | Next compact: ~66% threshold
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---------------------------------------
 ```
 
 Positive framing. Show what IJFW has done for you.
