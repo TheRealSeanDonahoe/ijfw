@@ -103,6 +103,55 @@ function Invoke-InstallScript($target) {
   }
 }
 
+function ConvertFrom-Jsonc($raw) {
+  # State-machine JSONC cleaner: strips // line comments, /* block comments */,
+  # and trailing commas before } or ], but only when NOT inside a string.
+  # The regex version we shipped earlier mangled files whose string values
+  # contained // or /* patterns. This implementation walks the text char by
+  # char with a tiny state machine -- no regex false-positives.
+  if (-not $raw) { return $raw }
+  if ($raw.Length -gt 0 -and [int][char]$raw[0] -eq 0xFEFF) { $raw = $raw.Substring(1) }
+
+  $sb = New-Object System.Text.StringBuilder
+  $len = $raw.Length
+  $i = 0
+  $inString = $false
+  $escape = $false
+
+  while ($i -lt $len) {
+    $ch = $raw[$i]
+    if ($inString) {
+      [void]$sb.Append($ch)
+      if ($escape) { $escape = $false }
+      elseif ($ch -eq '\') { $escape = $true }
+      elseif ($ch -eq '"') { $inString = $false }
+      $i++
+      continue
+    }
+    if ($ch -eq '"') { $inString = $true; [void]$sb.Append($ch); $i++; continue }
+    if ($ch -eq '/' -and $i + 1 -lt $len) {
+      $next = $raw[$i + 1]
+      if ($next -eq '/') {
+        while ($i -lt $len -and $raw[$i] -ne "`n") { $i++ }
+        continue
+      }
+      if ($next -eq '*') {
+        $i += 2
+        while ($i + 1 -lt $len -and -not ($raw[$i] -eq '*' -and $raw[$i + 1] -eq '/')) { $i++ }
+        $i += 2
+        continue
+      }
+    }
+    [void]$sb.Append($ch)
+    $i++
+  }
+
+  # Strip trailing commas. Safe to do as a second regex pass now that strings
+  # and comments are out of the way.
+  $intermediate = $sb.ToString()
+  return ($intermediate -replace ',(\s*[}\]])','$1')
+}
+
 function Merge-Marketplace {
   $settingsPath = Join-Path $env:USERPROFILE ".claude\settings.json"
   $settingsDir = Split-Path -Parent $settingsPath
@@ -111,12 +160,7 @@ function Merge-Marketplace {
   $settings = @{}
   if (Test-Path $settingsPath) {
     $raw = Get-Content -Raw -LiteralPath $settingsPath
-    # Strip UTF-8 BOM if present -- ConvertFrom-Json rejects it on PS 5.1.
-    if ($raw.Length -gt 0 -and [int][char]$raw[0] -eq 0xFEFF) { $raw = $raw.Substring(1) }
-    # Strip JSONC comments + trailing commas before parse.
-    $cleaned = $raw -replace '/\*[\s\S]*?\*/',''
-    $cleaned = $cleaned -replace '(^|[^:])//[^\n]*','$1'
-    $cleaned = $cleaned -replace ',(\s*[}\]])','$1'
+    $cleaned = ConvertFrom-Jsonc $raw
     try {
       $parsed = ConvertFrom-Json $cleaned -AsHashtable -ErrorAction Stop
       if ($parsed -is [hashtable]) { $settings = $parsed }

@@ -190,14 +190,8 @@ Before any sub-wave dispatch, call the dispatch-planner to decide shared-branch
 vs worktree-isolated parallelism per sub-wave:
 
 ```
-node -e "
-import('./mcp-server/src/dispatch-planner.js').then(async (m) => {
-  const { readFile } = await import('node:fs/promises');
-  const md = await readFile(process.argv[1], 'utf8');
-  const manifest = m.buildManifest(m.parsePlan(md), { override: process.argv[2] || null });
-  console.log(m.manifestSummary(manifest));
-  console.log(JSON.stringify(manifest, null, 2));
-})" .planning/phaseN/PLAN.md
+ijfw-dispatch-plan .planning/phaseN/PLAN.md
+ijfw-dispatch-plan .planning/phaseN/PLAN.md all-worktree   # override
 ```
 
 Emit the one-line summary to the user before dispatching:

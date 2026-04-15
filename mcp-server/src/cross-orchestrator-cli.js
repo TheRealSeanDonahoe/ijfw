@@ -460,7 +460,10 @@ async function cmdCrossProjectAudit({ rule, dryRun }) {
 
   const projects = readProjectRegistry();
   if (projects.length === 0) {
-    console.log('No other IJFW projects registered yet. Open a second project to populate the registry.');
+    console.log('No other IJFW projects registered yet.');
+    console.log('The registry auto-populates the first time you run any IJFW command in a project:');
+    console.log('  cd /path/to/another/project && ijfw status');
+    console.log('Then re-run: ijfw cross project-audit ' + rule);
     return;
   }
 
