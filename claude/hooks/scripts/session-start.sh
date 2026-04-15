@@ -26,10 +26,7 @@ MIGRATION_LOCK="$IJFW_DIR/.migration.lock"
 # --- Pre-flight: .ijfw must be a directory if it exists ---
 if [ -e "$IJFW_DIR" ] && [ ! -d "$IJFW_DIR" ]; then
   cat <<'EOF'
-━━━ IJFW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-A file named ".ijfw" exists in this project. IJFW needs that name for its directory.
-Rename or remove the file, then start a new session.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ijfw] A file named ".ijfw" exists in this project — IJFW needs that name for its directory. Rename or remove the file, then start a new session.
 EOF
   exit 0
 fi
@@ -312,31 +309,30 @@ fi
 # Captured to buffer so we can emit it via JSON hookSpecificOutput envelope.
 BANNER_BUF="$IJFW_DIR/.banner-buf"
 {
-echo "━━━ IJFW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 # C5 — visible mode indicator. IJFW_MODE overrides; default "smart".
 CUR_MODE="${IJFW_MODE:-smart}"
-MODE_LABEL=$(printf '%s' "$CUR_MODE" | tr '[:lower:]' '[:upper:]')
 if [ -n "$ROUTING_STR" ]; then
-  printf '%s mode%s\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')" "$ROUTING_STR"
+  printf '[ijfw] %s mode%s\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')" "$ROUTING_STR"
 else
-  printf '%s mode\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
+  printf '[ijfw] %s mode\n' "$(printf '%s' "$CUR_MODE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 fi
-echo ""
 
-[ -n "$UPGRADED_EFFORT" ] && echo "$UPGRADED_EFFORT"
+[ -n "$UPGRADED_EFFORT" ] && printf '[ijfw] %s\n' "$UPGRADED_EFFORT"
 
 if [ -s "$MIGRATION_MSGS_FILE" ]; then
-  cat "$MIGRATION_MSGS_FILE"
+  while IFS= read -r line; do
+    [ -n "$line" ] && printf '[ijfw] %s\n' "$line"
+  done < "$MIGRATION_MSGS_FILE"
 fi
 
 if [ -n "$PROJECT_TYPE" ] && [ ! -f "CLAUDE.md" ] && [ ! -f ".claude/CLAUDE.md" ]; then
-  echo "Optimised project context created ($PROJECT_TYPE)"
+  printf '[ijfw] Project context generated (%s)\n' "$PROJECT_TYPE"
 fi
 
-[ -n "$NEEDS_COMPRESS" ] && echo "Project context optimised"
+[ -n "$NEEDS_COMPRESS" ] && printf '[ijfw] Project context optimised\n'
 
 if [ "$SESSION_COUNT" -gt 0 ] || [ "$DECISION_COUNT" -gt 0 ]; then
-  echo "Memory loaded ($SESSION_COUNT sessions, $DECISION_COUNT decisions)"
+  printf '[ijfw] Memory loaded (%s sessions, %s decisions)\n' "$SESSION_COUNT" "$DECISION_COUNT"
 fi
 
 # W3.11 / H9 — surface one most-recent auto-memorized entry as the
@@ -346,15 +342,15 @@ KB="$IJFW_DIR/memory/knowledge.md"
 if [ -f "$KB" ]; then
   AUTO_ENTRY=$(grep -B2 'auto-memorize' "$KB" 2>/dev/null | grep '^summary:' | tail -1 | sed 's/^summary:[[:space:]]*//' | cut -c1-110)
   if [ -n "$AUTO_ENTRY" ]; then
-    echo "Remembered: $AUTO_ENTRY"
+    printf '[ijfw] Remembered: %s\n' "$AUTO_ENTRY"
   fi
 fi
 
 if [ -f "$IJFW_DIR/memory/handoff.md" ]; then
   LAST_STATUS=$(grep -A1 "### Status" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//')
   NEXT_STEP=$(grep -A1 "### Next Steps" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//;s/^[0-9]*\. //')
-  [ -n "$LAST_STATUS" ] && echo "Last session: $LAST_STATUS"
-  [ -n "$NEXT_STEP" ] && echo "Next: $NEXT_STEP"
+  [ -n "$LAST_STATUS" ] && printf '[ijfw] Last session: %s\n' "$LAST_STATUS"
+  [ -n "$NEXT_STEP" ] && printf '[ijfw] Next: %s\n' "$NEXT_STEP"
 fi
 
 # Codebase index — MVP text index at .ijfw/index/files.md.
@@ -374,7 +370,7 @@ done
 if [ -f "$INDEX_FILE" ]; then
   INDEX_COUNT=$(grep -c '^- `' "$INDEX_FILE" 2>/dev/null)
   [ -z "$INDEX_COUNT" ] && INDEX_COUNT=0
-  [ "$INDEX_COUNT" -gt 0 ] && echo "Codebase indexed ($INDEX_COUNT files)"
+  [ "$INDEX_COUNT" -gt 0 ] && printf '[ijfw] Codebase indexed (%s files)\n' "$INDEX_COUNT"
 fi
 
 # Fire-and-forget background rebuild. If the indexer isn't found we just skip.
@@ -386,9 +382,7 @@ if [ "$SESSION_COUNT" -gt 0 ] && [ $(( SESSION_COUNT % 5 )) -eq 0 ]; then
   echo "IJFW_NEEDS_CONSOLIDATE=1" >> "$IJFW_DIR/.startup-flags"
 fi
 
-echo ""
-echo "Ready."
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+printf '[ijfw] Ready.\n'
 } > "$BANNER_BUF"
 
 # The banner above was buffered; we'll emit it via hookSpecificOutput.additionalContext

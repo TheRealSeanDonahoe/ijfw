@@ -13,7 +13,7 @@ mkdir -p "$IJFW_DIR/sessions"
 # Also instructs the compaction to retain feedback/signal files verbatim
 # since auto-memorize needs them intact at session end.
 cat << 'EOF'
-IJFW PreCompact: Saving session state before compression.
+[ijfw] Saving session state before compression.
 
 Preserve in compacted context:
 - Current task state and progress

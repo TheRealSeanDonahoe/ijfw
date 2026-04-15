@@ -277,7 +277,7 @@ if [ -f "$HOOK_LOG" ]; then
 fi
 
 # Positive-framed status — no jargon, no negatives, no paths.
-echo "Session #$SESSION_NUM saved."
+printf '[ijfw] Session #%s saved.\n' "$SESSION_NUM"
 
 # Savings reframe (W1.3 / C1). Reads the JSONL line we just appended and
 # emits a one-line "IJFW this session: …" so users see the value delivered
@@ -298,7 +298,7 @@ if command -v node >/dev/null 2>&1 && [ -f "$METRICS_FILE" ]; then
       const baseFactor = last.baseline_factor || 1.25;
       const costSaved = cost > 0 && out > 0 ? (cost * (baseFactor - 1) / baseFactor) : 0;
       const fmt = n => n >= 1000 ? (n/1000).toFixed(1) + "k" : String(n);
-      process.stdout.write(`IJFW this session: ~${fmt(saved)} tokens saved vs baseline (~$${costSaved.toFixed(3)})\n`);
+      process.stdout.write(`[ijfw] This session: ~${fmt(saved)} tokens saved vs baseline (~$${costSaved.toFixed(3)})\n`);
     } catch {}
   ' "$METRICS_FILE" 2>/dev/null
 fi
