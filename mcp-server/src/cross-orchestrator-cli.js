@@ -174,7 +174,7 @@ async function cmdStatus(projectDir) {
   console.log('--');
   console.log(hero);
   console.log('--');
-  console.log(`Total runs: ${receipts.length}`);
+  console.log(`${receipts.length} Trident run${receipts.length === 1 ? '' : 's'} on record.`);
   console.log('Recommended next: `ijfw cross audit <file>`. Say no/alt to override.');
 }
 
@@ -310,14 +310,14 @@ function cmdDoctor() {
       const hint = entry.apiFallback
         ? `install ${entry.invoke.split(' ')[0]} or set ${entry.apiFallback.authEnv}`
         : `install ${entry.invoke.split(' ')[0]}`;
-      rows.push(`  [ -- ] ${entry.id} CLI -- not found -- ${hint}`);
+      rows.push(`  [ .. ] ${entry.id} CLI -- install to unlock -- ${hint}`);
     }
 
     if (entry.apiFallback) {
       if (apiOk) {
         rows.push(`  [ ok ] ${entry.apiFallback.authEnv} -- set`);
       } else {
-        rows.push(`  [ -- ] ${entry.apiFallback.authEnv} -- not set`);
+        rows.push(`  [ .. ] ${entry.apiFallback.authEnv} -- set to enable ${entry.id} API fallback`);
       }
     }
   }
@@ -329,7 +329,7 @@ function cmdDoctor() {
   if (anyReachable) {
     console.log('At least one auditor is reachable. Run `ijfw cross audit <file>` to start.');
   } else {
-    console.log('No auditors reachable yet. Install codex or gemini, or set an API key, then run `ijfw demo`.');
+    console.log('IJFW has the Trident ready -- install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY), then run `ijfw demo`.');
   }
 }
 
@@ -350,25 +350,25 @@ function cmdPurgeReceipts(projectDir) {
 async function cmdCross({ mode, target, only, confirm, expand }) {
   const VALID_MODES = ['audit', 'research', 'critique'];
   if (!mode || !VALID_MODES.includes(mode)) {
-    console.error(`Error: mode must be one of: ${VALID_MODES.join(', ')}`);
+    console.error(`ijfw cross requires a mode: ${VALID_MODES.join(', ')}. Example: ijfw cross audit <file>`);
     process.exit(1);
   }
   if (!target) {
-    console.error('Error: target is required (file path, git range, or topic).');
+    console.error('ijfw cross needs a target -- pass a file path, git range, or topic. Example: ijfw cross audit CLAUDE.md');
     process.exit(1);
   }
 
   const projectDir = process.cwd();
   const runStamp = new Date().toISOString();
 
-  console.log(`\nijfw cross ${mode} — target: ${target}`);
+  console.log(`\nijfw cross ${mode} -- target: ${target}`);
   console.log('Probing roster...');
 
   let result;
   try {
     result = await runCrossOp({ mode, target, projectDir, runStamp, only, confirm, expand });
   } catch (err) {
-    console.error(`Error: ${err.message}`);
+    console.error(`${err.message} -- run ijfw doctor to see what to fix.`);
     process.exit(1);
   }
 

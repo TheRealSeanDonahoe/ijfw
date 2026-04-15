@@ -106,8 +106,8 @@ export function renderHeroLine(receipts, sessions = []) {
 
   const delta = 1 - (receiptsInputTokens / sessionBaseline);
   const pct = Math.round(Math.abs(delta) * 100);
-  const sign = delta >= 0 ? '\u2212' : '+';
+  const sign = delta >= 0 ? '-' : '+';
   const n = claudeSessions.length;
 
-  return `${baseline} · measured \u0394: ${sign}${pct}% tokens vs solo Claude ${n}\u00D7${cacheSuffix}`;
+  return `${baseline} -- measured delta: ${sign}${pct}% tokens vs solo Claude ${n}x${cacheSuffix}`;
 }

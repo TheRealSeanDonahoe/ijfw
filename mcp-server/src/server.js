@@ -462,7 +462,7 @@ function searchMemory(query, limit = 10, scope = 'project') {
 const TOOLS = [
   {
     name: 'ijfw_memory_recall',
-    description: 'Retrieve context from IJFW memory. Call at session start or when needing past decisions, handoff state, or project knowledge. Pass from_project to pull from a different IJFW project (by absolute path, 12-char hash, or basename).',
+    description: 'Get project context fast -- past decisions, handoff state, and knowledge base in one call. Use at session start or when you need to remember why something was built a certain way. Pass from_project to pull from a different IJFW project (by absolute path, 12-char hash, or basename).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -514,7 +514,7 @@ const TOOLS = [
   },
   {
     name: 'ijfw_memory_status',
-    description: 'Compressed critical-facts summary (~200 tokens) for context injection.',
+    description: 'Ready-to-inject project brief (~200 tokens) -- active mode, pending work, last handoff, memory count. One call at session start gives the agent everything it needs to pick up where work left off.',
     inputSchema: { type: 'object', properties: {}, required: [] }
   },
   {
