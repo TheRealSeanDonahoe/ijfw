@@ -366,6 +366,14 @@ elif [ -d ".git" ]; then
   note "Tip: background Trident critique on every commit -- run with --post-commit-hook to enable."
 fi
 
+# Polish 3: auto-detect existing claude-mem install and suggest absorbing it.
+# Silent if nothing detected.
+if [ -d "$HOME/.claude-mem" ] || [ -f "$HOME/.claude-mem/claude-mem.db" ]; then
+  echo
+  printf '  %s==> NOTICED%s  %sclaude-mem looks active at ~/.claude-mem%s\n' "$C_BOLD$C_CYAN" "$C_RESET" "$C_DIM" "$C_RESET"
+  printf '      Run %sijfw import claude-mem --dry-run%s to preview the migration.\n' "$C_BOLD" "$C_RESET"
+fi
+
 # Closer: PS wrapper sets IJFW_SKIP_CLOSER=1 so it can print after running
 # its own Merge-Marketplace step (keeps warnings above the closer, not below).
 if [ "${IJFW_SKIP_CLOSER:-0}" != "1" ]; then

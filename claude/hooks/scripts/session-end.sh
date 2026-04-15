@@ -303,4 +303,35 @@ if command -v node >/dev/null 2>&1 && [ -f "$METRICS_FILE" ]; then
   ' "$METRICS_FILE" 2>/dev/null
 fi
 
+# Memory + next-step receipt (polish 13). Silent on error -- hooks never crash.
+if command -v node >/dev/null 2>&1; then
+  node -e '
+    const fs = require("fs");
+    try {
+      const tridentFile = ".ijfw/cross-runs.jsonl";
+      const knowledgeFile = ".ijfw/memory/knowledge.md";
+      const handoffFile = ".ijfw/memory/handoff.md";
+
+      let tridentRuns = 0;
+      if (fs.existsSync(tridentFile)) {
+        tridentRuns = fs.readFileSync(tridentFile, "utf8").split("\n").filter(Boolean).length;
+      }
+      let decisions = 0;
+      if (fs.existsSync(knowledgeFile)) {
+        decisions = (fs.readFileSync(knowledgeFile, "utf8").match(/^---$/gm) || []).length / 2 | 0;
+      }
+      const bits = [];
+      if (decisions > 0) bits.push(`${decisions} decisions stored`);
+      if (tridentRuns > 0) bits.push(`${tridentRuns} Trident runs on record`);
+      if (bits.length > 0) process.stdout.write(`[ijfw] Memory: ${bits.join(" -- ")}.\n`);
+
+      if (fs.existsSync(handoffFile)) {
+        const body = fs.readFileSync(handoffFile, "utf8");
+        const m = body.match(/^(?:###\s*)?Next Steps?[\s\S]*?\n[-\d.]\s*([^\n]+)/mi);
+        if (m) process.stdout.write(`[ijfw] Next: ${m[1].trim().slice(0, 90)}\n`);
+      }
+    } catch {}
+  ' 2>/dev/null
+fi
+
 exit 0

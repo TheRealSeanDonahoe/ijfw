@@ -43,6 +43,18 @@ Mid-flow escalation: user can say `go deeper` at any Quick step; skill re-enters
 
 ---
 
+# EMPTY-STATE OPENER
+
+First session in a project (no `.ijfw/memory/` or zero entries in it) is the onboarding moment. Do not stay silent. Open with one line:
+
+> `Clean slate here. Want me to run a 5-minute Quick brainstorm on what we're building, or jump straight in?`
+
+User replies `brainstorm` / `jump in` / custom intent. If they jump in, still offer memory hooks for the first 3 turns so decisions get captured. If they brainstorm, route into QUICK mode FRAME. Either way, `.ijfw/memory/` gets bootstrapped silently.
+
+If memory is populated but the last handoff is >7 days old, open with a softer beat: `Welcome back -- last handoff was <N> days ago. Quick recap?` User says `recap` / `new task` / actual intent.
+
+---
+
 # BRAINSTORM DISCIPLINE (invariants)
 
 Hard rules. Violating any of these is a workflow failure worth auditing.

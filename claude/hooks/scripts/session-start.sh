@@ -354,8 +354,23 @@ fi
 if [ -f "$IJFW_DIR/memory/handoff.md" ]; then
   LAST_STATUS=$(grep -A1 "### Status" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//')
   NEXT_STEP=$(grep -A1 "### Next Steps" "$IJFW_DIR/memory/handoff.md" 2>/dev/null | tail -1 | sed 's/^[[:space:]]*//;s/^[0-9]*\. //')
+  # Welcome-back beat (polish 7). Age-aware: "Welcome back" is warm for recent
+  # handoffs, softer for older ones. stat -c / -f dual form for GNU vs BSD.
+  AGE_DAYS=""
+  if [ -n "$LAST_STATUS" ] || [ -n "$NEXT_STEP" ]; then
+    HANDOFF_MTIME=$(stat -c %Y "$IJFW_DIR/memory/handoff.md" 2>/dev/null || stat -f %m "$IJFW_DIR/memory/handoff.md" 2>/dev/null)
+    NOW=$(date +%s)
+    if [ -n "$HANDOFF_MTIME" ] && [ "$HANDOFF_MTIME" -gt 0 ]; then
+      AGE_DAYS=$(( (NOW - HANDOFF_MTIME) / 86400 ))
+    fi
+    if [ -n "$AGE_DAYS" ] && [ "$AGE_DAYS" -gt 7 ]; then
+      printf '[ijfw] Welcome back -- last handoff was %s days ago. Quick recap?\n' "$AGE_DAYS"
+    else
+      printf '[ijfw] Welcome back -- picking up where you left off.\n'
+    fi
+  fi
   [ -n "$LAST_STATUS" ] && printf '[ijfw] Last session: %s\n' "$LAST_STATUS"
-  [ -n "$NEXT_STEP" ] && printf '[ijfw] Next (top): %s -- see handoff.md for full list\n' "$NEXT_STEP"
+  [ -n "$NEXT_STEP" ] && printf '[ijfw] Next up: %s\n' "$NEXT_STEP"
 fi
 
 # Codebase index -- MVP text index at .ijfw/index/files.md.

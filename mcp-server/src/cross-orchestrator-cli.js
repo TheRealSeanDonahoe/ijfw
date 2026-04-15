@@ -92,6 +92,14 @@ function parseArgs(argv) {
     return { cmd: 'doctor' };
   }
 
+  if (args[0] === 'update') {
+    return { cmd: 'update' };
+  }
+
+  if (args[0] === 'receipt') {
+    return { cmd: 'receipt', sub: args[1] || 'last' };
+  }
+
   if (args[0] === '--purge-receipts') {
     return { cmd: 'purge-receipts' };
   }
@@ -153,6 +161,8 @@ Usage:
   ijfw import <tool> [--dry-run] [--force] [--path <p>]
   ijfw status
   ijfw doctor
+  ijfw update
+  ijfw receipt last
   ijfw --purge-receipts
   ijfw --help
 
@@ -162,6 +172,8 @@ Commands:
   import            Pull memory in from another tool. Try: ijfw import claude-mem --dry-run
   status            Show recent cross-audit activity. Try: ijfw status
   doctor            Probe which CLIs and API keys are reachable. Try: ijfw doctor
+  update            Pull latest IJFW + reinstall merge-safely. Try: ijfw update
+  receipt last      Print a redacted, shareable block from the last Trident run.
   --purge-receipts  Clear the cross-runs receipt log. Try: ijfw --purge-receipts
 
 Modes (for ijfw cross):
@@ -328,6 +340,17 @@ async function cmdDemo() {
 // Doctor
 // ---------------------------------------------------------------------------
 
+// One-line install hints per auditor id. Used by cmdDoctor to tell the user
+// the literal command, not just the dependency name.
+const INSTALL_HINT = {
+  codex:    'npm install -g @openai/codex',
+  gemini:   'npm install -g @google/generative-ai-cli',
+  claude:   'npm install -g @anthropic-ai/claude-code',
+  copilot:  'gh extension install github/gh-copilot',
+  opencode: 'npm install -g opencode',
+  aider:    'pipx install aider-chat',
+};
+
 function cmdDoctor() {
   console.log('ijfw doctor -- roster + key probe');
   console.log('');
@@ -340,19 +363,19 @@ function cmdDoctor() {
     const apiOk = Boolean(apiKey);
 
     if (cli) {
-      rows.push(`  [ ok ] ${entry.id} CLI -- ${entry.name} installed`);
+      rows.push(`  [ ok ] ${entry.id} CLI -- ${entry.name} ready`);
     } else {
-      const hint = entry.apiFallback
-        ? `install ${entry.invoke.split(' ')[0]} or set ${entry.apiFallback.authEnv}`
-        : `install ${entry.invoke.split(' ')[0]}`;
-      rows.push(`  [ .. ] ${entry.id} CLI -- install to unlock -- ${hint}`);
+      const cmd = INSTALL_HINT[entry.id] || `npm install -g ${entry.invoke.split(' ')[0]}`;
+      rows.push(`  [ .. ] ${entry.id} CLI -- standing by`);
+      rows.push(`         fix: ${cmd}`);
     }
 
     if (entry.apiFallback) {
       if (apiOk) {
         rows.push(`  [ ok ] ${entry.apiFallback.authEnv} -- set`);
       } else {
-        rows.push(`  [ .. ] ${entry.apiFallback.authEnv} -- set to enable ${entry.id} API fallback`);
+        rows.push(`  [ .. ] ${entry.apiFallback.authEnv} -- standing by`);
+        rows.push(`         fix: export ${entry.apiFallback.authEnv}=<your-key> (or add to ~/.ijfw/env)`);
       }
     }
   }
@@ -393,6 +416,16 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
     process.exit(1);
   }
 
+  // Polish 6: pre-flight reachability check. If no auditor is wired, give a
+  // positive recovery hint instead of bombing through to a runCrossOp error.
+  if (!_anyAuditorReachable()) {
+    console.log('');
+    console.log('Trident is standing by -- no auditors reachable yet.');
+    console.log('Wire one in 30 seconds: run `ijfw doctor` for the exact install commands.');
+    console.log('Tip: any one of codex / gemini / claude / copilot is enough to start.');
+    process.exit(0);
+  }
+
   const projectDir = process.cwd();
   const runStamp = new Date().toISOString();
 
@@ -403,7 +436,9 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
   try {
     result = await runCrossOp({ mode, target, projectDir, runStamp, only, confirm, expand });
   } catch (err) {
-    console.error(`${err.message} -- run ijfw doctor to see what to fix.`);
+    console.log('');
+    console.log(`Run didn't complete: ${err.message}`);
+    console.log('Try `ijfw doctor` to see what to wire next.');
     process.exit(1);
   }
 
@@ -536,6 +571,96 @@ async function cmdImport(parsed) {
 }
 
 // ---------------------------------------------------------------------------
+// Update -- `ijfw update`  (polish 5)
+// ---------------------------------------------------------------------------
+//
+// Walks up from the launcher to the IJFW source repo, runs git pull, and
+// reruns scripts/install.sh in merge-safe mode. Designed for users who
+// installed via git clone (the canonical path). For users on
+// `npm install -g @ijfw/install`, hints them at the npm command instead.
+
+function cmdUpdate() {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const repoRoot = join(here, '..', '..');
+  const installSh = join(repoRoot, 'scripts', 'install.sh');
+
+  if (!existsSync(installSh)) {
+    console.log('IJFW update path not found in this checkout.');
+    console.log('If you installed via npm: `npm install -g @ijfw/install@latest && ijfw-install`.');
+    console.log('If you installed via git: `cd <ijfw-repo> && git pull && bash scripts/install.sh`.');
+    return;
+  }
+
+  console.log('ijfw update -- pulling latest + reinstalling...');
+  console.log('');
+
+  const pull = spawnSync('git', ['-C', repoRoot, 'pull', '--ff-only'], { stdio: 'inherit' });
+  if (pull.status !== 0) {
+    console.log('');
+    console.log('git pull didn\'t complete cleanly. Resolve any conflicts in', repoRoot, 'and rerun `ijfw update`.');
+    process.exit(1);
+  }
+
+  const install = spawnSync('bash', [installSh], { stdio: 'inherit', cwd: process.cwd() });
+  if (install.status !== 0) {
+    console.log('');
+    console.log('Reinstall didn\'t complete. Run `bash', installSh, '` directly to see the full output.');
+    process.exit(1);
+  }
+
+  console.log('');
+  console.log('IJFW updated. Run `ijfw status` to confirm.');
+}
+
+// ---------------------------------------------------------------------------
+// Receipt -- `ijfw receipt last`  (polish 8)
+// ---------------------------------------------------------------------------
+//
+// Prints a redacted, shareable block from the most recent Trident run.
+// Strips absolute paths + project basenames so the user can paste it in
+// PR comments / Slack without leaking environment detail.
+
+function cmdReceipt(sub = 'last') {
+  if (sub !== 'last') {
+    console.log('Usage: ijfw receipt last');
+    process.exit(1);
+  }
+  const receipts = readReceipts(process.cwd());
+  if (receipts.length === 0) {
+    console.log('No Trident runs on record yet. Try `ijfw cross audit <file>` first.');
+    return;
+  }
+  const last = receipts[receipts.length - 1];
+  const findings = Array.isArray(last.merged?.findings) ? last.merged.findings : [];
+  const auditors = Array.isArray(last.auditors)
+    ? last.auditors.map(a => a.id).filter(Boolean)
+    : [];
+
+  const lines = [];
+  lines.push('```');
+  lines.push(`Trident -- ${last.mode || 'audit'} -- ${(last.timestamp || '').slice(0, 10)}`);
+  lines.push(`Auditors: ${auditors.join(', ') || 'n/a'}`);
+  lines.push(`Findings: ${findings.length}`);
+  for (const f of findings.slice(0, 5)) {
+    const sev = f.severity ? `[${String(f.severity).toLowerCase()}] ` : '';
+    const claim = redact(String(f.claim || f.issue || ''));
+    if (claim) lines.push(`  ${sev}${claim.slice(0, 140)}`);
+  }
+  if (findings.length > 5) lines.push(`  ... ${findings.length - 5} more.`);
+  lines.push(`Receipt: ijfw status`);
+  lines.push('```');
+  console.log(lines.join('\n'));
+}
+
+// Redact absolute paths + git directories so the receipt is safe to paste.
+function redact(s) {
+  return s
+    .replace(/\/Users\/[^/\s]+/g, '~')
+    .replace(/\/home\/[^/\s]+/g, '~')
+    .replace(/[A-Z]:\\Users\\[^\\\s]+/g, '%USERPROFILE%');
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -558,6 +683,10 @@ if (parsed.cmd === 'status') {
   cmdImport(parsed).catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'doctor') {
   cmdDoctor();
+} else if (parsed.cmd === 'update') {
+  cmdUpdate();
+} else if (parsed.cmd === 'receipt') {
+  cmdReceipt(parsed.sub);
 } else if (parsed.cmd === 'purge-receipts') {
   cmdPurgeReceipts(process.cwd());
 } else {
