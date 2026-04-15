@@ -17,7 +17,7 @@ Plan-then-execute enforced. Normal verbosity. For architecture, security, comple
 **manual**: All IJFW automation off. User controls /model, /effort, verbosity.
 Output rules still active but overridable. For power users.
 
-**brutal**: Caveman mode — 1-sentence answers, code-only, no explanation
+**brutal**: Caveman mode -- 1-sentence answers, code-only, no explanation
 unless user asks "why" or "explain". Reasoning/thinking preserved, output
 constrained. Sets IJFW_TERSE_ONLY=1. For blast-mode task execution.
 

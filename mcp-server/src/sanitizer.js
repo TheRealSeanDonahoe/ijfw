@@ -19,11 +19,11 @@ export function sanitizeContent(s) {
   // U+200B-U+200F, U+202A-U+202E, U+2066-U+2069, U+FEFF
   out = out.replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '');
 
-  // 3. Defang ANY heading prefix (1+ hashes, optional whitespace) — entry must
+  // 3. Defang ANY heading prefix (1+ hashes, optional whitespace) -- entry must
   // never produce a structural ## section that mimics a journal timestamp.
   out = out.replace(/^[ \t]*#+[ \t]+/gm, '> ');
 
-  // 4. Defang setext-style headings (=== or --- under a line) — strip the underline.
+  // 4. Defang setext-style headings (=== or --- under a line) -- strip the underline.
   out = out.replace(/^[ \t]*[=-]{3,}[ \t]*$/gm, '');
 
   // 5. Neutralize fenced code blocks (``` and ~~~) so attacker can't open a fence
@@ -31,10 +31,10 @@ export function sanitizeContent(s) {
   out = out.replace(/^[ \t]*(```|~~~).*$/gm, '> $1');
 
   // 6. Neutralize HTML/XML-style tags that LLMs may parse as instructions
-  // (<system>, </assistant>, <instructions>, etc.) — escape angle brackets.
+  // (<system>, </assistant>, <instructions>, etc.) -- escape angle brackets.
   out = out.replace(/[<>]/g, ch => (ch === '<' ? '&lt;' : '&gt;'));
 
-  // 7. Collapse to single line — multi-line stored content can't fake new
+  // 7. Collapse to single line -- multi-line stored content can't fake new
   // journal sections. Newlines become " | " for readability.
   out = out.replace(/\r\n?|\n/g, ' | ');
 

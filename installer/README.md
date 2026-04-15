@@ -32,7 +32,13 @@ Memory is preserved across re-runs by default.
 
 ## Preflight
 
-Requires `node >=18`, `git`, `bash`. On native Windows, run from WSL.
+Requires `node >=18`, `git`, `bash`. On native Windows use the PowerShell
+installer (PS 5.1+), which shells Git Bash under the hood -- no WSL required:
+
+```powershell
+iwr https://raw.githubusercontent.com/TradeCanyon/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
+.\install.ps1 -Dir $env:USERPROFILE\.ijfw
+```
 
 ## Build (contributors)
 

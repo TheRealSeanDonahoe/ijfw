@@ -1,4 +1,4 @@
-# IJFW — It Just Fucking Works.
+# IJFW -- It Just Fucking Works.
 
 Multi-AI orchestration layer for 6 native platforms + universal paste-anywhere rules. One install, zero config, persistent memory.
 
@@ -12,7 +12,7 @@ Three AIs review every diff. Cache-hit savings logged per run. Your memory follo
 npm install -g @ijfw/install && ijfw-install && ijfw demo
 ```
 
-Installs IJFW across every AI coding agent you have running, fires a live demo, and prints a health report — all without touching a config file.
+Installs IJFW across every AI coding agent you have running, fires a live demo, and prints a health report -- all without touching a config file.
 
 ---
 
@@ -20,7 +20,7 @@ Installs IJFW across every AI coding agent you have running, fires a live demo, 
 
 ```
 # sample output -- your platform list and memory count will vary
-IJFW — It Just Fucking Works.
+IJFW -- It Just Fucking Works.
 
 Platforms detected:   Claude Code, Codex, Gemini CLI, Cursor
 Memory:               247 entries across 4 projects
@@ -110,12 +110,12 @@ Universal ------+                    |
 
 **Core layer (~53 lines, ~700 tokens):** terse output, smart model routing, context discipline, quality gates on destructive actions.
 
-**MCP server (7 tools):** `recall`, `store`, `search`, `status`, `prelude`, `prompt_check`, `metrics` — shared across all platforms via stdio. No sockets. No cloud.
+**MCP server (8 tools):** `recall`, `store`, `search`, `status`, `prelude`, `prompt_check`, `metrics`, `cross_project_search` -- shared across all platforms via stdio. No sockets. No cloud.
 
 **Memory tiers:**
 - Hot: plain markdown, instant reads, written on every session end
 - Warm: SQLite, full-text search across sessions and projects
-- Team: `.ijfw/team/` — PR-reviewed conventions shared by the whole team
+- Team: `.ijfw/team/` -- PR-reviewed conventions shared by the whole team
 
 ---
 
@@ -141,7 +141,7 @@ Claude Code: slash commands via the plugin. Shell CLIs: `ijfw` binary directly. 
 
 - **Three AIs, not one.** IJFW fires the Trident -- one OpenAI model, one Google model, plus a specialist swarm -- at every cross-audit. Consensus findings jump to high-priority; blind spots never get a free pass.
 - **One install, all agents.** Platform-native configs for every major AI coding tool from a single source of truth. No drift, no duplication.
-- **Memory that actually works.** Decisions, patterns, and handoffs persist across sessions and travel between platforms through a shared MCP server — running locally, no account required.
+- **Memory that actually works.** Decisions, patterns, and handoffs persist across sessions and travel between platforms through a shared MCP server -- running locally, no account required.
 - **Smarter, not cheaper.** Auto-routing sends reads to Haiku, code to Sonnet, architecture to Opus. Terse-output rules cut token waste. The result is faster answers and lower costs without you managing any of it.
 
 ---

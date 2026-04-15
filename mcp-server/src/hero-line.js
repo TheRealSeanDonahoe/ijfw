@@ -38,7 +38,7 @@ const CACHE_SAVINGS_PER_TOKEN = 2.70 / 1_000_000;
 //
 // Returns a one-line string. Delta is only appended when:
 //   - receipts have real input_tokens (sum > 0)
-//   - sessions has ≥3 entries with non-null input_tokens (Claude baseline)
+//   - sessions has >=3 entries with non-null input_tokens (Claude baseline)
 //   - baseline sum > 0
 // Cache savings suffix appended when last receipt has cache_read_input_tokens > 0.
 export function renderHeroLine(receipts, sessions = []) {

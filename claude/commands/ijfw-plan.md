@@ -25,5 +25,5 @@ hand-off.
 If you have an existing `brief.md`, this command reads it as context automatically.
 If not, it asks one clarifying question to establish scope before drafting.
 
-**GATE:** Plan phase ends at the PLAN AUDIT gate — every requirement has a task,
+**GATE:** Plan phase ends at the PLAN AUDIT gate -- every requirement has a task,
 no scope drops, dependencies ordered. Gate must pass before execution begins.

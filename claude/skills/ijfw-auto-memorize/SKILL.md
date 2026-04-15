@@ -30,7 +30,7 @@ For each signal cluster:
 2. **Cap sizes.** Run `applyCaps` from `mcp-server/src/caps.js`. content ≤4KB, why/how ≤1KB, summary ≤120.
 3. **Dedupe.** Use BM25 search (`mcp-server/src/search-bm25.js`) against `project-journal.md`. If score > 6 against an existing entry, skip (duplicate).
 4. **Classify** into one of:
-   - `pattern` -- error→fix recurrence (same error type seen ≥2x).
+   - `pattern` -- error→fix recurrence (same error type seen >=2x).
    - `decision` -- an explicit user choice ("from now on X").
    - `preference` -- a style/workflow preference ("I prefer Y").
    - `observation` -- something worth noting, single instance.

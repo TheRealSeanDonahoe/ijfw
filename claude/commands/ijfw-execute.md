@@ -15,7 +15,7 @@ checkpoints fire at each phase boundary. Atomic commits for code changes.
 `progress.md` updates after every phase.
 
 This command invokes `ijfw-workflow` at the Execute phase directly. IJFW drives
-the full execution loop via the `Agent` tool — no external plugin hand-off.
+the full execution loop via the `Agent` tool -- no external plugin hand-off.
 Every task transition creates a visible task entry so you can see progress in
 real time.
 
@@ -23,7 +23,7 @@ real time.
 "kick off execution."
 
 If no `plan.md` exists, this command offers a 2-minute Quick Plan pass first
-before executing — skipping planning reliably causes scope drift.
+before executing -- skipping planning reliably causes scope drift.
 
-**GATE:** Execute phase ends at the PHASE AUDIT gate — all phase tasks complete,
+**GATE:** Execute phase ends at the PHASE AUDIT gate -- all phase tasks complete,
 brief still accurate, memory updated. Gate runs at each phase boundary.

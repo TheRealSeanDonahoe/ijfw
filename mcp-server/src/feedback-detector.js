@@ -10,23 +10,23 @@
 // Pure regex, no LLM. High precision, low recall.
 
 const PATTERNS = [
-  // Corrections — "don't X", "stop X", "not that", "no/wrong"
+  // Corrections -- "don't X", "stop X", "not that", "no/wrong"
   { kind: 'correction', re: /\bdon'?t\s+(do|add|use|call|write|include|keep|ever)\b/i },
   { kind: 'correction', re: /\bstop\s+(doing|adding|using|calling|writing|including)\b/i },
   { kind: 'correction', re: /\b(?:no|not|wrong|nope)[,.!]/i },
   { kind: 'correction', re: /\bdon'?t do (?:that|this|it)\b/i },
 
-  // Confirmations — "yes that was right", "perfect", "exactly"
+  // Confirmations -- "yes that was right", "perfect", "exactly"
   { kind: 'confirmation', re: /\b(?:yes|yep|yup)[,.!]?\s+(?:that|this)\s+(?:was|is)\s+(?:right|correct|good|great|perfect)\b/i },
   { kind: 'confirmation', re: /\b(?:perfect|exactly|spot on|nailed it|great job|well done)\b/i },
   { kind: 'confirmation', re: /\bkeep doing (?:that|this|it)\b/i },
 
-  // Preferences — "I prefer X", "from now on X"
+  // Preferences -- "I prefer X", "from now on X"
   { kind: 'preference',  re: /\bI prefer\b/i },
   { kind: 'preference',  re: /\bfrom now on[, ]/i },
   { kind: 'preference',  re: /\b(?:always|never) (?:do|use|add|include)\b/i },
 
-  // Generalization cues — "every time", "each X"
+  // Generalization cues -- "every time", "each X"
   { kind: 'rule',        re: /\b(?:every time|each time|whenever|any time)\b/i },
 ];
 
@@ -39,7 +39,7 @@ export function detectFeedback(prompt) {
       hits.push({ kind, phrase: m[0].trim(), context: snippet(prompt, m.index ?? 0, 120) });
     }
   }
-  // Deduplicate by kind — one signal per kind per prompt is enough for synthesis.
+  // Deduplicate by kind -- one signal per kind per prompt is enough for synthesis.
   const seen = new Set();
   return hits.filter(h => {
     if (seen.has(h.kind)) return false;

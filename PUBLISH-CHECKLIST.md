@@ -8,11 +8,11 @@ P10-era additions are marked `[P10]`.
 ## Gate 1 -- CI / health
 
 ```bash
-# [P10] Run full check suite; expect exit 0
+# Run full check suite; expect exit 0
 bash scripts/check-all.sh
 
-# [P10] MCP server unit tests; expect 83/83 (or current passing count)
-cd mcp-server && npm test
+# MCP server unit tests; expect 84/84 passed (as of v1.0.0)
+cd mcp-server && node --test 2>&1 | tail -5
 ```
 
 ---
@@ -23,13 +23,10 @@ cd mcp-server && npm test
 # [P10] Verify bin/ijfw is executable
 test -x bin/ijfw && echo "OK" || echo "FAIL -- chmod +x bin/ijfw"
 
-# [P10] Verify package.json files array includes what should ship
-#       Expect: fixtures/, bin/, dist/, README.md, CHANGELOG.md
+# Verify package.json files array includes what should ship
+#       Expect: dist/, src/install.ps1, README.md, CHANGELOG.md
 #       Must NOT include: .env, node_modules/, .planning/, *.test.*
 cat installer/package.json | jq .files
-
-# [P10] Verify fixtures/ dir is present (required by package.json files array)
-ls fixtures/
 ```
 
 ---

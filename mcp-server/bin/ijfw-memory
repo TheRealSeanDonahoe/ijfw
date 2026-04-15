@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 SERVER="$SCRIPT_DIR/../src/server.js"
 
 if [ ! -f "$SERVER" ]; then
-  # Server file missing — emit MCP-spec parse-error then exit cleanly so the
+  # Server file missing -- emit MCP-spec parse-error then exit cleanly so the
   # client gets a recoverable signal instead of hanging.
   printf '{"jsonrpc":"2.0","id":null,"error":{"code":-32000,"message":"IJFW server file not found at %s"}}\n' "$SERVER" >&2
   exit 1

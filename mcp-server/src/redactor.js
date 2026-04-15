@@ -7,9 +7,9 @@
 // library + tests ahead of the integration.
 
 const PATTERNS = [
-  // Anthropic — must come BEFORE generic OpenAI so `sk-ant-...` gets labeled correctly.
+  // Anthropic -- must come BEFORE generic OpenAI so `sk-ant-...` gets labeled correctly.
   { re: /sk-ant-[A-Za-z0-9_-]{20,}/g,              label: 'anthropic' },
-  // OpenAI — `sk-proj-...` or `sk-...` with strong minimum length to avoid
+  // OpenAI -- `sk-proj-...` or `sk-...` with strong minimum length to avoid
   // eating prose references like "sk-learn" (scikit-learn).
   { re: /sk-(?:proj-)?[A-Za-z0-9_-]{32,}/g,        label: 'openai'    },
   // GitHub classic PAT + fine-grained PAT + OAuth/App/User/Refresh tokens.
@@ -33,15 +33,15 @@ const PATTERNS = [
   { re: /AccountKey=[A-Za-z0-9+/]{86,88}={0,2}/g,  label: 'azure'     },
   // GCP service-account private key PEM block.
   { re: /-----BEGIN (?:RSA )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA )?PRIVATE KEY-----/g, label: 'gcp' },
-  // GCP / Google API keys — `AIza...` (39 chars total).
+  // GCP / Google API keys -- `AIza...` (39 chars total).
   { re: /AIza[0-9A-Za-z_-]{35}/g,                  label: 'gcp'       },
-  // Sentry DSN — https://<key>@o<org>.ingest.sentry.io/<project>.
+  // Sentry DSN -- https://<key>@o<org>.ingest.sentry.io/<project>.
   { re: /https?:\/\/[0-9a-f]{32,}(?::[0-9a-f]{32,})?@[\w.-]*sentry\.io\/[0-9]+/gi, label: 'sentry' },
   // Cloudflare API tokens (40 chars base64url). Conservative: only flag when
   // contextualized (CF_API_TOKEN=..., CLOUDFLARE_TOKEN=..., cf_auth_key=...)
   // so we don't eat bare git commit SHAs or content hashes.
   { re: /(?:cf|cloudflare)[_-]?(?:api[_-]?)?(?:token|auth|key)s?[= :]+[A-Za-z0-9_-]{40,}/gi, label: 'cloudflare' },
-  // Webhook URLs (Slack, Discord, MS Teams) — include the secret path segment.
+  // Webhook URLs (Slack, Discord, MS Teams) -- include the secret path segment.
   { re: /https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]+\/B[A-Z0-9]+\/[A-Za-z0-9]+/g, label: 'webhook' },
   { re: /https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/g,           label: 'webhook' },
   { re: /https:\/\/[\w-]+\.webhook\.office\.com\/webhookb2\/[\w@/-]+/g,                  label: 'webhook' },

@@ -1,29 +1,29 @@
 // --- Vector embeddings (W3.3 / H5a-b-c) ---
 //
 // Thin wrapper around @xenova/transformers. Lazily imports the library on
-// first use so the zero-deps default install path is unaffected — users who
+// first use so the zero-deps default install path is unaffected -- users who
 // don't enable vectors never pay the ~5MB bundle cost, and the 23MB model
 // download only happens when the first embedding query fires.
 //
 // Environment control:
-//   IJFW_VECTORS=off  — disable vectors entirely (BM25-only)
-//   IJFW_VECTORS=on   — enable (default if the library is present)
-//   IJFW_VECTORS_MODEL — override the embedding model (default: Xenova/all-MiniLM-L6-v2, ~23MB)
+//   IJFW_VECTORS=off  -- disable vectors entirely (BM25-only)
+//   IJFW_VECTORS=on   -- enable (default if the library is present)
+//   IJFW_VECTORS_MODEL -- override the embedding model (default: Xenova/all-MiniLM-L6-v2, ~23MB)
 //
 // Fallback: if @xenova/transformers isn't installed, vectors silently
 // disable and callers get an `{ available: false, reason }` from getEmbedder().
 
 const DEFAULT_MODEL = 'Xenova/all-MiniLM-L6-v2';
 
-// X3/S8 — model integrity pin. When IJFW_VECTORS_MODEL_SHA256 is set, we
+// X3/S8 -- model integrity pin. When IJFW_VECTORS_MODEL_SHA256 is set, we
 // SHA-256 the loaded model.onnx after download and refuse the embedder if
-// the hash doesn't match. Empty (default) allows any — documented as opt-in
+// the hash doesn't match. Empty (default) allows any -- documented as opt-in
 // in NO_TELEMETRY.md. Implemented in Phase 6 after the audit found the var
 // was read but never enforced.
 
 let _pipelinePromise = null;
 
-// R2-B — locate the actual ONNX file the pipeline loaded. transformers.js
+// R2-B -- locate the actual ONNX file the pipeline loaded. transformers.js
 // uses several cache layouts (HuggingFace-style models--{org}--{name}
 // snapshots; flat cacheDir; explicit localModelPath). Scan candidates,
 // return the first that exists.
@@ -77,11 +77,11 @@ async function verifyModelSha(env, modelId) {
     const { createHash } = await import('node:crypto');
     const modelPath = await resolveModelFile(env, modelId);
     if (!modelPath) {
-      // R2-B — fail OPEN with a clear reason rather than closed. A path-guess
+      // R2-B -- fail OPEN with a clear reason rather than closed. A path-guess
       // miss should not disable a working embedder; surface the lack of
       // verification so the user can set IJFW_VECTORS_CACHE explicitly.
       process.stderr.write(
-        `IJFW: SHA verification skipped — couldn't locate ONNX for ${modelId}. ` +
+        `IJFW: SHA verification skipped -- couldn't locate ONNX for ${modelId}. ` +
         `Set IJFW_VECTORS_CACHE to the cache root or clear IJFW_VECTORS_MODEL_SHA256.\n`
       );
       return { ok: true, skipped: true };
@@ -115,7 +115,7 @@ async function loadPipeline() {
       env.allowRemoteModels = true;
       const model = process.env.IJFW_VECTORS_MODEL || DEFAULT_MODEL;
       const extractor = await pipeline('feature-extraction', model);
-      // X3/S8 — verify pinned SHA256 after load (post-download if remote).
+      // X3/S8 -- verify pinned SHA256 after load (post-download if remote).
       const sha = await verifyModelSha(env, model);
       if (!sha.ok) return { ok: false, reason: sha.reason };
       return { ok: true, extractor, model };

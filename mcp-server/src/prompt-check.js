@@ -1,12 +1,12 @@
 /**
- * IJFW prompt-check — deterministic vague-prompt detector.
+ * IJFW prompt-check -- deterministic vague-prompt detector.
  *
  * Pure functions, no I/O. Safe to call from MCP tool handler or import into
  * a hook script. Returns { vague, signals, suggestion, bypass_reason? }.
  *
  * Design constraints (per AUDIT.md):
  *   - No LLM calls, no network. Pure regex.
- *   - Fire only when ≥2 signals trip AND prompt is short AND has no target.
+ *   - Fire only when >=2 signals trip AND prompt is short AND has no target.
  *   - Single-signal trips are silent (low FP rate).
  *   - Override: leading `*` or substring "ijfw off" bypasses entirely.
  *   - Positive framing in any user-visible suggestion.
@@ -27,7 +27,7 @@ const RULES = [
   {
     id: 'unresolved_anaphora',
     // "this/that/it" sentence-start. Hook can't see prior turns reliably,
-    // so this is heuristic — combined with no_target it's a strong signal.
+    // so this is heuristic -- combined with no_target it's a strong signal.
     test: (text) => /^(this|that|it|these|those|the\s+(bug|issue|file|code|function|error|problem))\b/i.test(text.trim())
   },
   {
@@ -44,12 +44,12 @@ const RULES = [
   },
   {
     id: 'no_target',
-    // No file path, no identifier (CamelCase / snake_case ≥2 chars), no line number.
+    // No file path, no identifier (CamelCase / snake_case >=2 chars), no line number.
     test: (text) => {
       if (/[\w./-]+\.\w{1,5}(\b|:)/.test(text)) return false;       // file path
       if (/:\d+/.test(text)) return false;                           // line number
       if (/\b(src|lib|app|tests?|spec|docs?)\//i.test(text)) return false; // dir
-      // Identifier: snake_case, UpperCamelCase, or lowerCamelCase (≥2 segments)
+      // Identifier: snake_case, UpperCamelCase, or lowerCamelCase (>=2 segments)
       if (/\b([a-z]+_[a-z][\w_]*|[A-Z][a-z]+[A-Z]\w*|[a-z]+[A-Z]\w*)\b/.test(text)) return false;
       return true;
     }
@@ -78,7 +78,7 @@ const RULES = [
   }
 ];
 
-// Bypass conditions — match severity1 plugin convention plus IJFW override.
+// Bypass conditions -- match severity1 plugin convention plus IJFW override.
 function bypassReason(text) {
   if (typeof text !== 'string') return 'non-string';
   const t = text.trim();
@@ -87,7 +87,7 @@ function bypassReason(text) {
   if (t.startsWith('/'))  return 'slash-command';
   if (t.startsWith('#'))  return 'memorize-prefix';
   if (/\bijfw\s+off\b/i.test(t)) return 'override-keyword';
-  // Pasted code/stack trace (very long or fenced) — assume user knows the target.
+  // Pasted code/stack trace (very long or fenced) -- assume user knows the target.
   if (t.length > 4000) return 'long-prompt';
   if (/^```/m.test(t))  return 'fenced-code';
   return null;
@@ -107,7 +107,7 @@ function checkPrompt(text) {
     } catch { /* never break the hook */ }
   }
 
-  // Fire only when ≥2 signals tripped AND prompt is short AND no target found.
+  // Fire only when >=2 signals tripped AND prompt is short AND no target found.
   // Threshold tuned for low false-positive rate per research (UX section).
   const short = tokens.length < 30;
   const noTarget = signals.includes('no_target');
@@ -117,15 +117,15 @@ function checkPrompt(text) {
   let suggestion = '';
   if (vague) {
     if (signals.includes('bare_verb') && noTarget) {
-      suggestion = 'Sharpening your aim — which file, function, or symbol? e.g. src/auth.py:145, getUserById, the failing test name.';
+      suggestion = 'Sharpening your aim -- which file, function, or symbol? e.g. src/auth.py:145, getUserById, the failing test name.';
     } else if (signals.includes('unresolved_anaphora')) {
-      suggestion = 'Anchoring the reference — which file or recent code do you mean?';
+      suggestion = 'Anchoring the reference -- which file or recent code do you mean?';
     } else {
-      suggestion = 'Pinning the target — naming the file, symbol, or expected behavior will sharpen the edit.';
+      suggestion = 'Pinning the target -- naming the file, symbol, or expected behavior will sharpen the edit.';
     }
   }
 
-  // W2.2/A2 — structured question pack the agent can surface verbatim
+  // W2.2/A2 -- structured question pack the agent can surface verbatim
   // when vague. Each question maps to a signal that fired. Keeps to
   // ≤3 questions (Krug: don't make me answer 10).
   const rewrite = vague ? buildQuestionPack(signals) : null;
@@ -146,19 +146,19 @@ function buildQuestionPack(signals) {
         add('Which file, function, or line number is the target?');
         break;
       case 'unresolved_anaphora':
-        add('What does "this/that" refer to — a file, a symptom, a prior message?');
+        add('What does "this/that" refer to -- a file, a symptom, a prior message?');
         break;
       case 'abstract_goal':
-        add('What specifically would "done" look like — a metric, a test passing, or observable behavior?');
+        add('What specifically would "done" look like -- a metric, a test passing, or observable behavior?');
         break;
       case 'scope_plural':
-        add('Which of "all the X" — do you want every instance, or a specific subset?');
+        add('Which of "all the X" -- do you want every instance, or a specific subset?');
         break;
       case 'missing_constraint':
-        add('Any constraints I should respect — don\'t touch X, must run in <Y ms, preserve behavior Z?');
+        add('Any constraints I should respect -- don\'t touch X, must run in <Y ms, preserve behavior Z?');
         break;
       case 'polysemous':
-        add('Which meaning — e.g. "deploy" could mean build, release, push, or run locally?');
+        add('Which meaning -- e.g. "deploy" could mean build, release, push, or run locally?');
         break;
     }
   }

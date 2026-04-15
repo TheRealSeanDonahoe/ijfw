@@ -16,7 +16,7 @@ export function RECEIPTS_FILE(projectDir) {
 
 const MAX_RECEIPTS = 100;
 
-// Atomic append: O_APPEND is atomic for writes ≤ PIPE_BUF (≥4KB on POSIX).
+// Atomic append: O_APPEND is atomic for writes ≤ PIPE_BUF (>=4KB on POSIX).
 // One JSON line is well under that limit, so appendFileSync is safe for
 // concurrent writers without a lock or rename dance.
 // After each write, prune to the last MAX_RECEIPTS entries.

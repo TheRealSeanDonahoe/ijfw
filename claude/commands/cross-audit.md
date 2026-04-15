@@ -22,10 +22,10 @@ then comparing their response against our own findings.
 When invoked without a target, run this detection cascade and use the
 first non-empty result as the target:
 
-1. **Staged changes** — `git diff --cached --name-only` (the user is mid-commit)
-2. **Unstaged changes** — `git diff --name-only`
-3. **Last commit** — `git diff HEAD~1 --name-only`
-4. If all empty: print the roster and ask "what would you like audited?" — don't guess at random files.
+1. **Staged changes** -- `git diff --cached --name-only` (the user is mid-commit)
+2. **Unstaged changes** -- `git diff --name-only`
+3. **Last commit** -- `git diff HEAD~1 --name-only`
+4. If all empty: print the roster and ask "what would you like audited?" -- don't guess at random files.
 
 Tell the user which step succeeded:
 
@@ -44,10 +44,10 @@ context windows.
 
 The natural-language phrase **"cross audit this"** / **"second opinion"**
 fires the intent router (see `mcp-server/src/intent-router.js`) which
-nudges Claude to invoke `/cross-audit` automatically — same auto-detect
+nudges Claude to invoke `/cross-audit` automatically -- same auto-detect
 flow runs.
 
-## Default flow — Donahoe Trident (don't make me think)
+## Default flow -- Donahoe Trident (don't make me think)
 
 Caller is one perspective. **Default ask is for two more.** Per the
 Donahoe Loop: never trust a single AI; run through three. Two diverse
@@ -56,7 +56,7 @@ single second-opinion would miss.
 
 When invoked, do this in order:
 
-1. **Probe roster.** Call `pickAuditors({ count: 2, env: process.env })` from `audit-roster.js`. Returns `{ picks, missing, note }` — picks are installed AND non-self.
+1. **Probe roster.** Call `pickAuditors({ count: 2, env: process.env })` from `audit-roster.js`. Returns `{ picks, missing, note }` -- picks are installed AND non-self.
 2. **Show a TODO surface** in chat:
 
    ```
@@ -74,11 +74,11 @@ When invoked, do this in order:
    Run cross-audit against:
      [A] codex only      (~$0.20-0.50 estimated)
      [B] gemini only     (free if Google AI Studio key, else ~$0.05)
-     [C] Both — recommended (Donahoe Trident)
+     [C] Both -- recommended (Donahoe Trident)
      [D] Cancel / pick custom
    ```
 
-   Default suggestion: **C (Both)** when ≥2 installed.
+   Default suggestion: **C (Both)** when >=2 installed.
 
 4. **If only one installed**, surface the principle:
 
@@ -89,7 +89,7 @@ When invoked, do this in order:
 5. **Run** via Bash (`<picks[i].invoke> < .ijfw/cross-audit/request.md > .ijfw/cross-audit/response-<id>.md`). Update TODO to `in_progress` then `completed` per auditor.
 
 5a. **Fire Claude specialist swarm in parallel** (caller leg of the Trident).
-   The caller's contribution is NOT a solo in-session opinion — it's a parallel
+   The caller's contribution is NOT a solo in-session opinion -- it's a parallel
    dispatch of specialist subagents via the `Agent` tool. Fire these in the
    same message as the external bg-bash calls so they run concurrently:
 
@@ -105,9 +105,9 @@ When invoked, do this in order:
    `.ijfw/cross-audit/response-self.md`. This joins the external responses
    in step 6.
 
-6. **Compare** all returned responses together — external auditors AND the
+6. **Compare** all returned responses together -- external auditors AND the
    caller's specialist-swarm composite (`response-self.md`):
-   - Findings agreed by ≥2 sources → **high confidence**
+   - Findings agreed by >=2 sources → **high confidence**
    - Findings unique to one source → **investigate**
    - Render single merged table with a "consensus" column and a source tag
      per finding (codex | gemini | self:code-reviewer | self:silent-failure | …).
@@ -137,7 +137,7 @@ Rationale: different training lineages first (codex/gemini), then OSS (opencode)
 
 **If the user asks for `list`:** print `formatRoster()` output verbatim. Do not generate a prompt.
 
-## Wave A — Generate the prompt
+## Wave A -- Generate the prompt
 
 When user runs `/cross-audit <target>` (or with `--with <id>`):
 
@@ -156,10 +156,10 @@ Stamp:   <ISO timestamp>
 
 ## What I'm asking you to do
 Independently review the target against these dimensions:
-1. Correctness — logic errors, missing edge cases, off-by-one, null/undefined paths
-2. Security — injection, secrets, auth, trust boundaries
-3. Operational — observability, failure modes, idempotency, concurrency
-4. Maintainability — readability, naming, structure, unused code, dead branches
+1. Correctness -- logic errors, missing edge cases, off-by-one, null/undefined paths
+2. Security -- injection, secrets, auth, trust boundaries
+3. Operational -- observability, failure modes, idempotency, concurrency
+4. Maintainability -- readability, naming, structure, unused code, dead branches
 
 Return findings in this format (markdown):
 
@@ -172,7 +172,7 @@ Return findings in this format (markdown):
 - **Recommended fix:** <one-sentence action>
 
 Rules:
-- Don't praise or pad — only actionable findings
+- Don't praise or pad -- only actionable findings
 - Don't flag style preferences as issues
 - If you have no findings for a dimension, say so explicitly
 - Prefer confidence: 3-5 bets over 10 maybes
@@ -193,7 +193,7 @@ Cross-audit request prepared.
   then run /cross-audit compare here.
 ```
 
-## Wave B — Compare (`/cross-audit compare`)
+## Wave B -- Compare (`/cross-audit compare`)
 
 1. Read `.ijfw/cross-audit/response.md` + the original `request.md`.
 2. Parse findings (any `### Finding` blocks).
@@ -221,5 +221,5 @@ End with:
 ## Notes
 
 - Nothing leaves your machine automatically. You drive the paste.
-- Works with any CLI that can accept pasted text and return text — the roster is advisory.
+- Works with any CLI that can accept pasted text and return text -- the roster is advisory.
 - `audit-roster.js` detection is conservative: if we can't identify the caller, we show all options rather than guessing.

@@ -1,13 +1,13 @@
 {
   "name": "@ijfw/install",
-  "version": "0.4.0-rc.1",
-  "description": "One-command installer for IJFW — the AI efficiency layer.",
+  "version": "1.0.0",
+  "description": "One-command installer for IJFW -- the AI efficiency layer.",
   "type": "module",
   "bin": {
     "ijfw-install": "./dist/install.js",
     "ijfw-uninstall": "./dist/uninstall.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "src/install.ps1", "README.md", "CHANGELOG.md"],
   "scripts": {
     "build": "esbuild src/install.js src/uninstall.js --bundle --platform=node --target=node18 --outdir=dist --format=esm --banner:js='#!/usr/bin/env node'",
     "test": "node --test test.js",
