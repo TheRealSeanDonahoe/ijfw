@@ -17,6 +17,7 @@ import { readReceipts, purgeReceipts } from './receipts.js';
 import { renderHeroLine } from './hero-line.js';
 import { ROSTER, isInstalled, isReachable } from './audit-roster.js';
 import { aggregatePortfolioFindings } from './cross-project-search.js';
+import { runImport, listImporters } from './importers/cli.js';
 
 // ---------------------------------------------------------------------------
 // Findings printer
@@ -95,6 +96,18 @@ function parseArgs(argv) {
     return { cmd: 'purge-receipts' };
   }
 
+  if (args[0] === 'import') {
+    const tool = args[1];
+    let dryRun = false, force = false, includeMetrics = false, customPath = null;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--dry-run') dryRun = true;
+      else if (args[i] === '--force') force = true;
+      else if (args[i] === '--include-metrics') includeMetrics = true;
+      else if (args[i] === '--path' && args[i + 1]) customPath = args[++i];
+    }
+    return { cmd: 'import', tool, dryRun, force, includeMetrics, customPath };
+  }
+
   if (args[0] === 'cross') {
     const mode = args[1];
 
@@ -144,6 +157,7 @@ Usage:
 Commands:
   demo              Run a 30-second Trident tour. Try: ijfw demo
   cross             Fire external auditors at a target. Try: ijfw cross audit README.md
+  import            Pull memory in from another tool. Try: ijfw import claude-mem --dry-run
   status            Show recent cross-audit activity. Try: ijfw status
   doctor            Probe which CLIs and API keys are reachable. Try: ijfw doctor
   --purge-receipts  Clear the cross-runs receipt log. Try: ijfw --purge-receipts
@@ -487,6 +501,36 @@ async function cmdCrossProjectAudit({ rule, dryRun }) {
 }
 
 // ---------------------------------------------------------------------------
+// Import -- `ijfw import <tool> [--dry-run] [--force] [--path <p>]`
+// ---------------------------------------------------------------------------
+
+async function cmdImport(parsed) {
+  const tool = parsed.tool;
+  if (!tool) {
+    console.error(`Usage: ijfw import <tool> [--dry-run] [--force] [--path <p>]`);
+    console.error(`Tools: ${listImporters().join(', ')}`);
+    process.exit(1);
+  }
+  const result = await runImport({
+    tool,
+    dryRun: parsed.dryRun,
+    force: parsed.force,
+    includeMetrics: parsed.includeMetrics,
+    path: parsed.customPath,
+  });
+  if (!result.ok) {
+    console.error(result.error);
+    process.exit(1);
+  }
+  console.log(result.summary);
+  if (result.dryRun && result.samples && result.samples.length > 0) {
+    console.log('\nSample entries (dry-run):');
+    for (const s of result.samples) console.log(`  - [${s.type}] ${s.summary || '(no title)'}`);
+    console.log('\nRe-run without --dry-run to write them to .ijfw/memory/.');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -505,6 +549,8 @@ if (parsed.cmd === 'status') {
   cmdCross(parsed).catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'cross-project-audit') {
   cmdCrossProjectAudit(parsed).catch(err => { console.error(err.message); process.exit(1); });
+} else if (parsed.cmd === 'import') {
+  cmdImport(parsed).catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'doctor') {
   cmdDoctor();
 } else if (parsed.cmd === 'purge-receipts') {
