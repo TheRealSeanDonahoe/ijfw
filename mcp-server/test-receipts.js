@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fork } from 'node:child_process';
-import { RECEIPTS_FILE, writeReceipt, readReceipts } from './src/receipts.js';
+import { RECEIPTS_FILE, writeReceipt, readReceipts, purgeReceipts } from './src/receipts.js';
 import { renderHeroLine } from './src/hero-line.js';
 
 function tmpDir() {
@@ -192,6 +192,63 @@ test('concurrent writers each append exactly once (5 processes)', async () => {
     assert.equal(records.length, N, `expected ${N} records, got ${records.length}`);
     const stamps = new Set(records.map(r => r.run_stamp));
     assert.equal(stamps.size, N, `expected ${N} unique run_stamps, got ${stamps.size}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Pruning tests ---
+
+test('writeReceipt prunes to last 100 entries after 101 writes', () => {
+  const dir = tmpDir();
+  try {
+    for (let i = 0; i < 101; i++) {
+      writeReceipt(dir, makeReceipt({ run_stamp: `stamp-${i}` }));
+    }
+    const records = readReceipts(dir);
+    assert.equal(records.length, 100, `expected 100 entries after 101 writes, got ${records.length}`);
+    // Last entry should be stamp-100 (the 101st write)
+    assert.equal(records[records.length - 1].run_stamp, 'stamp-100');
+    // First entry should be stamp-1 (oldest surviving)
+    assert.equal(records[0].run_stamp, 'stamp-1');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeReceipt does not prune when at or under 100 entries', () => {
+  const dir = tmpDir();
+  try {
+    for (let i = 0; i < 100; i++) {
+      writeReceipt(dir, makeReceipt({ run_stamp: `stamp-${i}` }));
+    }
+    const records = readReceipts(dir);
+    assert.equal(records.length, 100);
+    assert.equal(records[0].run_stamp, 'stamp-0');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('purgeReceipts empties the file and returns count removed', () => {
+  const dir = tmpDir();
+  try {
+    writeReceipt(dir, makeReceipt({ run_stamp: 'a' }));
+    writeReceipt(dir, makeReceipt({ run_stamp: 'b' }));
+    const removed = purgeReceipts(dir);
+    assert.equal(removed, 2);
+    const records = readReceipts(dir);
+    assert.deepEqual(records, []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('purgeReceipts returns 0 when file does not exist', () => {
+  const dir = tmpDir();
+  try {
+    const removed = purgeReceipts(dir);
+    assert.equal(removed, 0);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -11,7 +11,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { runCrossOp } from './cross-orchestrator.js';
-import { readReceipts } from './receipts.js';
+import { readReceipts, purgeReceipts } from './receipts.js';
 import { renderHeroLine } from './hero-line.js';
 import { ROSTER, isInstalled, isReachable } from './audit-roster.js';
 
@@ -22,7 +22,8 @@ function printFindings(mode, merged) {
   if (mode === 'audit') {
     const items = Array.isArray(merged) ? merged : [];
     if (items.length === 0) {
-      console.log('  No findings returned.');
+      console.log('  Auditors returned no findings — your target looks solid.');
+      console.log('  Run `ijfw cross audit <another-file>` to audit a different target.');
       return;
     }
     console.log('');
@@ -52,7 +53,8 @@ function printFindings(mode, merged) {
   if (mode === 'critique') {
     const items = Array.isArray(merged) ? merged : [];
     if (items.length === 0) {
-      console.log('  No counter-arguments returned.');
+      console.log('  No counter-arguments surfaced — argument appears well-supported.');
+      console.log('  Run `ijfw cross critique <another-target>` to challenge a different position.');
       return;
     }
     console.log('');
@@ -82,6 +84,14 @@ function parseArgs(argv) {
     return { cmd: 'demo' };
   }
 
+  if (args[0] === 'doctor') {
+    return { cmd: 'doctor' };
+  }
+
+  if (args[0] === '--purge-receipts') {
+    return { cmd: 'purge-receipts' };
+  }
+
   if (args[0] === 'cross') {
     const mode = args[1];
     const target = args[2];
@@ -107,25 +117,31 @@ function parseArgs(argv) {
 
 function printUsage() {
   console.log(`
-ijfw — It Just Fucking Works CLI
+ijfw -- It Just Fucking Works CLI
 
 Usage:
   ijfw demo
   ijfw cross <mode> <target> [options]
   ijfw status
+  ijfw doctor
+  ijfw --purge-receipts
   ijfw --help
 
 Commands:
-  demo      30-second tour of the Trident — audits a built-in fixture and shows per-auditor findings
+  demo              Run a 30-second Trident tour. Try: ijfw demo
+  cross             Fire external auditors at a target. Try: ijfw cross audit README.md
+  status            Show recent cross-audit activity. Try: ijfw status
+  doctor            Probe which CLIs and API keys are reachable. Try: ijfw doctor
+  --purge-receipts  Clear the cross-runs receipt log. Try: ijfw --purge-receipts
 
 Modes (for ijfw cross):
   audit     Adversarial review of a file, module, or path
   research  Multi-source research on a topic
   critique  Structured counter-argument generation
 
-Options:
+Options for ijfw cross:
   --with <id>   Force a specific auditor (comma-separated for multiple)
-  --confirm     Prompt for confirmation before firing (useful with partial roster)
+  --confirm     Prompt for confirmation before firing
   --expand      Include extended swarm when available
 
 Examples:
@@ -135,14 +151,15 @@ Examples:
   ijfw cross critique HEAD~3..HEAD
   ijfw cross audit CLAUDE.md --with codex,gemini
   ijfw status
+  ijfw doctor
 `.trim());
 }
 
 async function cmdStatus(projectDir) {
   const receipts = readReceipts(projectDir);
   if (receipts.length === 0) {
-    console.log('Phase 10 / Wave 10A -- Step 1.1 -- Ready');
-    console.log('Recommended next: `ijfw cross audit <file>`. Say no/alt to override.');
+    console.log('No cross-audit runs recorded yet.');
+    console.log('Recommended next: `ijfw cross audit <file>` to run your first Trident audit.');
     return;
   }
   const hero = renderHeroLine(receipts);
@@ -199,7 +216,9 @@ function _printDemoFindings(picks, auditorResults) {
 async function cmdDemo() {
   const reachable = _anyAuditorReachable();
   if (!reachable) {
-    console.log('Install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY) — then retry `ijfw demo`.');
+    console.log('No auditors reachable yet.');
+    console.log('Install codex or gemini, or set OPENAI_API_KEY / GEMINI_API_KEY, then run `ijfw demo`.');
+    console.log('Run `ijfw doctor` to see the full roster status.');
     process.exit(0);
   }
 
@@ -234,9 +253,10 @@ async function cmdDemo() {
   const { picks, auditorResults } = result;
 
   if (!picks || picks.length === 0) {
-    console.log('No auditors responded. Install codex or gemini — then retry `ijfw demo`.');
+    console.log('No auditors responded this run.');
+    console.log('Install codex or gemini, or set OPENAI_API_KEY / GEMINI_API_KEY, then run `ijfw demo`.');
     console.log('');
-    console.log('Try `ijfw cross audit <your-file>` next.');
+    console.log('Run `ijfw cross audit <your-file>` when an auditor is reachable.');
     return;
   }
 
@@ -263,6 +283,64 @@ async function cmdDemo() {
 
   console.log('');
   console.log('Try `ijfw cross audit <your-file>` next.');
+}
+
+// ---------------------------------------------------------------------------
+// Doctor
+// ---------------------------------------------------------------------------
+
+function cmdDoctor() {
+  console.log('ijfw doctor -- roster + key probe');
+  console.log('');
+
+  const rows = [];
+  for (const entry of ROSTER) {
+    const reach = isReachable(entry.id, process.env);
+    const cli = isInstalled(entry.id);
+    const apiKey = entry.apiFallback ? process.env[entry.apiFallback.authEnv] : null;
+    const apiOk = Boolean(apiKey);
+
+    if (cli) {
+      rows.push(`  [ ok ] ${entry.id} CLI -- ${entry.name} installed`);
+    } else {
+      const hint = entry.apiFallback
+        ? `install ${entry.invoke.split(' ')[0]} or set ${entry.apiFallback.authEnv}`
+        : `install ${entry.invoke.split(' ')[0]}`;
+      rows.push(`  [ -- ] ${entry.id} CLI -- not found -- ${hint}`);
+    }
+
+    if (entry.apiFallback) {
+      if (apiOk) {
+        rows.push(`  [ ok ] ${entry.apiFallback.authEnv} -- set`);
+      } else {
+        rows.push(`  [ -- ] ${entry.apiFallback.authEnv} -- not set`);
+      }
+    }
+  }
+
+  for (const row of rows) console.log(row);
+  console.log('');
+
+  const anyReachable = ROSTER.some(e => isReachable(e.id, process.env).any);
+  if (anyReachable) {
+    console.log('At least one auditor is reachable. Run `ijfw cross audit <file>` to start.');
+  } else {
+    console.log('No auditors reachable yet. Install codex or gemini, or set an API key, then run `ijfw demo`.');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Purge receipts
+// ---------------------------------------------------------------------------
+
+function cmdPurgeReceipts(projectDir) {
+  const count = purgeReceipts(projectDir);
+  if (count === 0) {
+    console.log('Receipt log is already empty. Run `ijfw cross audit <file>` to generate entries.');
+  } else {
+    console.log(`Receipt log cleared -- ${count} entr${count === 1 ? 'y' : 'ies'} removed.`);
+    console.log('Run `ijfw cross audit <file>` to start fresh.');
+  }
 }
 
 async function cmdCross({ mode, target, only, confirm, expand }) {
@@ -293,8 +371,10 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
   const { merged, picks, missing, note } = result;
 
   if (picks.length === 0) {
-    console.log('\n' + (note || 'No external auditors installed. Install codex, gemini, opencode, aider, or copilot.'));
-    console.log('\nReceipt: .ijfw/receipts/cross-runs.jsonl');
+    console.log('\n' + (note || 'No external auditors reachable yet.'));
+    console.log('Install one to get started: codex, gemini, opencode, aider, or copilot.');
+    console.log('Or set OPENAI_API_KEY / GEMINI_API_KEY to use API fallback.');
+    console.log('Run `ijfw doctor` to see which auditors are available on this machine.');
     return;
   }
 
@@ -327,6 +407,10 @@ if (parsed.cmd === 'status') {
   cmdDemo().catch(err => { console.error(err.message); process.exit(1); });
 } else if (parsed.cmd === 'cross') {
   cmdCross(parsed).catch(err => { console.error(err.message); process.exit(1); });
+} else if (parsed.cmd === 'doctor') {
+  cmdDoctor();
+} else if (parsed.cmd === 'purge-receipts') {
+  cmdPurgeReceipts(process.cwd());
 } else {
   console.error(`Unknown command: ${parsed.raw}`);
   printUsage();

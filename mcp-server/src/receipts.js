@@ -14,14 +14,36 @@ export function RECEIPTS_FILE(projectDir) {
   return path.join(projectDir, '.ijfw', 'receipts', 'cross-runs.jsonl');
 }
 
+const MAX_RECEIPTS = 100;
+
 // Atomic append: O_APPEND is atomic for writes ≤ PIPE_BUF (≥4KB on POSIX).
 // One JSON line is well under that limit, so appendFileSync is safe for
 // concurrent writers without a lock or rename dance.
+// After each write, prune to the last MAX_RECEIPTS entries.
 export function writeReceipt(projectDir, record) {
   const dest = RECEIPTS_FILE(projectDir);
   const dir = path.dirname(dest);
   fs.mkdirSync(dir, { recursive: true });
   fs.appendFileSync(dest, JSON.stringify(record) + '\n');
+  _pruneReceipts(dest);
+}
+
+// Keep only the last MAX_RECEIPTS lines. No-op when at or under the limit.
+function _pruneReceipts(dest) {
+  const raw = fs.readFileSync(dest, 'utf8');
+  const lines = raw.split('\n').filter(l => l.trim());
+  if (lines.length <= MAX_RECEIPTS) return;
+  fs.writeFileSync(dest, lines.slice(-MAX_RECEIPTS).join('\n') + '\n');
+}
+
+// Purge all receipts. Returns the count of entries removed.
+export function purgeReceipts(projectDir) {
+  const dest = RECEIPTS_FILE(projectDir);
+  if (!fs.existsSync(dest)) return 0;
+  const raw = fs.readFileSync(dest, 'utf8');
+  const count = raw.split('\n').filter(l => l.trim()).length;
+  fs.writeFileSync(dest, '');
+  return count;
 }
 
 // renderReceipt(record, phaseWave?, stepNum?)
