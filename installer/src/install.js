@@ -121,13 +121,13 @@ async function main() {
   process.on('SIGINT', sigint);
 
   const ref = resolveBranchOrTag({ branch: opts.branch, branchExplicit: opts.branchExplicit });
-  console.log(`IJFW → ${target}`);
-  console.log(`  resolving IJFW @ ${ref}`);
+  console.log(`IJFW install target: ${target}`);
+  console.log(`  version: ${ref}`);
   const action = cloneOrPull(target, ref);
   console.log(`  repo ${action}`);
 
   runInstallScript(target);
-  console.log('  scripts/install.sh complete');
+  console.log('  platform configs applied');
 
   if (!opts.noMarketplace) {
     const settingsPath = claudeSettingsPath();
@@ -137,10 +137,9 @@ async function main() {
 
   console.log('');
   console.log('IJFW ready.');
-  console.log(`  Memory preserved at: ${join(target, 'memory')}`);
-  console.log('  Run `ijfw-install --help` for options.');
-  console.log('  /doctor inside Claude Code to verify health.');
-  console.log('  Privacy: everything local. See NO_TELEMETRY.md.');
+  console.log(`  Memory preserved at ${join(target, 'memory')}.`);
+  console.log('  Run `ijfw demo` to see what just changed.');
+  console.log('  Privacy: everything stays local. See NO_TELEMETRY.md.');
   process.exit(0);
 }
 
