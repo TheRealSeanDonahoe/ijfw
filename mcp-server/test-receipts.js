@@ -281,7 +281,7 @@ test('renderHeroLine: cache_read_input_tokens>0 -> savings suffix appended', () 
   const r = makeReceipt({ cache_stats: { cache_eligible: true, cache_creation_input_tokens: 0, cache_read_input_tokens: 1_000_000 } });
   const out = renderHeroLine([r], []);
   assert.ok(out.includes('prompt cache hit'), `expected cache hit in: ${out}`);
-  assert.ok(out.includes('$2.7000 saved'), `expected savings amount in: ${out}`);
+  assert.ok(out.includes('$2.70 saved'), `expected savings amount in: ${out}`);
 });
 
 test('renderHeroLine: cache savings accumulate across multiple receipts', () => {
@@ -289,7 +289,7 @@ test('renderHeroLine: cache savings accumulate across multiple receipts', () => 
   const r2 = makeReceipt({ cache_stats: { cache_eligible: true, cache_read_input_tokens: 500_000 } });
   const out = renderHeroLine([r1, r2], []);
   // 1,000,000 tokens total -> $2.70
-  assert.ok(out.includes('$2.7000 saved'), `expected $2.7000 saved, got: ${out}`);
+  assert.ok(out.includes('$2.70 saved'), `expected $2.70 saved, got: ${out}`);
 });
 
 test('renderHeroLine: cache suffix appended after delta when both present', () => {

@@ -81,7 +81,7 @@ export function renderHeroLine(receipts, sessions = []) {
 
   // Cache savings suffix (10D.4): append only when cache reads occurred.
   const cacheSuffix = totalCacheReadTokens > 0
-    ? ` (prompt cache hit -- ~$${(totalCacheReadTokens * CACHE_SAVINGS_PER_TOKEN).toFixed(4)} saved)`
+    ? ` (prompt cache hit -- ~$${(totalCacheReadTokens * CACHE_SAVINGS_PER_TOKEN).toFixed(2)} saved)`
     : '';
 
   // Codex U1: only compute delta when all guards pass.
