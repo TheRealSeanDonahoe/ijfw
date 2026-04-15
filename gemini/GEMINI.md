@@ -1,4 +1,4 @@
-# IJFW — AI Efficiency Framework
+# IJFW -- AI Efficiency Framework
 # By Sean Donahoe | It Just Fucking Works
 
 Active every response. No revert. No filler drift.

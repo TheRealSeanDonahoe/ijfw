@@ -42,10 +42,10 @@ function Invoke-Preflight {
   $issues = @()
   $node = if (Test-Command node) { (node --version) } else { $null }
   if (-not $node -or ([int]($node -replace 'v(\d+)\..*','$1') -lt 18)) {
-    $issues += "Node $node detected; IJFW wants Node >=18."
+    $issues += "Node 18+ unlocks IJFW (found $node). Grab it from https://nodejs.org and we'll pick up where you left off."
   }
-  if (-not (Test-Command git))  { $issues += "git not on PATH -- install Git for Windows, then retry." }
-  if (-not (Resolve-GitBash)) { $issues += "Git Bash not found -- install Git for Windows (bundles bash.exe), then retry." }
+  if (-not (Test-Command git))  { $issues += "Install Git for Windows (https://git-scm.com) and rerun -- it bundles everything we need." }
+  if (-not (Resolve-GitBash)) { $issues += "Git Bash wasn't found next to git.exe. Install Git for Windows (includes bash.exe) and rerun." }
   return $issues
 }
 

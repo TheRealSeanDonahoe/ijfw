@@ -17,9 +17,9 @@ echo "== banned-char lint =="
 # multiplication sign, unicode minus, check marks, middle dot. Covers the same
 # surfaces Phase 10+11+12 audited.
 TARGETS=(
-  "claude/skills" "claude/commands" "claude/hooks/scripts"
-  "mcp-server/src" "mcp-server/bin" "installer/src"
-  "scripts" "README.md" "CHANGELOG.md" "CLAUDE.md"
+  "claude/skills" "claude/commands" "claude/hooks/scripts" "claude/rules"
+  "mcp-server/src" "mcp-server/bin" "installer/src" "installer/README.md" "installer/CHANGELOG.md"
+  "scripts" "codex" "gemini" "cursor" "windsurf" "copilot" "universal" "README.md" "CHANGELOG.md" "CLAUDE.md" "PUBLISH-CHECKLIST.md" "NO_TELEMETRY.md" "docs"
 )
 HITS=0
 for t in "${TARGETS[@]}"; do

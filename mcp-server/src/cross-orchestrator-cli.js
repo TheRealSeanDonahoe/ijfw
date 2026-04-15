@@ -149,6 +149,8 @@ Fire 2-4 AIs at any target. Receipts logged. Cache hits tracked. Memory follows 
 Usage:
   ijfw demo
   ijfw cross <mode> <target> [options]
+  ijfw cross project-audit <rule-file> [--dry-run]
+  ijfw import <tool> [--dry-run] [--force] [--path <p>]
   ijfw status
   ijfw doctor
   ijfw --purge-receipts
@@ -200,7 +202,7 @@ async function cmdStatus(projectDir) {
   const last = receipts[receipts.length - 1];
   const mode = last?.mode || 'cross';
   const ts = last?.timestamp ? last.timestamp.slice(0, 10) : '';
-  console.log(`Phase 10 / Wave 10A -- Step 1.${receipts.length} -- ${mode}${ts ? ' (' + ts + ')' : ''}`);
+  console.log(`Trident -- run ${receipts.length} -- ${mode}${ts ? ' (' + ts + ')' : ''}`);
   console.log('--');
   console.log(hero);
   console.log('--');

@@ -1,4 +1,4 @@
-# IJFW — AI Efficiency Framework
+# IJFW -- AI Efficiency Framework
 # By Sean Donahoe | It Just Fucking Works
 
 Active every response. No revert. No filler drift.
@@ -20,7 +20,7 @@ Active every response. No revert. No filler drift.
 - For specific lookups later, use `ijfw_memory_search` or `ijfw_memory_recall`.
 
 ## Quality
-- State assumptions before implementing. If ambiguous, ask — don't guess.
+- State assumptions before implementing. If ambiguous, ask -- don't guess.
 - Touch only what was asked. Don't improve adjacent code, comments, or formatting.
 - No speculative features. No abstractions for single-use code. Simplest solution.
 - Self-verify before destructive actions. Plan before complex tasks.

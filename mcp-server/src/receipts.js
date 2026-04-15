@@ -50,10 +50,12 @@ export function purgeReceipts(projectDir) {
 const CACHE_SAVINGS_PER_TOKEN = 2.70 / 1_000_000;
 
 // renderReceipt(record, phaseWave?, stepNum?)
-//   phaseWave -- e.g. "Phase 10 / Wave 10A" (default "Phase 10 / Wave 10A")
+//   phaseWave -- caller-supplied label for the narration header. Default is
+//                a generic "Trident" heading so receipts do not carry stale
+//                phase numbers after IJFW itself moves on.
 //   stepNum   -- N.M index for body lines (default 1)
 // Returns a multi-line string. JSONL schema is never modified.
-export function renderReceipt(record, phaseWave = 'Phase 10 / Wave 10A', stepNum = 1) {
+export function renderReceipt(record, phaseWave = 'Trident', stepNum = 1) {
   const op = record.mode || 'cross';
   const ts = record.timestamp ? record.timestamp.slice(0, 19).replace('T', ' ') : '';
   const lines = [];

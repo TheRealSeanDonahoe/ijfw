@@ -1,4 +1,4 @@
-# IJFW — It Just Fucking Works
+# IJFW -- It Just Fucking Works
 # AI Efficiency Framework by Sean Donahoe
 # Paste into any AI agent's system prompt or rules file.
 

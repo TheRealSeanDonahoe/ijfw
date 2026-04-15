@@ -1,4 +1,4 @@
-# IJFW Privacy Posture — No Telemetry
+# IJFW Privacy Posture -- No Telemetry
 
 **Short version:** IJFW doesn't phone home. Every byte of memory, every
 metric, every auto-extracted lesson stays on your machine unless you
@@ -10,7 +10,7 @@ explicitly ask for it to go somewhere else.
 |------|----------|----------------------|
 | Project memory | `.ijfw/memory/` in each project | No |
 | Global memory | `~/.ijfw/memory/` (faceted markdown) | No |
-| Session transcripts | Not stored by IJFW — Claude Code / your platform handles these | N/A |
+| Session transcripts | Not stored by IJFW -- Claude Code / your platform handles these | N/A |
 | Metrics (tokens, cost, routing) | `.ijfw/metrics/sessions.jsonl` | No |
 | Handoffs | `.ijfw/memory/handoff.md` | No |
 | Benchmark runs | `core/benchmarks/runs/*.jsonl` | No |
@@ -36,7 +36,7 @@ and never opens a socket. Skill files are markdown read by Claude Code.
 ## How to verify
 
 ```bash
-# No outbound connections from the MCP server — it's stdio only.
+# No outbound connections from the MCP server -- it's stdio only.
 lsof -i -p $(pgrep -f ijfw-memory)   # expect: empty
 
 # Audit what got auto-stored (Wave 3 onward).
@@ -50,7 +50,7 @@ npx @ijfw/install uninstall --purge   # removes memory too
 ## Enterprise / team posture
 
 - **No cloud account required.** Ever.
-- **Team memory** (`.ijfw/team/`) is plain markdown in your repo — shared via git, not a service.
+- **Team memory** (`.ijfw/team/`) is plain markdown in your repo -- shared via git, not a service.
 - **No account creation**, no SSO, no API keys stored by IJFW itself. Model API keys (Anthropic, OpenAI) are yours, set in your shell, never read by IJFW unless you run auto-memorize with an API model.
 - **Auditable source.** Every hook is bash, every MCP tool is <100 lines of dependency-free Node.
 
