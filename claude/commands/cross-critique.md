@@ -60,13 +60,13 @@ When invoked, do this in order:
 
    ```
    Cross-critique plan
-     [ ] Generate requests (codex=technical, gemini=strategic, claude=ux)
-     [ ] Fire all three in background (parallel)
-     [ ] Wait for all three completions
-     [ ] Collect caller's own in-session findings
-     [ ] Score by rebuttal survival
-     [ ] Render ranked counter-arg table
-     [ ] Archive all requests + responses + merge
+     [ ] Step A.1: Generate requests (codex=technical, gemini=strategic, claude=ux)
+     [ ] Step A.2: Fire all three in background (parallel)
+     [ ] Wave A (caller leg): Collect in-session specialist findings
+     [ ] Wait for all completions
+     [ ] Step B.1: Score by rebuttal survival
+     [ ] Step B.2: Render ranked counter-arg table
+     [ ] Step B.3: Archive all requests + responses + merge
    ```
 
 3. **Ask the user once** which combo to run:
@@ -116,9 +116,9 @@ Critique role assignment is mode-aware via `assignRoles('critique', roster, self
 
 ---
 
-## Parallel fan-out — all three angles at once
+## Wave A — Parallel fan-out — all three angles at once
 
-### Step 1 — Generate requests via the dispatcher
+### Step A.1 — Generate requests via the dispatcher
 
 Run one node call per auditor:
 
@@ -147,7 +147,7 @@ import('./mcp-server/src/cross-dispatcher.js').then(m =>
 
 Replace `<target>` with the detected or specified target string.
 
-### Step 2 — Fire all three auditors in background
+### Step A.2 — Fire all three auditors in background
 
 **Auto-fire is required.** Do NOT stop at "request written — paste it into Codex."
 Only fall back to human paste when `command -v <auditor>` fails AND the roster
@@ -181,7 +181,7 @@ If `command -v codex` (or `gemini`) fails, surface:
 
 ---
 
-## Caller perspective — collect in-session
+## Wave A (caller leg) — Collect in-session perspective
 
 **Caller-side = specialist swarm, not single opinion.** The Trident's third
 leg is a parallel dispatch of in-session specialist subagents — code-review,
@@ -219,12 +219,12 @@ don't fabricate findings to fill the slot.
 
 ---
 
-## Compare — score, rank, render
+## Wave B — Compare — score, rank, render
 
 Run compare automatically once all auditor completion notifications arrive, or
 when the user runs `/cross-critique compare` explicitly.
 
-### Step 1 — Score each counter-arg via `scoreRebuttalSurvival`
+### Step B.1 — Score each counter-arg via `scoreRebuttalSurvival`
 
 ```bash
 node --input-type=module -e "
@@ -249,7 +249,7 @@ list sorted descending by score (1=low, 5=high). The rubric is deterministic:
 condition specificity, mitigation existence, evidence link, severity, independence
 from caller context.
 
-### Step 2 — Render ranked counter-arg table
+### Step B.2 — Render ranked counter-arg table
 
 ```
 ## Cross-critique results — <target>
@@ -269,7 +269,7 @@ Auditors: codex (technical) · gemini (strategic) · claude/fresh (ux) · caller
 Survival score 5 = survives most rebuttals under realistic conditions.
 Survival score 1 = dissolves under the first reasonable objection.
 
-### Step 3 — Archive
+### Step B.3 — Archive
 
 Move all request, response, and merge files to:
 

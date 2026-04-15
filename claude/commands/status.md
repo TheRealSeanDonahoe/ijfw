@@ -25,7 +25,7 @@ Render the IJFW status block as a fenced code block. **Compute it deterministica
 ## Output format (positive framing — never "missing", "warning", "failed")
 
 ```
-━━━ IJFW Status ━━━━━━━━━━━━━━━━━━━━━━━━
+--- IJFW Status ---
 {mode} mode | {effort} effort{routing_str}
 
 Memory
@@ -53,7 +53,7 @@ Cross-audit runs
 Pending
   {one line per IJFW_NEEDS_* flag — e.g. "Memory consolidation due (run /consolidate)"}
   (omit section if no flags)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
 ```
 
 ## Rules

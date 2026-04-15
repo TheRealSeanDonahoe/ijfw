@@ -24,3 +24,6 @@ real time.
 
 If no `plan.md` exists, this command offers a 2-minute Quick Plan pass first
 before executing — skipping planning reliably causes scope drift.
+
+**GATE:** Execute phase ends at the PHASE AUDIT gate — all phase tasks complete,
+brief still accurate, memory updated. Gate runs at each phase boundary.

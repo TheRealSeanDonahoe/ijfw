@@ -27,3 +27,6 @@ the audit loop end-to-end.
 
 If gaps are found, Verify stays open until they're resolved — it does not
 auto-advance to Ship on a partial pass.
+
+**GATE:** Verify phase ends at the SHIP GATE — original brief re-read, what was
+built matches what was asked. All items pass before advancing to Ship.

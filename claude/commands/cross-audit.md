@@ -61,10 +61,10 @@ When invoked, do this in order:
 
    ```
    Cross-audit plan
-     [ ] Generate request (target: <auto-detected>)
-     [ ] Run auditor 1: <picks[0].name>
-     [ ] Run auditor 2: <picks[1].name>   (or note if only 1 installed)
-     [ ] Compare findings
+     [ ] Wave A Step 1: Generate request (target: <auto-detected>)
+     [ ] Wave A Step 2: Run auditor 1: <picks[0].name>
+     [ ] Wave A Step 2: Run auditor 2: <picks[1].name>   (or note if only 1 installed)
+     [ ] Wave B Step 1: Compare findings
    ```
 
 3. **Ask the user once** which combo to actually run:
@@ -128,7 +128,7 @@ Rationale: different training lineages first (Codex/Gemini), then OSS (opencode)
 
 **If the user asks for `list`:** print `formatRoster()` output verbatim. Do not generate a prompt.
 
-## Phase 1 — Generate the prompt
+## Wave A — Generate the prompt
 
 When user runs `/cross-audit <target>` (or with `--with <id>`):
 
@@ -183,7 +183,7 @@ Cross-audit request prepared.
               then run /cross-audit compare here.
 ```
 
-## Phase 2 — Compare (`/cross-audit compare`)
+## Wave B — Compare (`/cross-audit compare`)
 
 1. Read `.ijfw/cross-audit/response.md` + the original `request.md`.
 2. Parse findings (any `### Finding` blocks).

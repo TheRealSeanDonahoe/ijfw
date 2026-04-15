@@ -24,3 +24,6 @@ Run the gate, fix any failures, then continue. IJFW tracks gate outcomes in
 
 If you name a phase explicitly (e.g. `/ijfw-audit plan`), that gate runs regardless
 of the current workflow position. Omit the argument and the current phase gate runs.
+
+**GATE:** Each audit gate is a hard stop — fix failures before the next phase
+begins. Gate outcomes are recorded in `audit-log.md` for the active project.

@@ -26,5 +26,8 @@ built matches what was asked. If gaps remain, ship is held until they close.
 
 This command invokes `ijfw-workflow` at the D6 Ship phase directly.
 
+**GATE:** The SHIP GATE must pass before deployment proceeds — original brief
+re-read, changelog updated, monitoring confirmed, rollback plan documented.
+
 **Natural triggers:** "ship it", "deploy", "let's ship", "go live", "time to ship",
 "wrap this up."

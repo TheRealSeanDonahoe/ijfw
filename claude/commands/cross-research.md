@@ -62,14 +62,14 @@ When invoked, do this in order:
 
    ```
    Cross-research plan
-     [ ] Generate Phase A requests (codex=benchmarks, gemini=citations)
-     [ ] Fire codex in background
-     [ ] Fire gemini in background
+     [ ] Step A.1: Generate Wave A requests (codex=benchmarks, gemini=citations)
+     [ ] Step A.2: Fire codex in background
+     [ ] Step A.2: Fire gemini in background
      [ ] Wait for both completions
-     [ ] Generate Phase B synthesis request (claude=synthesis)
-     [ ] Fire synthesis
-     [ ] Render consensus/contested/unique matrix
-     [ ] Archive all requests + responses + merge
+     [ ] Step B.1: Generate Wave B synthesis request (claude=synthesis)
+     [ ] Step B.2: Fire synthesis
+     [ ] Step B.3: Render consensus/contested/unique matrix
+     [ ] Step B.4: Archive all requests + responses + merge
    ```
 
 3. **Ask the user once** which combo to run:
@@ -96,12 +96,12 @@ When invoked, do this in order:
 
    Then offer to run the single-auditor partial flow.
 
-5. **Fire Phase A in background** (see Phase A section below).
+5. **Fire Wave A in background** (see Wave A section below).
 
-6. **After Phase A completes**, run `/cross-research compare` (or fire it
+6. **After Wave A completes**, run `/cross-research compare` (or fire it
    automatically when both background jobs notify).
 
-7. **Fire Phase B synthesis** via fresh Claude session (see Phase B section below).
+7. **Fire Wave B synthesis** via fresh Claude session (see Wave B section below).
 
 8. **Render matrix** from `mergeResponses('research', responses)`.
 
@@ -124,9 +124,9 @@ Research role assignment is mode-aware via `assignRoles('research', roster, self
 
 ---
 
-## Phase A — Parallel fan-out
+## Wave A — Parallel fan-out
 
-### Step 1 — Generate Phase A requests via the dispatcher
+### Step A.1 — Generate Phase A requests via the dispatcher
 
 Run one node call per auditor:
 
@@ -148,7 +148,7 @@ import('./mcp-server/src/cross-dispatcher.js').then(m =>
 
 Replace `<target>` with the detected or specified target string.
 
-### Step 2 — Fire auditors in background
+### Step A.2 — Fire auditors in background
 
 **Auto-fire is required.** Do NOT stop at "request written — paste it into Codex."
 Only fall back to human paste when `command -v <auditor>` fails AND the roster
@@ -167,7 +167,7 @@ cat .ijfw/cross-audit/request-research-gemini.md | gemini - > .ijfw/cross-audit/
 Both run simultaneously. Wait for both completion notifications before proceeding
 to Phase B. Update the TODO surface to `in_progress` then `completed` per auditor.
 
-### Step 2b — Fire Claude specialist swarm in parallel (caller leg)
+### Step A.2b — Fire Claude specialist swarm in parallel (caller leg)
 
 **Caller-side = specialist swarm, not single opinion.** The Trident's third leg
 is a parallel dispatch of in-session subagents — research specialists chosen for
@@ -204,9 +204,9 @@ If `command -v codex` (or `gemini`) fails, surface:
 
 ---
 
-## Phase B — Synthesis (sequential, after Phase A)
+## Wave B — Synthesis (sequential, after Wave A)
 
-### Step 1 — Generate the synthesis request
+### Step B.1 — Generate the synthesis request
 
 Read both Phase A responses and feed them as `priorResponses` to the dispatcher:
 
@@ -229,7 +229,7 @@ import('./mcp-server/src/cross-dispatcher.js').then(async m => {
 })" > .ijfw/cross-audit/request-research-synthesis.md
 ```
 
-### Step 2 — Fire synthesis via fresh Claude session
+### Step B.2 — Fire synthesis via fresh Claude session
 
 **Auto-fire is required.** Fire via Bash tool with `run_in_background:true`:
 
@@ -240,7 +240,7 @@ cat .ijfw/cross-audit/request-research-synthesis.md | claude -p > .ijfw/cross-au
 A fresh `claude -p` session is used even when the caller is Claude, to prevent
 the synthesis from being coloured by the caller's in-session context.
 
-### Step 3 — Render matrix
+### Step B.3 — Render matrix
 
 Once the synthesis response lands, call `mergeResponses` to build the final matrix:
 
@@ -285,7 +285,7 @@ Render the merged result as:
 - ...
 ```
 
-### Step 4 — Archive
+### Step B.4 — Archive
 
 Move all six files (3 requests + 3 responses) plus the merged JSON to:
 
@@ -302,7 +302,7 @@ Move all six files (3 requests + 3 responses) plus the merged JSON to:
 
 ## Notes
 
-- Phase A is always parallel; Phase B is always sequential (depends on Phase A).
+- Wave A is always parallel; Wave B is always sequential (depends on Wave A).
 - The synthesis angle always runs in a fresh `claude -p` session — never the caller's
   own context.
 - `audit-roster.js` detection is conservative: if the caller cannot be identified,
