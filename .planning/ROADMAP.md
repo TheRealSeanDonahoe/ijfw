@@ -20,6 +20,23 @@
 
 ---
 
+### R5 — Slash-command cross-platform parity
+
+**What:** Today `/ijfw-status` and other `/ijfw-*` slash commands work natively in Claude Code, map as intent in Gemini CLI, but Codex treats them as shell paths and fails. Add per-platform rule-file sections mapping the `/ijfw-*` intent pattern to each platform's native invocation.
+
+**Why:** Wave 10C live-test surfaced the gap (Finding C in LIVE-TEST-RESULTS.md). Users across the 7 platforms currently have to know which platform parses slash commands natively and which interprets them as shell. Universal rules file says "slash-commands work" without qualification.
+
+**Scope sketch:**
+- Claude Code: native, no change.
+- Gemini CLI: already maps intent; document the pattern.
+- Codex CLI: add rule-file instruction that `/ijfw-*` is a natural-language intent and should be translated to the matching MCP tool call, not shell.
+- Universal rules file: add a sentence about the slash-prefix being an intent pattern, not a shell invocation.
+- Estimated effort: 0.5 day (docs and one-line per-platform addendum).
+
+**Priority:** V1.1 -- not a publish blocker (capability works via natural language on every platform), but the `/command` pattern regression on Codex will annoy power users.
+
+---
+
 ### R1 — Cross-project audit / search
 
 **What:** `/ijfw-cross-project-search <pattern>` + `/ijfw-cross-project-audit <rule>` via a registry of known IJFW project dirs.
