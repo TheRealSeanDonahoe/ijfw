@@ -23,16 +23,20 @@ The Donahoe Loop applies to both: BUILD → AUDIT → FIX → SHIP → MEASURE �
 For focused work. Features, fixes, content pieces, brainstorms.
 Picks up from current context — no need to start from scratch.
 
-## Q1: Clarify (30 seconds)
+## Step 1: Clarify (30 seconds)
+
+Phase Quick / Wave QW — starting now.
 
 Ask 2-3 sharp questions. Not 20. Just what's needed to avoid building the wrong thing.
-If intent is already clear from context, skip straight to Q2.
+If intent is already clear from context, skip straight to Step 2.
 
 - What exactly are we building/changing?
 - What does "done" look like? (success criteria)
 - Any constraints I should know about?
 
-## Q2: Quick Plan (1-2 minutes)
+Step 1 — done (intent captured, success criteria confirmed).
+
+## Step 2: Quick Plan (1-2 minutes)
 
 Draft a brief plan. Max 10 tasks. Each task: what to do, how to verify.
 Present it. Get a thumbs up or adjustments. Then go.
@@ -40,24 +44,34 @@ Present it. Get a thumbs up or adjustments. Then go.
 For software: include file paths and test expectations.
 For content: include sections, tone, key points.
 
-### 🔍 Quick Audit
+### Quick Audit
+
+Phase Quick / Wave QW · Step 2 — audit in progress (~30s).
 
 Before executing, 30-second check:
 - Does this match what was asked? (scope)
 - Is this the simplest approach? (Donahoe P4: taste, not features)
 - Any assumptions I'm making? State them now.
 
-## Q3: Execute
+Step 2 — done (plan approved, audit clean).
+
+## Step 3: Execute
+
+Phase Quick / Wave QW · Step 3 — executing (~estimate).
 
 Work through tasks. Run tests/verification after each.
 Store key decisions in memory.
 
-### 🔍 After each task: Did it work? Anything break? Move on.
+After each task: emit `Phase Quick / Wave QW · Step 3 — <task> done (verified).` then continue.
 
-## Q4: Done Check
+Step 3 — done (all tasks complete, tests pass).
+
+## Step 4: Done Check
 
 Quick verification: success criteria met? Tests pass? Consistent with existing work?
 If yes → done. If gaps → fix. Update memory.
+
+Step 4 — done (success criteria met, memory updated).
 
 ---
 
@@ -73,7 +87,9 @@ State is stored in `.ijfw/projects/<project-name>/`:
 - `progress.md` — where we are (updated during Execution)
 - `audit-log.md` — all audit findings
 
-## D1: DISCOVER
+## Phase 1: DISCOVER
+
+Phase Deep / Wave 1 — starting now.
 
 Socratic interview. Understand the real problem.
 
@@ -94,7 +110,10 @@ After brief approval, propose a project team via ijfw-team skill:
 - Save to `.ijfw/agents/`. User can add/remove/swap agents anytime.
 - Parallel and sequential execution assigned based on agent roles.
 
-### 🔍 DISCOVER AUDIT
+### DISCOVER AUDIT
+
+Phase Deep / Wave 1 · Step 1.1 — discover audit in progress (~1min).
+
 - [ ] Scope defined with boundaries (in AND out)
 - [ ] Success criteria are testable
 - [ ] No hidden assumptions
@@ -103,19 +122,30 @@ After brief approval, propose a project team via ijfw-team skill:
 - [ ] Donahoe P5: Can we auto-detect instead of configure?
 - [ ] Donahoe P19: Progressive disclosure, not complexity dump?
 
-## D2: RESEARCH (skip for small projects)
+Step 1.1 — done (discover audit passed, brief.md written).
+
+## Phase 2: RESEARCH (skip for small projects)
+
+Phase Deep / Wave 2 — starting now.
 
 Investigate before planning. Scout agent for cheap exploration.
 Tag findings with sources. Flag uncertainties.
 
 Output: `research.md` with key findings and implications for the plan.
 
-### 🔍 RESEARCH AUDIT
+### RESEARCH AUDIT
+
+Phase Deep / Wave 2 · Step 2.1 — research audit in progress (~1min).
+
 - [ ] Did research change our understanding? Update brief if yes.
 - [ ] Red flags? Security, feasibility, scope creep?
 - [ ] Donahoe P9: Do we understand what we're about to build?
 
-## D3: PLAN
+Step 2.1 — done (research audit passed, research.md written).
+
+## Phase 3: PLAN
+
+Phase Deep / Wave 3 — starting now.
 
 Break into phases → milestones → tasks.
 
@@ -131,7 +161,10 @@ Group into phases with milestone checkpoints.
 
 Output: `plan.md`. Present for approval.
 
-### 🔍 PLAN AUDIT
+### PLAN AUDIT
+
+Phase Deep / Wave 3 · Step 3.1 — plan audit in progress (~1min).
+
 - [ ] Every requirement from brief has a task
 - [ ] Nothing silently dropped (scope reduction check)
 - [ ] Logical dependency order
@@ -140,7 +173,11 @@ Output: `plan.md`. Present for approval.
 - [ ] Donahoe P6: Does the plan expose architecture to users?
 - [ ] Donahoe P22: Quality standards encoded, not assumed?
 
-## D4: EXECUTE
+Step 3.1 — done (plan audit passed, plan.md approved).
+
+## Phase 4: EXECUTE
+
+Phase Deep / Wave 4 — starting now.
 
 Work through plan. Dispatch to project team agents.
 If team was set up in Discovery, match tasks to specialist agents:
@@ -155,7 +192,13 @@ Human checkpoints at phase boundaries.
 Atomic commits for code. Store decisions in memory.
 Update `progress.md` after each phase.
 
-### 🔍 TASK MICRO-AUDIT (every task)
+For long-running operations, emit a mid-step ping every meaningful interval:
+`Phase Deep / Wave 4 · Step 4.M — <agent> in progress (~<estimate>).`
+
+### TASK MICRO-AUDIT (every task)
+
+Phase Deep / Wave 4 · Step 4.M — task audit in progress.
+
 - [ ] Success criteria met
 - [ ] Nothing outside scope changed
 - [ ] For code: tests pass, linter clean, Donahoe P9 (can explain every line)
@@ -163,7 +206,12 @@ Update `progress.md` after each phase.
 - [ ] For content: consistent with prior sections
 - [ ] No new unstated assumptions
 
-### 🔍 PHASE AUDIT (at milestones)
+Step 4.M — done (task verified, progress.md updated).
+
+### PHASE AUDIT (at milestones)
+
+Phase Deep / Wave 4 · Step 4.M — phase audit in progress (~2min).
+
 - [ ] All phase tasks complete and verified
 - [ ] Brief still accurate or needs updating?
 - [ ] Donahoe P2: Speed — is it fast? Measure if possible.
@@ -173,7 +221,11 @@ Update `progress.md` after each phase.
 - [ ] Donahoe P14: Accessible?
 - [ ] Memory updated with phase outcomes
 
-## D5: VERIFY
+Step 4.M — done (phase audit passed, milestone complete).
+
+## Phase 5: VERIFY
+
+Phase Deep / Wave 5 — starting now.
 
 Full audit against the original brief.
 
@@ -222,7 +274,11 @@ Disagreements between AIs → flag, don't auto-resolve → present to user.
 
 Use `/cross-audit` to generate the document explicitly.
 
-## D6: SHIP
+Step 5.1 — done (verify complete, all criteria passed).
+
+## Phase 6: SHIP
+
+Phase Deep / Wave 6 — starting now.
 
 Pre-flight: changelog, deployment, monitoring, rollback plan, documentation.
 
@@ -231,8 +287,38 @@ Pre-flight: changelog, deployment, monitoring, rollback plan, documentation.
 - [ ] Donahoe P21: Pricing respects the user
 - [ ] Memory updated with full project summary
 
-### 🔍 SHIP GATE
+### SHIP GATE
+
+Phase Deep / Wave 6 · Step 6.1 — ship gate in progress (~1min).
+
 Re-read the original brief. Does what we built match? Ship or fix.
+
+Step 6.1 — done (ship gate passed, project complete).
+
+---
+
+# WHERE AM I
+
+When the user asks "where are we?", "status?", "progress?", or similar:
+
+Respond with exactly this structure:
+1. One sentence: `Phase <N> / Wave <NA> / Step <N.M> — <what is happening right now>.`
+2. One sentence: `Recommended next: <specific action with default>.`
+
+Example: "Phase Deep / Wave 4 / Step 4.2 — executing the auth module with the security specialist. Recommended next: run the task micro-audit when the agent responds (~2min)."
+
+Never leave the user wondering where they are. Always include the recommended next action — no open menus.
+
+---
+
+# MID-STEP PING
+
+For any operation expected to take more than 30 seconds (agent dispatch, test suite, build, research sweep):
+
+Emit before starting: `Phase N / Wave NA · Step N.M — <agent or operation> in progress (~<estimate>).`
+Emit on completion: `Step N.M — done (<evidence of success>).`
+
+Do not wait until the end to narrate. Progress pings prevent the user from wondering if work is happening.
 
 ---
 
@@ -304,12 +390,12 @@ Every phase transition and audit gate requires visible task tracking.
 **At every specialist dispatch** via `Agent(`, call `TaskCreate` with `agent_id` = the specialist role.
 Call `TaskUpdate` to `completed` when the phase, gate, or agent concludes successfully.
 
-Quick mode minimum: 3–5 tasks per cycle (Clarify, Plan, Quick Audit, Execute, Done Check).
-Deep mode minimum: 15 tasks for a full run — one per phase (D1–D6), one per audit gate
+Quick mode minimum: 3-5 tasks per cycle (Clarify, Plan, Quick Audit, Execute, Done Check).
+Deep mode minimum: 15 tasks for a full run — one per phase (Phase 1 through Phase 6), one per audit gate
 (DISCOVER AUDIT, RESEARCH AUDIT, PLAN AUDIT, TASK MICRO-AUDITs, PHASE AUDITs, SHIP GATE),
 and one per specialist agent dispatch.
 
-Example task IDs: `D3-plan`, `gate-plan-audit`, `agent-code-reviewer`, `D4-execute`, `gate-ship`.
+Example task IDs: `phase3-plan`, `gate-plan-audit`, `agent-code-reviewer`, `phase4-execute`, `gate-ship`.
 
 ---
 
