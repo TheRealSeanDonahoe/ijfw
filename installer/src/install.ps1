@@ -152,22 +152,14 @@ if ($issues.Count -gt 0) {
 }
 
 $target = Get-Target
-Write-Host "IJFW -> $target"
 
-$action = Invoke-CloneOrPull $target $Branch
-Write-Ok "repo $action"
+# scripts/install.sh owns the summary (Live now / Standing by / next step).
+# Keep clone/pull output suppressed so the final banner reads clean.
+$action = Invoke-CloneOrPull $target $Branch | Out-Null
 
 Invoke-InstallScript $target
-Write-Ok "scripts/install.sh complete"
 
 if (-not $NoMarketplace) {
-  if (Merge-Marketplace) {
-    Write-Ok "marketplace registered in $env:USERPROFILE\.claude\settings.json"
-  }
+  # Best-effort: returns $true on success, prints its own message on fallback.
+  [void](Merge-Marketplace)
 }
-
-Write-Host ""
-Write-Host "IJFW ready."
-Write-Host "  Memory preserved at: $target\memory"
-Write-Host "  /doctor inside Claude Code to verify health."
-Write-Host "  Privacy: everything local. See NO_TELEMETRY.md."

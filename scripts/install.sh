@@ -56,6 +56,33 @@ ok()   { printf "  [ok] %s\n" "$1"; }
 note() { printf "  [--] %s\n" "$1"; }
 info() { printf "  -- %s\n" "$1"; }
 
+# Runtime detection: "is this platform actually installed on the user's box?"
+# True -> the platform goes in "Live now" -- configs fire immediately.
+# False -> "Standing by" -- configs are pre-staged and auto-activate on install.
+is_live() {
+  case "$1" in
+    claude)   command -v claude >/dev/null 2>&1 || [ -d "$HOME/.claude" ] ;;
+    codex)    command -v codex  >/dev/null 2>&1 || [ -d "$HOME/.codex" ]  ;;
+    gemini)   command -v gemini >/dev/null 2>&1 || [ -d "$HOME/.gemini" ] ;;
+    cursor)   command -v cursor >/dev/null 2>&1 ;;
+    windsurf) command -v windsurf >/dev/null 2>&1 || [ -d "$HOME/.codeium/windsurf" ] ;;
+    copilot)  command -v code    >/dev/null 2>&1 || [ -d "$HOME/.vscode" ] || [ -d "$HOME/.config/Code" ] || [ -d "$HOME/Library/Application Support/Code" ] || [ -d "$APPDATA/Code" ] ;;
+    *) return 1 ;;
+  esac
+}
+
+pretty_name() {
+  case "$1" in
+    claude)   printf 'Claude Code' ;;
+    codex)    printf 'Codex' ;;
+    gemini)   printf 'Gemini' ;;
+    cursor)   printf 'Cursor' ;;
+    windsurf) printf 'Windsurf' ;;
+    copilot)  printf 'Copilot' ;;
+    *)        printf '%s' "$1" ;;
+  esac
+}
+
 backup() {
   local path="$1"
   if [ -f "$path" ]; then
@@ -120,14 +147,42 @@ merge_toml() {
   mv "$tmp" "$dst"
 }
 
-# Output legend: [ok] = done, [--] = informational
-echo "IJFW install -- launcher: $LAUNCHER"
-echo
+# Route verbose per-platform chatter to a logfile. The console gets the
+# tight Live-now / Standing-by summary at the end. Power users hit --verbose
+# to see everything, or tail the log.
+LOGFILE="${IJFW_INSTALL_LOG:-$HOME/.ijfw/install.log}"
+mkdir -p "$(dirname "$LOGFILE")" 2>/dev/null
+: > "$LOGFILE" 2>/dev/null || LOGFILE=/dev/null
+
+VERBOSE=0
+for arg in "$@"; do
+  case "$arg" in
+    --verbose|-v) VERBOSE=1 ;;
+  esac
+done
+
+log() {
+  if [ "$VERBOSE" -eq 1 ]; then printf '%s\n' "$1"; fi
+  printf '%s\n' "$1" >> "$LOGFILE" 2>/dev/null
+}
+
+# Redefine ok/note/info to write through log() so the loop stays quiet by
+# default. The original functions were console-only.
+ok()   { log "  [ok] $1"; }
+note() { log "  [--] $1"; }
+info() { log "  -- $1"; }
+
+log "IJFW install -- launcher: $LAUNCHER"
+log ""
+
+LIVE=()
+STANDBY=()
+FAILED=()
 
 for target in "${TARGETS[@]}"; do
   case "$target" in
     claude)
-      echo "[Claude Code]"
+      log "[Claude Code]"
       note "Inside Claude Code, run:"
       note "  /plugin marketplace add $REPO_ROOT/claude"
       note "  /plugin install ijfw"
@@ -136,7 +191,7 @@ for target in "${TARGETS[@]}"; do
       note "  Copy to your project root for instant context savings."
       ;;
     codex)
-      echo "[Codex CLI]"
+      log "[Codex CLI]"
       dst="$HOME/.codex/config.toml"
       merge_toml "$dst" "$LAUNCHER"
       # Instructions append-only: only write if user doesn't have one.
@@ -148,7 +203,7 @@ for target in "${TARGETS[@]}"; do
       fi
       ;;
     gemini)
-      echo "[Gemini CLI]"
+      log "[Gemini CLI]"
       dst="$HOME/.gemini/settings.json"
       merge_json "$dst" "$LAUNCHER"
       # W4.1 / E2 -- platform parity: copy the GEMINI.md rules file.
@@ -162,7 +217,7 @@ for target in "${TARGETS[@]}"; do
       fi
       ;;
     cursor)
-      echo "[Cursor]"
+      log "[Cursor]"
       dst=".cursor/mcp.json"
       merge_json "$dst" "$LAUNCHER"
       mkdir -p .cursor/rules
@@ -170,7 +225,7 @@ for target in "${TARGETS[@]}"; do
       ok "Merged MCP + installed rule to project ./.cursor/"
       ;;
     windsurf)
-      echo "[Windsurf]"
+      log "[Windsurf]"
       dst="$HOME/.codeium/windsurf/mcp_config.json"
       merge_json "$dst" "$LAUNCHER"
       # W4.1 / E2 -- copy the .windsurfrules to the current project.
@@ -183,7 +238,7 @@ for target in "${TARGETS[@]}"; do
       fi
       ;;
     copilot)
-      echo "[Copilot (VS Code)]"
+      log "[Copilot (VS Code)]"
       dst=".vscode/mcp.json"
       merge_json "$dst" "$LAUNCHER"
       # W4.1 / E2 -- copy the copilot-instructions.md to .github/ (Copilot's
@@ -199,14 +254,43 @@ for target in "${TARGETS[@]}"; do
       ;;
     *)
       info "skipping unknown target: $target"
+      continue
       ;;
   esac
-  echo
+  log ""
+  # Classify: live if the platform's runtime is detectable on this machine,
+  # standing-by if we pre-staged config for when they install it later.
+  if is_live "$target"; then
+    LIVE+=("$(pretty_name "$target")")
+  else
+    STANDBY+=("$(pretty_name "$target")")
+  fi
 done
 
-PLATFORM_COUNT=${#TARGETS[@]}
-echo "${PLATFORM_COUNT} agent platform(s) configured -- memory + rules active. Backups (if any): <config>.bak.$TS"
-echo "Verify with: node $REPO_ROOT/mcp-server/test.js"
+# --- Tight summary (Sutherland / Krug / Donahoe) ---
+join_dot() { local IFS=' '; local out=""; for x in "$@"; do out="${out:+$out  .  }$x"; done; printf '%s' "$out"; }
+
+echo
+echo "IJFW  ->  $REPO_ROOT"
+echo
+if [ ${#LIVE[@]} -gt 0 ]; then
+  echo "  Live now:      $(join_dot "${LIVE[@]}")"
+fi
+if [ ${#STANDBY[@]} -gt 0 ]; then
+  echo "  Standing by:   $(join_dot "${STANDBY[@]}")  (auto-activate on install)"
+fi
+if [ ${#LIVE[@]} -eq 0 ] && [ ${#STANDBY[@]} -eq 0 ]; then
+  echo "  No platforms matched -- pass a target, e.g. bash scripts/install.sh claude"
+fi
+# Only surface the Claude next-step if Claude was a target (it usually is).
+for t in "${TARGETS[@]}"; do
+  if [ "$t" = "claude" ]; then
+    echo
+    echo "  One more step: /plugin marketplace add $REPO_ROOT/claude"
+    echo "                 /plugin install ijfw"
+    break
+  fi
+done
 
 # --- Post-commit hook (opt-in only) ---
 HOOK_MARKER="# IJFW-POST-COMMIT-HOOK"
@@ -241,9 +325,14 @@ install_post_commit_hook() {
 }
 
 if [ "$INSTALL_POST_COMMIT_HOOK" -eq 1 ]; then
-  echo "[Post-commit hook]"
+  log "[Post-commit hook]"
   install_post_commit_hook
-  echo
+  log ""
 elif [ -d ".git" ]; then
   note "Tip: background Trident critique on every commit -- run with --post-commit-hook to enable."
 fi
+
+# Closer: one hero line + where the details live.
+echo
+echo "  It just fucking works.    (full log: $LOGFILE)"
+echo
