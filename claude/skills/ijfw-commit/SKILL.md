@@ -24,4 +24,7 @@ After commit completes successfully, run in the same shell:
 ```bash
 command -v ijfw >/dev/null 2>&1 && ijfw cross critique HEAD~1..HEAD &
 ```
-Then tell the user: "Committed. Background critique running — check /ijfw-status for findings."
+Then narrate to the user using this exact structure:
+- One line: `Phase N / Wave NA · Step N.M — commit — done.`
+- One line: SHA + subject (e.g. `a1b2c3d feat(api): add rate limiting`)
+- One line: `Background critique running — check /ijfw-status for findings.` (omit if ijfw not present)
