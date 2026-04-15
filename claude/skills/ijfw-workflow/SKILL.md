@@ -21,6 +21,54 @@ User override: "go deeper" escalates. "Let's keep this quick" simplifies.
 
 ---
 
+# BRAINSTORM DISCIPLINE (applies to both modes)
+
+A brainstorm is a conversation, not a solo exercise. The following rules are
+mandatory for every DISCOVER, RESEARCH, and planning activity in this skill.
+Violating any of them is a workflow failure worth auditing.
+
+## Hard rules
+
+1. **One question at a time during brainstorm.** Never dump 10 questions and
+   wait. Ask, get the answer, absorb, ask the next. The user sets the pace.
+2. **No offscreen research.** If you dispatch an Explore / scout / research
+   agent, surface the synthesized findings to the user BEFORE you use them
+   to write anything. Minimum: a one-paragraph summary + the 3 top findings
+   + any contradictions. The user can steer based on what came back.
+3. **No skipping to the plan.** `plan.md` is written only after the user has
+   explicitly confirmed the brief + the research synthesis. If the user has
+   not said "plan it" or equivalent, do not write a plan.
+4. **Audit gates require user sign-off.** "Audit passed" is not a green
+   light to advance on its own -- it is a checklist that the user confirms
+   before the next phase starts. The skill never auto-advances between
+   DISCOVER -> RESEARCH -> PLAN -> EXECUTE.
+5. **Visible deliverables.** Every phase's artifact (brief.md, research.md,
+   plan.md) is summarized to the user in-chat when written, not silently
+   dropped in a directory. If you wrote it and did not tell the user what
+   is in it, you failed this rule.
+6. **Intermediate thinking is output, not a monologue.** When brainstorming
+   back-and-forth, keep each turn short. Do not turn the user's "what about
+   X?" into a 200-line internal analysis. Thirty-word answers, then ask
+   the next clarifying question.
+
+## Failure signatures to watch for
+
+If you catch yourself doing any of the following, stop and reset:
+
+- About to write `plan.md` without the user having confirmed the brief.
+- About to dispatch a research agent whose output you will not paraphrase
+  back to the user.
+- About to say "Phase N plan complete. Ready to build" in a turn where the
+  user has not actually seen the intermediate research findings.
+- About to emit a 25-task breakdown after one user turn that said
+  "brainstorm this".
+- About to auto-advance past an audit gate without user confirmation.
+
+The correct move in each case: pause, surface what you learned or intend
+to learn, and hand the next decision back to the user.
+
+---
+
 # QUICK MODE
 
 For focused work. Features, fixes, content pieces, brainstorms.
@@ -29,13 +77,16 @@ Picks up from current context -- no need to start from scratch.
 ## Step 1: Clarify (30 seconds)
 
 Phase Quick / Wave QW (Quick Wave) -- starting now.
+**Follow BRAINSTORM DISCIPLINE.** One question at a time. Do not dump 3.
 
-Ask 2-3 sharp questions. Not 20. Just what's needed to avoid building the wrong thing.
+Ask sharp questions in sequence until intent is clear. Typical arc:
+  1. What exactly are we building/changing?  (wait for answer)
+  2. What does "done" look like?              (wait for answer)
+  3. Any constraints I should know about?     (wait for answer)
+
 If intent is already clear from context, skip straight to Step 2.
-
-- What exactly are we building/changing?
-- What does "done" look like? (success criteria)
-- Any constraints I should know about?
+Never write `plan.md` until the user has confirmed your understanding
+in one of the turns above.
 
 Step 1 -- done (intent captured, success criteria confirmed).
 
@@ -97,6 +148,8 @@ Note: if `.ijfw/` is not writeable (read-only container or sandbox), state persi
 Phase Deep / Wave 1 -- starting now.
 
 Socratic interview. Understand the real problem.
+**Follow BRAINSTORM DISCIPLINE.** One question at a time. No long monologues.
+No advancing to Phase 2 until the user has confirmed the brief.
 
 Adapt questions to domain:
 - **Software**: stack, users, deployment, existing codebase, security model
@@ -106,7 +159,18 @@ Adapt questions to domain:
 
 Must establish: What, Who, Why, Success Criteria, Constraints, Scope (in AND out).
 
-Output: `brief.md` (max 30 lines). Present in chunks for approval.
+Conversation pattern:
+  1. Open question: "Tell me the problem in one sentence."
+  2. User answers.
+  3. One clarifying follow-up.
+  4. User answers.
+  5. Loop until What/Who/Why/Success/Constraints/Scope are all filled.
+  6. Summarise what you heard: "Here's what I've got so far -- [3 bullets]."
+  7. User confirms or corrects.
+  8. ONLY THEN write brief.md.
+  9. Paste the brief in-chat. Ask: "Does this read right?" before Phase 2.
+
+Output: `brief.md` (max 30 lines). Do not write it until step 8 above.
 
 After brief approval, propose a project team via ijfw-team skill:
 - Identify domain-appropriate roles
@@ -132,11 +196,27 @@ Step 1.1 -- done (discover audit passed, brief.md written).
 ## Phase 2: RESEARCH (skip for small projects)
 
 Phase Deep / Wave 2 -- starting now.
+**Follow BRAINSTORM DISCIPLINE.** Research findings are surfaced to the user
+before they feed any plan. Dispatched agents do not write directly to disk.
 
-Investigate before planning. Scout agent for cheap exploration.
+Investigate before planning. Scout / Explore agents for cheap exploration.
 Tag findings with sources. Flag uncertainties.
 
+Required sequence:
+  1. State the research questions in-chat: "I want to answer X, Y, Z -- okay?"
+  2. User confirms or edits the question list.
+  3. Dispatch agents (scout / Explore / specialist) with those questions.
+  4. When agents return, paste a synthesis in-chat:
+     - What I asked
+     - What came back (3-5 bullets)
+     - Contradictions or gaps
+     - How this would change the plan
+  5. User reacts. Follow up if they push back.
+  6. ONLY THEN write research.md (a cleaned-up version of the synthesis).
+  7. Confirm the research.md contents in-chat before Phase 3.
+
 Output: `research.md` with key findings and implications for the plan.
+Do not write it until step 6 above.
 
 ### RESEARCH AUDIT
 
