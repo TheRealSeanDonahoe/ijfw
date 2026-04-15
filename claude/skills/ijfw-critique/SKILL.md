@@ -55,6 +55,8 @@ Counter-arguments:
   3. <third angle> — applies when <condition>; mitigate via <approach>.
 
 Verdict: <proceed|mitigate|rework> — <one-line reason>
+
+Audit: stress-tested <N> assumptions, <N> angles (<angle-1> + <angle-2> + <angle-3>). Confidence: <low|med|high>.
 ```
 
 ## Tone

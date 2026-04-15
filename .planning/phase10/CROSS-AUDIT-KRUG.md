@@ -13,11 +13,11 @@ Entry: `claude/skills/ijfw-workflow/SKILL.md`
 
 HIGH count: 2 | MED count: 3 | LOW count: 1
 
-### Finding 1.1 [HIGH] claude/skills/ijfw-workflow/SKILL.md:17
+### Finding 1.1 [HIGH] [closed] claude/skills/ijfw-workflow/SKILL.md:17
 The Donahoe Loop phrase `BUILD -> AUDIT -> FIX -> SHIP -> MEASURE -> REPEAT` is the single most load-bearing mental model in the skill, yet it is dropped inline inside prose with zero visual emphasis; a new user scanning for "what does this skill do" will not see it inside 3 seconds.
 Recommended: Promote the loop to a fenced pre-block immediately under the Two modes line so it is visible on first glance.
 
-### Finding 1.2 [HIGH] claude/skills/ijfw-workflow/SKILL.md:28
+### Finding 1.2 [HIGH] [closed] claude/skills/ijfw-workflow/SKILL.md:28
 First user-facing line of Quick mode says `Phase Quick / Wave QW -- starting now.` -- `QW` is an undocumented abbreviation. A user cannot translate `QW` to "Quick Wave" in under 3 seconds without hunting; this violates mental-model matching on the very first transition the user will ever see.
 Recommended: Either expand to `Wave Q1` (matches Deep mode's numeric style) or define `QW` on first use in the file, e.g. `Wave QW (Quick Wave)`.
 

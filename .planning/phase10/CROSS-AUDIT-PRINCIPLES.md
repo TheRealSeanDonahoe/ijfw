@@ -57,8 +57,8 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 
 | ID   | Sev  | Surface                                                     | Action |
 |------|------|-------------------------------------------------------------|--------|
-| K1.1 | HIGH | claude/skills/ijfw-workflow/SKILL.md:17                     | Promote `BUILD -> AUDIT -> FIX -> SHIP -> MEASURE -> REPEAT` to a fenced pre-block near top. |
-| K1.2 | HIGH | claude/skills/ijfw-workflow/SKILL.md:28                     | `QW` abbreviation undefined; expand to `Wave Q1` or define on first use. |
+| K1.1 | HIGH [closed] | claude/skills/ijfw-workflow/SKILL.md:17                     | Promote `BUILD -> AUDIT -> FIX -> SHIP -> MEASURE -> REPEAT` to a fenced pre-block near top. |
+| K1.2 | HIGH [closed] | claude/skills/ijfw-workflow/SKILL.md:28                     | `QW` abbreviation undefined; expand to `Wave Q1` or define on first use. |
 | K3.1 | HIGH [closed] | claude/commands/ijfw.md:18                                  | `/ijfw memory audit` is a dead link; route to `memory-audit.md` or add dispatcher. |
 | K1.3 | MED  | claude/skills/ijfw-workflow/SKILL.md:264                    | `P9` reference without inline Donahoe-22 pointer. |
 | K1.5 | MED  | claude/skills/ijfw-workflow/SKILL.md:305                    | `WHERE AM I` grammar inconsistent between example and STATE FILE schema. |
@@ -87,9 +87,9 @@ Consensus row count: 17. Total lens findings absorbed into consensus: ~42 (some 
 
 | ID   | Sev  | Surface                                                     | Action |
 |------|------|-------------------------------------------------------------|--------|
-| S1.1 | HIGH | claude/skills/ijfw-workflow/SKILL.md:60-67                  | Step-done line is procedural; add receipts-of-work: "Step 3 -- done (5 tasks shipped, 3 audit gates cleared)". |
-| S1.2 | HIGH | claude/skills/ijfw-workflow/SKILL.md:198-209                | Task micro-audit does 7 principle checks but never surfaces "N-point task audit cleared". |
-| S2.1 | HIGH | claude/skills/ijfw-critique/SKILL.md:44-58                  | Critique output hides the rigor behind the verdict; add metadata line with angles pressure-tested + confidence. |
+| S1.1 | HIGH [closed] | claude/skills/ijfw-workflow/SKILL.md:60-67                  | Step-done line is procedural; add receipts-of-work: "Step 3 -- done (5 tasks shipped, 3 audit gates cleared)". |
+| S1.2 | HIGH [closed] | claude/skills/ijfw-workflow/SKILL.md:198-209                | Task micro-audit does 7 principle checks but never surfaces "N-point task audit cleared". |
+| S2.1 | HIGH [closed] | claude/skills/ijfw-critique/SKILL.md:44-58                  | Critique output hides the rigor behind the verdict; add metadata line with angles pressure-tested + confidence. |
 | S3.1 | HIGH [closed] | claude/commands/ijfw.md:7-32                                | Command index is categorically identical to every other CLI help; add headline value reframe. |
 | S4.1 [closed] | HIGH | mcp-server/src/cross-orchestrator-cli.js:162-179            | cmdStatus ends with "Total runs: N" -- no cumulative value (hours saved / findings caught). |
 | S5.1 [closed] | HIGH | mcp-server/src/server.js:464-465                            | Tool desc "Retrieve context from IJFW memory" is what it does, not what user gets. Rewrite benefit-first. |

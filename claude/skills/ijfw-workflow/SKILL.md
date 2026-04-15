@@ -12,9 +12,12 @@ Two modes. Same principles. Same audit gates.
 **Quick** — brainstorm, plan, build. Pick up from where you are. 5 min to execution.
 **Deep** — full project management. Phases, milestones, research, subagent orchestration.
 
+```
+Donahoe Loop: BUILD -> AUDIT -> FIX -> SHIP -> MEASURE -> REPEAT
+```
+
 Auto-detect: "brainstorm this feature" → quick. "New project" → deep.
 User override: "go deeper" escalates. "Let's keep this quick" simplifies.
-The Donahoe Loop applies to both: BUILD → AUDIT → FIX → SHIP → MEASURE → REPEAT
 
 ---
 
@@ -25,7 +28,7 @@ Picks up from current context — no need to start from scratch.
 
 ## Step 1: Clarify (30 seconds)
 
-Phase Quick / Wave QW — starting now.
+Phase Quick / Wave QW (Quick Wave) — starting now.
 
 Ask 2-3 sharp questions. Not 20. Just what's needed to avoid building the wrong thing.
 If intent is already clear from context, skip straight to Step 2.
@@ -64,7 +67,7 @@ Store key decisions in memory.
 
 After each task: emit `Phase Quick / Wave QW · Step 3 — <task> done (verified).` then continue.
 
-Step 3 — done (all tasks complete, tests pass).
+Step 3 — done (all tasks shipped, tests pass, audit gates cleared).
 
 ## Step 4: Done Check
 
@@ -206,7 +209,7 @@ Phase Deep / Wave 4 · Step 4.M — task audit in progress.
 - [ ] For content: consistent with prior sections
 - [ ] No new unstated assumptions
 
-Step 4.M — done (task verified, progress.md updated).
+Step 4.M — done (6-point task audit cleared, task verified, progress.md updated).
 
 ### PHASE AUDIT (at milestones)
 

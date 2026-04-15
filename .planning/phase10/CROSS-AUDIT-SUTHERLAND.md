@@ -16,7 +16,7 @@ Systems audited: 10. All scoped from `.planning/phase10/AUDIT-MANIFEST.md`.
 
 Canonical: `claude/skills/ijfw-workflow/SKILL.md`
 
-- Finding 1.1 -- `claude/skills/ijfw-workflow/SKILL.md:60-67` -- Execute-step
+- Finding 1.1 [closed] -- `claude/skills/ijfw-workflow/SKILL.md:60-67` -- Execute-step
   narration reads "Step 3 -- done (all tasks complete, tests pass)". The
   workflow performs significant audit work (22 Donahoe principles, scope
   check, assumption surfacing) but the costly signal of that work is
@@ -27,7 +27,7 @@ Canonical: `claude/skills/ijfw-workflow/SKILL.md`
      assumptions left unflagged)." Reframe progression from procedural to
      receipts-of-work-delivered.
 
-- Finding 1.2 -- `claude/skills/ijfw-workflow/SKILL.md:198-209` -- TASK
+- Finding 1.2 [closed] -- `claude/skills/ijfw-workflow/SKILL.md:198-209` -- TASK
   MICRO-AUDIT lists seven principle checks but never surfaces "this task
   passed N of N audit gates" back to the user. The audit load is the
   premium signal; it is collapsed to one generic "task verified" line.
@@ -59,7 +59,7 @@ Canonical: `claude/skills/ijfw-workflow/SKILL.md`
 Canonical: `claude/skills/ijfw-*/SKILL.md` (excl. workflow + core).
 Sampled: ijfw-critique, ijfw-compress, ijfw-review.
 
-- Finding 2.1 -- `claude/skills/ijfw-critique/SKILL.md:44-58` -- Output
+- Finding 2.1 [closed] -- `claude/skills/ijfw-critique/SKILL.md:44-58` -- Output
   template is steelman + assumptions + counter-args + verdict. The WORK
   done to reach the verdict (number of assumptions pressure-tested,
   counter-angles considered) is never surfaced as a costly signal. A
