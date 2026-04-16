@@ -148,12 +148,34 @@ merge_toml() {
     : > "$dst"
   fi
   local tmp="$dst.merge.$$.tmp"
+  # Strip the [mcp_servers.ijfw-memory] section so the append below is idempotent.
   awk '
     BEGIN { skip = 0 }
     /^\[mcp_servers\.ijfw-memory\][[:space:]]*$/ { skip = 1; next }
     skip && /^\[/ && !/^\[mcp_servers\.ijfw-memory\]/ { skip = 0 }
-    !skip { print }
+    skip { next }
+    { print }
   ' "$dst" > "$tmp" || { rm -f "$tmp"; return 1; }
+  # Upsert codex_hooks = true inside the [features] section.
+  # Uses node to avoid TOML-section duplication on re-run: reads the stripped
+  # file as text, inserts the key if [features] exists, adds the section if not.
+  node -e '
+    const fs = require("fs");
+    const f = process.argv[1];
+    let text = fs.existsSync(f) ? fs.readFileSync(f, "utf8") : "";
+    const key = "codex_hooks = true";
+    if (/^\[features\]/m.test(text)) {
+      // Section exists: upsert the key after the [features] line.
+      if (!/^codex_hooks\s*=/m.test(text)) {
+        text = text.replace(/^(\[features\][^\n]*\n)/m, "$1" + key + "\n");
+      }
+    } else {
+      // Section absent: append it.
+      text = text.replace(/\n+$/, "") + "\n\n[features]\n" + key + "\n";
+    }
+    fs.writeFileSync(f, text);
+  ' "$tmp" || { rm -f "$tmp"; return 1; }
+  # Append the MCP server block.
   {
     printf '\n[mcp_servers.ijfw-memory]\n'
     printf 'command = "%s"\n' "$launcher"
@@ -213,11 +235,34 @@ for target in "${TARGETS[@]}"; do
       # Merge MCP registration into user config.toml.
       dst="$HOME/.codex/config.toml"
       merge_toml "$dst" "$LAUNCHER"
-      # Drop hooks.json (declarative hook registration).
+      # Merge IJFW entries into ~/.codex/hooks.json (additive, idempotent).
       mkdir -p "$HOME/.codex/hooks"
-      if [ ! -f "$HOME/.codex/hooks.json" ]; then
-        cp "$REPO_ROOT/codex/.codex/hooks.json" "$HOME/.codex/hooks.json"
-      fi
+      _hooks_dst="$HOME/.codex/hooks.json"
+      _hooks_src="$REPO_ROOT/codex/.codex/hooks.json"
+      # Build absolute-path IJFW entries: scripts live at ~/.ijfw/codex/.codex/hooks/
+      _hooks_base="$HOME/.ijfw/codex/.codex/hooks"
+      node -e '
+        const fs = require("fs");
+        const dst = process.argv[1];
+        const src = process.argv[2];
+        const base = process.argv[3];
+        // Load existing hooks.json or start fresh.
+        let doc = { hooks: [] };
+        if (fs.existsSync(dst)) {
+          try { doc = JSON.parse(fs.readFileSync(dst, "utf8") || "{}"); } catch { doc = { hooks: [] }; }
+        }
+        if (!Array.isArray(doc.hooks)) doc.hooks = [];
+        // Load IJFW source entries and rewrite script paths to absolute.
+        const ijfw = JSON.parse(fs.readFileSync(src, "utf8"));
+        for (const entry of ijfw.hooks) {
+          const absScript = base + "/" + entry.script.replace(/^hooks\//, "");
+          // Remove any prior IJFW entry for this event (idempotent re-run).
+          doc.hooks = doc.hooks.filter(h => !(h._ijfw && h.event === entry.event));
+          doc.hooks.push({ event: entry.event, script: absScript, description: entry.description, _ijfw: true });
+        }
+        fs.writeFileSync(dst + ".tmp", JSON.stringify(doc, null, 2) + "\n");
+        fs.renameSync(dst + ".tmp", dst);
+      ' "$_hooks_dst" "$_hooks_src" "$_hooks_base"
       # Copy hook scripts (never overwrite user-modified scripts).
       for hscript in "$REPO_ROOT/codex/.codex/hooks/"*.sh; do
         bname=$(basename "$hscript")
