@@ -1,6 +1,6 @@
 {
   "name": "@ijfw/install",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "One-command installer for IJFW -- the AI efficiency layer.",
   "type": "module",
   "bin": {

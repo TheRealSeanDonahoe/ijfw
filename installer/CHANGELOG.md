@@ -1,5 +1,15 @@
 # Changelog -- @ijfw/install
 
+## [1.0.2] -- 2026-04-16
+
+### Fixed
+
+- `scripts/install.sh` crashed on macOS and Linux with
+  `APPDATA: unbound variable` under `set -u` at the Copilot detection
+  step. `$APPDATA` is a Windows-only env var. Fixed to `${APPDATA:-}`.
+  Shipped versions v1.0.0 and v1.0.1 exhibit this crash on any non-Windows
+  machine; both are now deprecated. Use v1.0.2 or later.
+
 ## [1.0.1] -- 2026-04-16
 
 ### Fixed
