@@ -1,0 +1,192 @@
+#!/usr/bin/env node
+/**
+ * IJFW Observation Ledger
+ * JSONL canonical store at ~/.ijfw/observations.jsonl
+ * SQLite mirror at ~/.ijfw/observations.db (Node 22.5+ with node:sqlite).
+ * Zero deps. All Node built-ins.
+ */
+
+import { appendFileSync, readFileSync, existsSync, mkdirSync, renameSync, statSync, rmdirSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
+
+const IJFW_GLOBAL = join(homedir(), '.ijfw');
+const JSONL_PATH  = join(IJFW_GLOBAL, 'observations.jsonl');
+const LOCK_DIR    = join(IJFW_GLOBAL, '.obs-lock');
+const MAX_JSONL   = 10 * 1024 * 1024; // 10MB rotation threshold
+const MAX_LINE    = 8 * 1024;         // 8KB line cap
+
+// ---------- mkdir-lock (mirrors session-end.sh pattern) ----------
+function acquireLock(retries = 10) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      mkdirSync(LOCK_DIR);
+      return true;
+    } catch {
+      // busy-wait 20ms
+      const end = Date.now() + 20;
+      while (Date.now() < end) {}
+    }
+  }
+  return false;
+}
+
+function releaseLock() {
+  try { rmdirSync(LOCK_DIR); } catch {}
+}
+
+// ---------- JSONL rotation ----------
+function rotateIfNeeded() {
+  try {
+    if (!existsSync(JSONL_PATH)) return;
+    const { size } = statSync(JSONL_PATH);
+    if (size < MAX_JSONL) return;
+    renameSync(JSONL_PATH, `${JSONL_PATH}.${Date.now()}`);
+  } catch {}
+}
+
+// ---------- SQLite mirror (optional, Node 22.5+) ----------
+// Opened lazily via dynamic import in mirrorToSqlite().
+let _dbPromise = null;
+
+async function openDb() {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = (async () => {
+    try {
+      const { DatabaseSync } = await import('node:sqlite');
+      const db = new DatabaseSync(join(IJFW_GLOBAL, 'observations.db'));
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS observations (
+          id          INTEGER PRIMARY KEY,
+          ts          TEXT NOT NULL,
+          type        TEXT NOT NULL,
+          title       TEXT NOT NULL,
+          files       TEXT,
+          tool_name   TEXT,
+          token_cost  INTEGER,
+          work_tokens INTEGER,
+          platform    TEXT,
+          session_id  TEXT,
+          project     TEXT
+        );
+        CREATE INDEX IF NOT EXISTS obs_session ON observations(session_id);
+        CREATE INDEX IF NOT EXISTS obs_ts ON observations(ts);
+      `);
+      return db;
+    } catch {
+      return null; // older Node or sqlite unavailable
+    }
+  })();
+  return _dbPromise;
+}
+
+async function mirrorToSqlite(record) {
+  try {
+    const db = await openDb();
+    if (!db) return;
+    const stmt = db.prepare(
+      `INSERT OR IGNORE INTO observations
+        (id, ts, type, title, files, tool_name, token_cost, work_tokens, platform, session_id, project)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    stmt.run(
+      record.id, record.ts, record.type, record.title,
+      JSON.stringify(record.files || []),
+      record.tool_name || null,
+      record.token_cost || null,
+      record.work_tokens || null,
+      record.platform || null,
+      record.session_id || null,
+      record.project || null
+    );
+  } catch {
+    // silent -- SQLite is acceleration cache, not canonical
+  }
+}
+
+// ---------- Public API ----------
+
+/**
+ * Append one observation record to the JSONL ledger.
+ * Atomic for short writes at OS level (single appendFile syscall).
+ * Uses mkdir-lock for serialisation across concurrent processes.
+ *
+ * @param {object} obs - observation record (id auto-assigned if absent)
+ * @returns {object} the record as written (with assigned id)
+ */
+export function appendObservation(obs) {
+  mkdirSync(IJFW_GLOBAL, { recursive: true });
+  rotateIfNeeded();
+
+  // Auto-increment id via line count (best-effort; gaps are fine)
+  let nextId = 1;
+  try {
+    if (existsSync(JSONL_PATH)) {
+      const lines = readFileSync(JSONL_PATH, 'utf8').split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        const last = JSON.parse(lines[lines.length - 1]);
+        nextId = (last && last.id ? last.id : lines.length) + 1;
+      }
+    }
+  } catch {}
+
+  const record = { id: nextId, ...obs };
+  let line = JSON.stringify(record) + '\n';
+  if (Buffer.byteLength(line, 'utf8') > MAX_LINE) {
+    const truncated = { ...record, title: (record.title || '').slice(0, 200) };
+    line = JSON.stringify(truncated) + '\n';
+  }
+
+  const locked = acquireLock();
+  try {
+    appendFileSync(JSONL_PATH, line, { encoding: 'utf8', flag: 'a' });
+  } catch (err) {
+    process.stderr.write(`[ijfw] observation append failed: ${err.message}\n`);
+  } finally {
+    if (locked) releaseLock();
+  }
+
+  // Fire-and-forget SQLite mirror
+  mirrorToSqlite(record).catch(() => {});
+
+  return record;
+}
+
+/**
+ * Read all observations for a given session_id.
+ */
+export function getSession(sessionId) {
+  return readAll().filter(o => o.session_id === sessionId);
+}
+
+/**
+ * Read the most recent N observations.
+ */
+export function getRecent(n = 50) {
+  const all = readAll();
+  return all.slice(-n);
+}
+
+/**
+ * Simple substring search over title + type fields.
+ */
+export function search(query) {
+  const q = (query || '').toLowerCase();
+  return readAll().filter(o =>
+    (o.title || '').toLowerCase().includes(q) ||
+    (o.type  || '').toLowerCase().includes(q)
+  );
+}
+
+export function readAll() {
+  try {
+    if (!existsSync(JSONL_PATH)) return [];
+    return readFileSync(JSONL_PATH, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .map(l => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}

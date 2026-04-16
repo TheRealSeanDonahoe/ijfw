@@ -113,9 +113,22 @@ else
   OUT="$CLEANED"
 fi
 
+# Dispatch observation capture ASYNC before emitting the trim envelope.
+# Invariant: envelope must be the TERMINAL stdout line. The capture script
+# inherits INPUT (the full hook payload) and runs in a detached subshell.
+# stdout of the bg process is /dev/null so it cannot interleave with ours.
+_OBS_SCRIPT="${IJFW_PLUGIN_ROOT:-$(cd "$(dirname "$0")/../../.." 2>/dev/null && pwd)}/scripts/observation/capture.js"
+if command -v node >/dev/null 2>&1 && [ -f "$_OBS_SCRIPT" ]; then
+  mkdir -p "$HOME/.ijfw/logs" 2>/dev/null
+  printf '%s' "$INPUT" | node "$_OBS_SCRIPT" \
+    >>"$HOME/.ijfw/logs/obs-capture.log" 2>&1 &
+  disown $! 2>/dev/null || true
+fi
+
 # Emit as hookSpecificOutput envelope so the trimmed content flows back
 # into agent context via Claude Code's additionalContext mechanism. Using
 # node -e to guarantee valid JSON regardless of special chars in OUT.
+# TERMINAL stdout line -- nothing may be written to stdout after this.
 node -e '
   const out = process.argv[1] || "";
   process.stdout.write(JSON.stringify({

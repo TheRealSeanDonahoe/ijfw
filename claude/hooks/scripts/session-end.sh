@@ -289,6 +289,26 @@ if [ -f "$HOOK_LOG" ]; then
   fi
 fi
 
+# Observation ledger summary -- fires when >= 2 observations exist for session.
+_OBS_SUMMARIZE="${IJFW_PLUGIN_ROOT:-$(cd "$(dirname "$0")/../../.." 2>/dev/null && pwd)}/scripts/observation/summarize.js"
+_SESSION_ID=""
+[ -f "$HOME/.ijfw/.current-session" ] && _SESSION_ID=$(cat "$HOME/.ijfw/.current-session" 2>/dev/null)
+if command -v node >/dev/null 2>&1 && [ -f "$_OBS_SUMMARIZE" ] && [ -n "$_SESSION_ID" ]; then
+  _SUMMARY=$(node -e '
+    import("file://" + process.argv[1]).then(m => {
+      const s = m.summarize(process.argv[2]);
+      if (s) process.stdout.write(s + "\n");
+    }).catch(() => {});
+  ' "$_OBS_SUMMARIZE" "$_SESSION_ID" 2>/dev/null)
+  if [ -n "$_SUMMARY" ]; then
+    mkdir -p "$IJFW_DIR/memory" 2>/dev/null
+    {
+      echo ""
+      echo "$_SUMMARY"
+    } >> "$IJFW_DIR/memory/handoff.md" 2>/dev/null
+  fi
+fi
+
 # Positive-framed status -- no jargon, no negatives, no paths.
 printf '[ijfw] Session #%s saved.\n' "$SESSION_NUM"
 
