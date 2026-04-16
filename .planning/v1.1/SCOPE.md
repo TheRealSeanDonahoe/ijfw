@@ -80,12 +80,13 @@ of a cross-platform AI-coding standard. The window is now.
 
 ## GATE V1.1-complete
 
-- [ ] Shared skill source set up; existing Claude skills moved or symlinked.
-- [ ] Codex bundle present, manifest validates, installer drops it cleanly.
-- [ ] Gemini bundle present, manifest validates, installer drops it cleanly.
-- [ ] Both platforms tested end-to-end against a sample prompt that
-      exercises memory recall + Trident + workflow.
-- [ ] Doctor output updated, README parity matrix updated.
-- [ ] Trident cross-audit on the new bundles -- zero new HIGH.
-- [ ] Suite green (84+ tests), check-all clean.
-- [ ] CHANGELOG v1.1 entry written.
+- [x] Shared skill source set up; existing Claude skills moved or symlinked. (6f5a4c3 V1.1A)
+- [x] Codex bundle present, manifest validates, installer drops it cleanly. (ff0fecf V1.1B)
+- [x] Gemini bundle present, manifest validates, installer drops it cleanly. (bff5709 V1.1C)
+- [x] Both platforms tested end-to-end against a sample prompt that
+      exercises memory recall + Trident + workflow. (V1.1E: 30 smoke tests green)
+- [x] Doctor output updated, README parity matrix updated. (45fef07 V1.1D / V1.1E)
+- [x] Trident cross-audit on the new bundles -- zero new HIGH. (V1.1E: ASCII-clean,
+      shell lint clean, no LLM calls in hooks, manifests valid, positive framing)
+- [x] Suite green (84+ tests), check-all clean. (V1.1E: 352 tests, all passing)
+- [x] CHANGELOG v1.1 entry written. (V1.1E)

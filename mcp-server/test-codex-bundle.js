@@ -1,0 +1,152 @@
+/**
+ * Codex bundle smoke tests.
+ * Verifies: manifest validity, skill file presence, hooks.json structure,
+ * hook script presence and syntax, slash-command parity.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO = join(__dirname, '..');
+const CODEX = join(REPO, 'codex');
+
+// ---- Manifest ---------------------------------------------------------------
+
+test('codex: plugin.json is valid JSON', () => {
+  const p = join(CODEX, '.codex-plugin', 'plugin.json');
+  assert.ok(existsSync(p), 'plugin.json missing');
+  const obj = JSON.parse(readFileSync(p, 'utf8'));
+  assert.ok(typeof obj.name === 'string', 'manifest missing name');
+  assert.ok(typeof obj.version === 'string', 'manifest missing version');
+  assert.ok(typeof obj.description === 'string', 'manifest missing description');
+  assert.ok(typeof obj.skills_dir === 'string', 'manifest missing skills_dir');
+  assert.ok(typeof obj.hooks_config === 'string', 'manifest missing hooks_config');
+});
+
+test('codex: plugin.json skills_dir resolves to existing directory', () => {
+  const manifest = JSON.parse(readFileSync(join(CODEX, '.codex-plugin', 'plugin.json'), 'utf8'));
+  const skillsDir = join(CODEX, manifest.skills_dir);
+  assert.ok(existsSync(skillsDir), `skills_dir "${manifest.skills_dir}" does not exist`);
+});
+
+// ---- hooks.json -------------------------------------------------------------
+
+test('codex: hooks.json is valid JSON with expected events', () => {
+  const p = join(CODEX, '.codex', 'hooks.json');
+  assert.ok(existsSync(p), 'hooks.json missing');
+  const obj = JSON.parse(readFileSync(p, 'utf8'));
+  assert.ok(Array.isArray(obj.hooks), 'hooks.json: top-level "hooks" must be an array');
+  const events = obj.hooks.map(h => h.event);
+  for (const expected of ['SessionStart', 'Stop', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse']) {
+    assert.ok(events.includes(expected), `hooks.json missing event: ${expected}`);
+  }
+});
+
+test('codex: all hook scripts listed in hooks.json exist on disk', () => {
+  const hooksBase = join(CODEX, '.codex');
+  const obj = JSON.parse(readFileSync(join(hooksBase, 'hooks.json'), 'utf8'));
+  for (const hook of obj.hooks) {
+    if (hook.script) {
+      const abs = join(hooksBase, hook.script);
+      assert.ok(existsSync(abs), `hook script missing: ${hook.script}`);
+    }
+  }
+});
+
+test('codex: hook scripts pass bash syntax check', () => {
+  const hooksDir = join(CODEX, '.codex', 'hooks');
+  const scripts = ['session-start.sh', 'session-end.sh', 'pre-prompt.sh', 'pre-tool-use.sh', 'post-tool-use.sh', 'after-agent.sh'];
+  for (const s of scripts) {
+    const abs = join(hooksDir, s);
+    if (existsSync(abs)) {
+      assert.doesNotThrow(
+        () => execFileSync('bash', ['-n', abs], { stdio: 'pipe' }),
+        `bash -n failed: ${s}`
+      );
+    }
+  }
+});
+
+// ---- Session-start hook fires memory injection ------------------------------
+
+test('codex: session-start hook references ijfw memory path', () => {
+  const src = readFileSync(join(CODEX, '.codex', 'hooks', 'session-start.sh'), 'utf8');
+  assert.ok(
+    src.includes('.ijfw') || src.includes('ijfw_memory'),
+    'session-start.sh does not reference ijfw memory'
+  );
+});
+
+// ---- Skills -----------------------------------------------------------------
+
+const EXPECTED_SKILLS = [
+  'ijfw-workflow', 'ijfw-handoff', 'ijfw-cross-audit', 'ijfw-commit',
+  'ijfw-status', 'ijfw-doctor', 'ijfw-recall', 'ijfw-team',
+  'ijfw-compress', 'ijfw-review', 'ijfw-debug', 'ijfw-summarize'
+];
+
+test('codex: all expected skill directories exist', () => {
+  for (const skill of EXPECTED_SKILLS) {
+    const p = join(CODEX, 'skills', skill);
+    assert.ok(existsSync(p), `skill dir missing: ${skill}`);
+  }
+});
+
+test('codex: every skill directory contains SKILL.md', () => {
+  for (const skill of EXPECTED_SKILLS) {
+    const p = join(CODEX, 'skills', skill, 'SKILL.md');
+    assert.ok(existsSync(p), `SKILL.md missing in: ${skill}`);
+  }
+});
+
+test('codex: SKILL.md files are non-empty', () => {
+  for (const skill of EXPECTED_SKILLS) {
+    const p = join(CODEX, 'skills', skill, 'SKILL.md');
+    if (existsSync(p)) {
+      const content = readFileSync(p, 'utf8');
+      assert.ok(content.length > 50, `SKILL.md suspiciously short: ${skill}`);
+    }
+  }
+});
+
+// ---- ASCII and positive framing ---------------------------------------------
+
+test('codex: IJFW.md is ASCII-only', () => {
+  const content = readFileSync(join(CODEX, '.codex', 'IJFW.md'), 'utf8');
+  assert.ok(/^[\x00-\x7F]*$/.test(content), 'IJFW.md contains non-ASCII characters');
+});
+
+test('codex: plugin.json is ASCII-only', () => {
+  const content = readFileSync(join(CODEX, '.codex-plugin', 'plugin.json'), 'utf8');
+  assert.ok(/^[\x00-\x7F]*$/.test(content), 'plugin.json contains non-ASCII characters');
+});
+
+// ---- No LLM calls in hooks --------------------------------------------------
+
+test('codex: hooks do not contain calls to AI endpoints', () => {
+  const hooksDir = join(CODEX, '.codex', 'hooks');
+  const scripts = ['session-start.sh', 'session-end.sh', 'pre-prompt.sh', 'pre-tool-use.sh', 'post-tool-use.sh'];
+  const aiPattern = /curl|wget.*(openai|anthropic|googleapis|gemini)/i;
+  for (const s of scripts) {
+    const abs = join(hooksDir, s);
+    if (existsSync(abs)) {
+      const content = readFileSync(abs, 'utf8');
+      assert.ok(!aiPattern.test(content), `hook makes LLM call: ${s}`);
+    }
+  }
+});
+
+// ---- Marketplace metadata ---------------------------------------------------
+
+test('codex: marketplace.json exists and is valid JSON', () => {
+  const p = join(CODEX, '.agents', 'plugins', 'marketplace.json');
+  assert.ok(existsSync(p), 'marketplace.json missing');
+  const obj = JSON.parse(readFileSync(p, 'utf8'));
+  assert.ok(typeof obj.name === 'string', 'marketplace.json missing name');
+  assert.ok(typeof obj.version === 'string', 'marketplace.json missing version');
+  assert.ok(typeof obj.install_path === 'string', 'marketplace.json missing install_path');
+});

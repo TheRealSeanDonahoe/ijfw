@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.1.0] -- 2026-04-16
+
+Codex CLI and Gemini CLI reach **native-depth parity** with the Claude Code plugin.
+IJFW now ships as a native plugin on three platforms -- same 15 skills, same
+memory, same Trident -- each platform using its own native format.
+
+### Added in v1.1
+
+- **Codex native plugin** (`codex/.codex-plugin/plugin.json` manifest, 15 skills
+  under `codex/skills/`, `codex/.codex/hooks.json` with 6 hook events:
+  SessionStart, Stop, UserPromptSubmit, PreToolUse, PostToolUse, AfterAgent).
+  Marketplace-ready with `codex/.agents/plugins/marketplace.json`.
+- **Gemini native extension** (`gemini/extensions/ijfw/gemini-extension.json`
+  manifest, 15 skills, 15 TOML slash commands with `{{args}}` interpolation,
+  `hooks/hooks.json` with 11 hook events covering all Gemini lifecycle points).
+- **Gemini bonuses**: native policy engine (`policies/ijfw.toml`) enforcing safe
+  defaults for destructive operations; BeforeModel hook for first-turn memory
+  injection richer than CLAUDE.md; PreCompress hook mirroring Claude PreCompact;
+  AfterModel auto-memorize trigger; hub-and-spoke agent files.
+- **Shared skills source** (`shared/skills/`): canonical SKILL.md per skill,
+  used verbatim across Claude Code, Codex, and Gemini.
+- **Installer + doctor parity**: `scripts/install.sh` drops both new bundles,
+  `ijfw doctor` reports integration depth (deep / baseline) per platform.
+- **Per-platform smoke tests**: 30 new tests in `mcp-server/test-codex-bundle.js`
+  and `mcp-server/test-gemini-bundle.js`. Suite count: 352 (was 322).
+
+### Changed in v1.1
+
+- README parity matrix updated: Claude Code and Codex now read "native plugin";
+  Gemini reads "native extension" with bonus capabilities listed.
+- `installer/package.json` version bumped to `1.1.0`.
+
+---
+
 ## [1.0.0] -- 2026-04-15
 
 First stable release of `@ijfw/install`. Eleven phases of polish, audit, and

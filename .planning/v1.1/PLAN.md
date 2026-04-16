@@ -153,14 +153,22 @@ output reads correctly per platform.
 - **Gemini Extension Gallery submission** -- PR to gemini-cli-extensions
   org or self-host the URL for `gemini extensions install` distribution.
 
-## Open design choices (need user sign-off before V1.1A starts)
+## Locked decisions (2026-04-16, signed off by user)
 
-1. **Skill naming:** keep `ijfw-` prefix on all platforms (consistent) or
-   drop on Codex/Gemini (cleaner inside their namespaces)?
-2. **Repo structure:** replace existing `codex/.codex/instructions.md`
-   and `gemini/GEMINI.md` single files entirely, or coexist with new bundles?
-3. **Parity-gap handling:** PreCompact -> Codex has no equivalent. Document
-   the gap, or build a polling workaround?
-4. **Bonus features for Gemini-only:** ship the policy engine + checkpointing
-   integration as a Gemini-only enhancement (other platforms get a documented
-   "coming soon" note), or keep all platforms identical and skip the bonuses?
+1. **Skill naming:** keep `ijfw-` prefix on every platform. Consistent
+   naming across the big three; users who jump tools see the same names.
+2. **Repo structure:** replace existing single rules files. New bundles
+   are the source of truth; old `codex/.codex/instructions.md` and
+   `gemini/GEMINI.md` are absorbed into the bundle's context file
+   (`IJFW.md` / equivalent) so there is one path, not two.
+3. **Parity-gap handling:** build a PreCompact workaround for Codex.
+   Approach: poll context-window utilization in a long-running hook
+   (Stop or PostToolUse) and trigger compress when threshold crossed.
+   Documented as best-effort but functional. If the workaround proves
+   brittle in V1.1B, fall back to documented gap and ship.
+4. **Cross-platform parity is the floor; Gemini bonuses are additive
+   when they cost nothing to add:** ship the policy engine + checkpointing
+   integration as Gemini extras since the surfaces exist natively. Do
+   NOT withhold core functionality from other platforms to maintain
+   artificial parity. Other platforms get the same workflow discipline
+   via their own native primitives where available.

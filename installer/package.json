@@ -1,13 +1,18 @@
 {
   "name": "@ijfw/install",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "One-command installer for IJFW -- the AI efficiency layer.",
   "type": "module",
   "bin": {
     "ijfw-install": "./dist/install.js",
     "ijfw-uninstall": "./dist/uninstall.js"
   },
-  "files": ["dist", "src/install.ps1", "README.md", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "src/install.ps1",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "esbuild src/install.js src/uninstall.js --bundle --platform=node --target=node18 --outdir=dist --format=esm --banner:js='#!/usr/bin/env node'",
     "test": "node --test test.js",
@@ -17,9 +22,19 @@
   "devDependencies": {
     "esbuild": "^0.23"
   },
-  "engines": { "node": ">=18" },
-  "keywords": ["ijfw", "claude-code", "ai", "installer"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ijfw",
+    "claude-code",
+    "ai",
+    "installer"
+  ],
   "license": "MIT",
   "author": "Sean Donahoe",
-  "repository": { "type": "git", "url": "https://github.com/SeanDonahoe/ijfw" }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SeanDonahoe/ijfw"
+  }
 }
