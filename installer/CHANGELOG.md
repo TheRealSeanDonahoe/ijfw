@@ -1,5 +1,22 @@
 # Changelog -- @ijfw/install
 
+## [1.0.3] -- 2026-04-16
+
+### Fixed
+
+- **Claude plugin key** (`ijfw@ijfw`): v1.0.0-1.0.2 wrote `ijfw-core@ijfw` to
+  `~/.claude/settings.json` `enabledPlugins`. Claude Code could not resolve the
+  plugin and silently skipped it. v1.0.3 writes the correct key and
+  opportunistically deletes the legacy key on upgrade. Same fix applied to the
+  PowerShell installer.
+
+- **cloneOrPull upgrade resilience**: `git pull --ff-only origin <ref>` aborted
+  when the `~/.ijfw` clone lacked an `origin` remote or had local divergent
+  commits. v1.0.3 switches to `fetch --depth 1` + `checkout -f FETCH_HEAD` and
+  falls back to a fresh clone (with `memory/`, `sessions/`, `install.log`, and
+  `.session-counter` preserved) when the repo is unrecoverable. Same fix
+  applied to the PowerShell installer.
+
 ## [1.0.2] -- 2026-04-16
 
 ### Fixed

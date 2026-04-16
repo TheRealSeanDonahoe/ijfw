@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.3] -- 2026-04-16
+
+### Fixed
+
+- **Claude plugin key** (`ijfw@ijfw`): v1.0.0-1.0.2 wrote `ijfw-core@ijfw` to
+  `~/.claude/settings.json` `enabledPlugins`. Claude Code could not resolve the
+  plugin and silently skipped it. v1.0.3 writes the correct key and
+  opportunistically deletes the legacy key on upgrade.
+
+- **cloneOrPull upgrade resilience**: `git pull --ff-only origin <ref>` aborted
+  when the `~/.ijfw` clone lacked an `origin` remote or had local divergent
+  commits. v1.0.3 falls back to `fetch + checkout -f FETCH_HEAD`, then to a
+  safe fresh clone that preserves `memory/`, `sessions/`, `install.log`, and
+  `.session-counter`.
+
 ## [1.0.2] -- 2026-04-16
 
 ### Fixed

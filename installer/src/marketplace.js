@@ -83,7 +83,11 @@ export function mergeMarketplace(settingsPath = claudeSettingsPath()) {
     source: { source: 'github', repo: 'TheRealSeanDonahoe/ijfw' },
   };
   settings.enabledPlugins = settings.enabledPlugins || {};
-  settings.enabledPlugins['ijfw-core@ijfw'] = true;
+  // Opportunistically clean up the legacy key written by v1.0.0-1.0.2.
+  if ('ijfw-core@ijfw' in settings.enabledPlugins) {
+    delete settings.enabledPlugins['ijfw-core@ijfw'];
+  }
+  settings.enabledPlugins['ijfw@ijfw'] = true;
 
   const tmp = settingsPath + '.tmp';
   writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n');
@@ -97,8 +101,10 @@ export function unmergeMarketplace(settingsPath = claudeSettingsPath()) {
   // doesn't crash on JSONC-flavored settings.
   const settings = tolerantJsonParse(readFileSync(settingsPath, 'utf8'), settingsPath);
   if (settings.extraKnownMarketplaces?.ijfw) delete settings.extraKnownMarketplaces.ijfw;
-  if (settings.enabledPlugins && 'ijfw-core@ijfw' in settings.enabledPlugins) {
-    delete settings.enabledPlugins['ijfw-core@ijfw'];
+  if (settings.enabledPlugins) {
+    // Delete both the legacy key (v1.0.0-1.0.2) and the current key.
+    if ('ijfw-core@ijfw' in settings.enabledPlugins) delete settings.enabledPlugins['ijfw-core@ijfw'];
+    if ('ijfw@ijfw' in settings.enabledPlugins) delete settings.enabledPlugins['ijfw@ijfw'];
   }
   const tmp = settingsPath + '.tmp';
   writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n');

@@ -73,15 +73,50 @@ function Resolve-GitBash {
 }
 
 function Invoke-CloneOrPull($target, $branch) {
-  if (Test-Path (Join-Path $target ".git")) {
-    & git -C $target pull --ff-only origin $branch
-    if ($LASTEXITCODE -ne 0) { throw "git pull failed (exit $LASTEXITCODE)." }
-    return "updated"
+  if (-not (Test-Path $target)) {
+    # Fresh install.
+    New-Item -ItemType Directory -Force -Path $target | Out-Null
+    & git clone --depth 1 --branch $branch $DEFAULT_REPO $target
+    if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
+    return "cloned"
   }
-  New-Item -ItemType Directory -Force -Path $target | Out-Null
-  & git clone --depth 1 --branch $branch $DEFAULT_REPO $target
-  if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
-  return "cloned"
+
+  # Upgrade path.
+  $hasGit = Test-Path (Join-Path $target ".git")
+  if ($hasGit) {
+    & git -C $target remote get-url origin 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+      # fetch + hard checkout avoids ff-only failures from local divergence.
+      & git -C $target fetch --depth 1 origin $branch
+      if ($LASTEXITCODE -ne 0) { throw "git fetch failed (exit $LASTEXITCODE)." }
+      & git -C $target checkout -f FETCH_HEAD
+      if ($LASTEXITCODE -ne 0) { throw "git checkout failed (exit $LASTEXITCODE)." }
+      return "updated"
+    }
+  }
+
+  # Broken repo or no origin: backup user data, re-clone, restore.
+  $ts = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+  $backupDir = "$target.bak.$ts"
+  Rename-Item -LiteralPath $target -NewName $backupDir
+  try {
+    & git clone --depth 1 --branch $branch $DEFAULT_REPO $target
+    if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)." }
+    foreach ($item in @('memory', 'sessions', 'install.log', '.session-counter')) {
+      $src = Join-Path $backupDir $item
+      if (Test-Path $src) {
+        $dst = Join-Path $target $item
+        if (Test-Path $dst) { Remove-Item -Recurse -Force -LiteralPath $dst }
+        Move-Item -LiteralPath $src -Destination $dst
+      }
+    }
+    Remove-Item -Recurse -Force -LiteralPath $backupDir
+    return "updated"
+  } catch {
+    if (Test-Path $target) { Remove-Item -Recurse -Force -LiteralPath $target }
+    Rename-Item -LiteralPath $backupDir -NewName $target
+    throw
+  }
 }
 
 function Invoke-InstallScript($target) {
@@ -204,7 +239,11 @@ function Merge-Marketplace {
   if (-not $settings.ContainsKey('extraKnownMarketplaces')) { $settings['extraKnownMarketplaces'] = @{} }
   $settings.extraKnownMarketplaces['ijfw'] = @{ source = @{ source = 'github'; repo = 'TheRealSeanDonahoe/ijfw' } }
   if (-not $settings.ContainsKey('enabledPlugins')) { $settings['enabledPlugins'] = @{} }
-  $settings.enabledPlugins['ijfw-core@ijfw'] = $true
+  # Opportunistically clean up the legacy key written by v1.0.0-1.0.2.
+  if ($settings.enabledPlugins.ContainsKey('ijfw-core@ijfw')) {
+    $settings.enabledPlugins.Remove('ijfw-core@ijfw')
+  }
+  $settings.enabledPlugins['ijfw@ijfw'] = $true
 
   $tmp = "$settingsPath.tmp"
   $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tmp -Encoding UTF8

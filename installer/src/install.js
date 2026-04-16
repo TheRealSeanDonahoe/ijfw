@@ -2,7 +2,7 @@
 // Flow: preflight → resolve target → clone/pull → scripts/install.sh → merge marketplace → summary.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync, realpathSync } from 'node:fs';
+import { existsSync, rmSync, mkdirSync, realpathSync, renameSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir, platform } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -80,16 +80,55 @@ function resolveTarget(opt) {
   return join(homedir(), '.ijfw');
 }
 
+function runCheck(cmd, args, opts) {
+  const r = spawnSync(cmd, args, { encoding: 'utf8', ...opts });
+  return { status: r.status, stdout: r.stdout || '' };
+}
+
 function cloneOrPull(dir, branch) {
-  if (existsSync(join(dir, '.git'))) {
-    const r = spawnSync('git', ['-C', dir, 'pull', '--ff-only', 'origin', branch], { stdio: 'inherit' });
-    if (r.status !== 0) throw new Error(`IJFW update step did not complete (exit ${r.status}) -- run ijfw doctor to check prerequisites.`);
-    return 'updated';
+  if (!existsSync(dir)) {
+    // Fresh install.
+    mkdirSync(dir, { recursive: true });
+    const r = spawnSync('git', ['clone', '--depth', '1', '--branch', branch, DEFAULT_REPO, dir], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error(`IJFW repo fetch did not complete (exit ${r.status}) -- check network access and retry.`);
+    return 'cloned';
   }
-  mkdirSync(dir, { recursive: true });
-  const r = spawnSync('git', ['clone', '--depth', '1', '--branch', branch, DEFAULT_REPO, dir], { stdio: 'inherit' });
-  if (r.status !== 0) throw new Error(`IJFW repo fetch did not complete (exit ${r.status}) -- check network access and retry.`);
-  return 'cloned';
+
+  // Upgrade path.
+  const hasGit = existsSync(join(dir, '.git'));
+  if (hasGit) {
+    const { status: remoteStatus } = runCheck('git', ['-C', dir, 'remote', 'get-url', 'origin']);
+    if (remoteStatus === 0) {
+      // fetch + hard checkout avoids ff-only failures from local divergence.
+      const fetch = spawnSync('git', ['-C', dir, 'fetch', '--depth', '1', 'origin', branch], { stdio: 'inherit' });
+      if (fetch.status !== 0) throw new Error(`IJFW fetch did not complete (exit ${fetch.status}) -- check network access and retry.`);
+      const co = spawnSync('git', ['-C', dir, 'checkout', '-f', 'FETCH_HEAD'], { stdio: 'inherit' });
+      if (co.status !== 0) throw new Error(`IJFW checkout did not complete (exit ${co.status}) -- run ijfw doctor to check prerequisites.`);
+      return 'updated';
+    }
+  }
+
+  // Broken repo or no origin: backup user data, re-clone, restore.
+  const backupDir = dir + '.bak.' + Date.now();
+  renameSync(dir, backupDir);
+  try {
+    const r = spawnSync('git', ['clone', '--depth', '1', '--branch', branch, DEFAULT_REPO, dir], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error(`IJFW repo fetch did not complete (exit ${r.status}) -- check network access and retry.`);
+    for (const item of ['memory', 'sessions', 'install.log', '.session-counter']) {
+      const src = join(backupDir, item);
+      if (existsSync(src)) {
+        const dst = join(dir, item);
+        if (existsSync(dst)) rmSync(dst, { recursive: true, force: true });
+        renameSync(src, dst);
+      }
+    }
+    rmSync(backupDir, { recursive: true, force: true });
+    return 'updated';
+  } catch (err) {
+    if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+    renameSync(backupDir, dir);
+    throw err;
+  }
 }
 
 function runInstallScript(dir) {
