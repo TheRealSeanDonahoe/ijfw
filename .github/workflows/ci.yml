@@ -13,7 +13,7 @@ jobs:
     name: Preflight (ubuntu)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
     name: Preflight (windows -- PSScriptAnalyzer)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
@@ -71,7 +71,7 @@ jobs:
     name: check-all.sh
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run check-all
         run: bash scripts/check-all.sh
 
@@ -79,7 +79,7 @@ jobs:
     name: Plugin manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate plugin manifest JSON
         run: node -e "JSON.parse(require('fs').readFileSync('claude/.claude-plugin/plugin.json','utf8'))"
       - name: Required plugin manifest fields
@@ -96,7 +96,7 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
