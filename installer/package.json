@@ -19,7 +19,7 @@
     "test": "node --test test.js",
     "preflight": "node dist/ijfw.js preflight",
     "pack:check": "npm pack --dry-run",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm run preflight"
   },
   "dependencies": {},
   "devDependencies": {
