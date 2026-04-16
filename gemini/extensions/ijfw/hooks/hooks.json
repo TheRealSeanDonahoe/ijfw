@@ -1,59 +1,134 @@
 {
-  "hooks": [
-    {
-      "event": "SessionStart",
-      "script": "hooks/session-start.sh",
-      "description": "Initialize IJFW state, emit startup banner with memory summary, register project in global registry."
-    },
-    {
-      "event": "SessionEnd",
-      "script": "hooks/session-end.sh",
-      "description": "Save session metrics, write journal entry, emit savings receipt."
-    },
-    {
-      "event": "BeforeAgent",
-      "script": "hooks/before-agent.sh",
-      "description": "Deterministic vague-prompt detector. Injects sharpening context when prompt signals are weak."
-    },
-    {
-      "event": "BeforeTool",
-      "script": "hooks/before-tool.sh",
-      "description": "Scan about-to-run commands for destructive patterns. Inject confirmation reminders before execution."
-    },
-    {
-      "event": "AfterTool",
-      "script": "hooks/after-tool.sh",
-      "description": "Trim tool output noise, capture error signals, emit cleaned output as additionalContext."
-    },
-    {
-      "event": "PreCompress",
-      "script": "hooks/pre-compress.sh",
-      "description": "Preserve key decisions before context compression. Instructs compaction to retain near-horizon turns and protected signal files."
-    },
-    {
-      "event": "BeforeModel",
-      "script": "hooks/before-model.sh",
-      "description": "GEMINI BONUS: First-turn memory injection. Calls ijfw_memory_prelude on turn 1 and injects full project context directly before the model call -- richer than Claude's CLAUDE.md approach."
-    },
-    {
-      "event": "AfterModel",
-      "script": "hooks/after-model.sh",
-      "description": "GEMINI BONUS: Response auto-memorize trigger. Detects decision/pattern signals in model output and queues ijfw_memory_store calls."
-    },
-    {
-      "event": "BeforeToolSelection",
-      "script": "hooks/before-tool-selection.sh",
-      "description": "Policy enforcement checkpoint before tool selection. Enforces ijfw.toml policy rules."
-    },
-    {
-      "event": "AfterAgent",
-      "script": "hooks/after-agent.sh",
-      "description": "Post-agent cleanup: flush signal files, update session state."
-    },
-    {
-      "event": "Notification",
-      "script": "hooks/notification.sh",
-      "description": "Relay Gemini notifications to IJFW journal for audit trail."
-    }
-  ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-session-start",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/session-start.sh",
+            "description": "Initialize IJFW state, emit startup banner with memory summary, register project in global registry."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-session-end",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/session-end.sh",
+            "description": "Save session metrics, write journal entry, emit savings receipt."
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-before-agent",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/before-agent.sh",
+            "description": "Deterministic vague-prompt detector. Injects sharpening context when prompt signals are weak."
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-before-tool",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/before-tool.sh",
+            "description": "Scan about-to-run commands for destructive patterns. Inject confirmation reminders before execution."
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-after-tool",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/after-tool.sh",
+            "description": "Trim tool output noise, capture error signals, emit cleaned output as additionalContext."
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-after-agent",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/after-agent.sh",
+            "description": "Post-agent cleanup: flush signal files, update session state."
+          }
+        ]
+      }
+    ],
+    "BeforeModel": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-before-model",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/before-model.sh",
+            "description": "First-turn memory injection. Calls ijfw_memory_prelude on turn 1 and injects full project context directly before the model call."
+          }
+        ]
+      }
+    ],
+    "AfterModel": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-after-model",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/after-model.sh",
+            "description": "Response auto-memorize trigger. Detects decision/pattern signals in model output and queues ijfw_memory_store calls."
+          }
+        ]
+      }
+    ],
+    "BeforeToolSelection": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-before-tool-selection",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/before-tool-selection.sh",
+            "description": "Policy enforcement checkpoint before tool selection. Enforces ijfw.toml policy rules."
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-notification",
+            "type": "command",
+            "command": "bash {{extensionDir}}/hooks/notification.sh",
+            "description": "Relay Gemini notifications to IJFW journal for audit trail."
+          }
+        ]
+      }
+    ]
+  }
 }

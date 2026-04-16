@@ -14,14 +14,6 @@
     }
   },
   "excludeTools": [],
-  "settings": {
-    "ijfw.mode": "smart",
-    "ijfw.promptCheck": "signals",
-    "ijfw.preludeMode": "summary",
-    "ijfw.autoMemorize": true,
-    "ijfw.tridentDefault": true,
-    "ijfw.compressThreshold": 40000
-  },
   "marketplace": {
     "author": "Sean Donahoe",
     "homepage": "https://github.com/seandonahoe/ijfw",
