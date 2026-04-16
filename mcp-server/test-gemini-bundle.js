@@ -42,8 +42,8 @@ test('gemini: hooks/hooks.json is valid JSON', () => {
 
 test('gemini: hooks.json references expected Gemini hook events', () => {
   const obj = JSON.parse(readFileSync(join(GEMINI_EXT, 'hooks', 'hooks.json'), 'utf8'));
-  assert.ok(Array.isArray(obj.hooks), 'hooks.json: top-level "hooks" must be an array');
-  const events = obj.hooks.map(h => h.event);
+  assert.ok(typeof obj.hooks === 'object' && !Array.isArray(obj.hooks), 'hooks.json: top-level "hooks" must be a keyed object');
+  const events = Object.keys(obj.hooks);
   for (const expected of ['SessionStart', 'SessionEnd', 'BeforeModel', 'BeforeAgent']) {
     assert.ok(events.includes(expected), `hooks.json missing event: ${expected}`);
   }
