@@ -1,0 +1,5 @@
+description = "Generate an optimized project context summary from a codebase scan."
+prompt = """
+Invoke the ijfw-summarize skill.
+{{args}}
+"""

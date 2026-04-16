@@ -1,0 +1,5 @@
+description = "Challenge decisions, surface counter-arguments, flag assumptions. Second opinion on any artifact."
+prompt = """
+Invoke the ijfw-critique skill.
+{{args}}
+"""

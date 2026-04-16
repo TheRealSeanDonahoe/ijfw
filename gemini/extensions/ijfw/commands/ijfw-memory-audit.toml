@@ -1,0 +1,5 @@
+description = "Audit and clean project memory files. Removes stale entries, deduplicates, reindexes."
+prompt = """
+Invoke the ijfw-memory-audit skill.
+{{args}}
+"""

@@ -1,0 +1,5 @@
+description = "Compress a memory or context file into terse form. Preserves decisions, drops noise."
+prompt = """
+Invoke the ijfw-compress skill.
+{{args}}
+"""

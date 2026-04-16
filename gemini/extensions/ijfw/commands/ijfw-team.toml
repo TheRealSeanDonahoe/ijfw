@@ -1,0 +1,5 @@
+description = "Generate a project-specific specialist agent team. Auto-triggered by deep workflow after Discovery."
+prompt = """
+Invoke the ijfw-team skill.
+{{args}}
+"""

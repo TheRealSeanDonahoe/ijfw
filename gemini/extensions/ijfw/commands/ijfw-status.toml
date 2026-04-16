@@ -1,0 +1,5 @@
+description = "Show IJFW state: mode, routing, session metrics, memory health."
+prompt = """
+Invoke the ijfw-status skill.
+{{args}}
+"""

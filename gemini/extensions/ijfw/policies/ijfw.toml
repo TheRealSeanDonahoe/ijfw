@@ -1,0 +1,85 @@
+# IJFW Workflow Discipline Policies
+# Gemini CLI native policy engine -- enforces safe defaults for destructive ops.
+# Priority: higher number = higher priority. Conflicts resolved by priority.
+# Decisions: allow | deny | ask_user
+
+# --- Destructive shell operations ---
+
+[[rules]]
+priority = 100
+description = "Require approval before recursive filesystem deletes"
+condition = { tool = "run_shell_command", argument_contains = "rm -rf" }
+decision = "ask_user"
+message = "Recursive delete detected. Confirm target path before proceeding."
+
+[[rules]]
+priority = 100
+description = "Require approval before rm -r at top-level paths"
+condition = { tool = "run_shell_command", argument_matches = "rm\\s+-[rRf]+\\s+(/|\\$HOME|~)" }
+decision = "ask_user"
+message = "Recursive delete at a top-level path. Verify target before confirming."
+
+# --- Git danger zone ---
+
+[[rules]]
+priority = 90
+description = "Require approval for force push"
+condition = { tool = "run_shell_command", argument_contains = "git push --force" }
+decision = "ask_user"
+message = "Force push will overwrite remote history. Confirm branch and remote."
+
+[[rules]]
+priority = 90
+description = "Require approval for force push (short flag)"
+condition = { tool = "run_shell_command", argument_matches = "git push -[a-zA-Z]*f" }
+decision = "ask_user"
+message = "Force push will overwrite remote history. Confirm branch and remote."
+
+[[rules]]
+priority = 90
+description = "Require approval for hard reset"
+condition = { tool = "run_shell_command", argument_contains = "git reset --hard" }
+decision = "ask_user"
+message = "Hard reset discards uncommitted changes. Confirm HEAD target."
+
+[[rules]]
+priority = 85
+description = "Require approval for git clean"
+condition = { tool = "run_shell_command", argument_matches = "git clean -[a-zA-Z]*[fdx]" }
+decision = "ask_user"
+message = "git clean removes untracked files permanently. Run with -n first to preview."
+
+# --- Database danger zone ---
+
+[[rules]]
+priority = 80
+description = "Require approval for DROP TABLE / DROP DATABASE"
+condition = { tool = "run_shell_command", argument_matches = "(DROP|TRUNCATE)\\s+(TABLE|DATABASE|SCHEMA)" }
+decision = "ask_user"
+message = "Destructive DB operation. Confirm target and verify backup exists."
+
+# --- Package publishing ---
+
+[[rules]]
+priority = 70
+description = "Require approval for npm publish"
+condition = { tool = "run_shell_command", argument_contains = "npm publish" }
+decision = "ask_user"
+message = "npm publish pushes to the registry. Confirm version bump and scope."
+
+# --- Security: credentials ---
+
+[[rules]]
+priority = 110
+description = "Deny writing raw credentials to files"
+condition = { tool = "write_file", argument_matches = "(password|secret|token|api_key)\\s*=" }
+decision = "ask_user"
+message = "Potential credential write. Use environment variables or a secrets manager instead."
+
+# --- Default fallthrough ---
+
+[[rules]]
+priority = 0
+description = "Allow all other operations"
+condition = {}
+decision = "allow"

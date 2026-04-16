@@ -1,0 +1,5 @@
+description = "Diagnose IJFW integration health across all installed platforms."
+prompt = """
+Invoke the ijfw-doctor skill.
+{{args}}
+"""

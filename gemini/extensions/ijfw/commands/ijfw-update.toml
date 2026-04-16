@@ -1,0 +1,5 @@
+description = "Update IJFW to the latest version."
+prompt = """
+Invoke the ijfw-update skill.
+{{args}}
+"""

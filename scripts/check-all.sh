@@ -20,7 +20,7 @@ TARGETS=(
   "claude/skills" "claude/commands" "claude/hooks/scripts" "claude/rules"
   "mcp-server/src" "mcp-server/bin" "installer/src" "installer/README.md" "installer/CHANGELOG.md"
   "scripts" "codex/.codex-plugin" "codex/.codex" "codex/skills" "codex/.agents"
-  "gemini" "cursor" "windsurf" "copilot" "universal" "shared/skills"
+  "gemini/extensions/ijfw" "cursor" "windsurf" "copilot" "universal" "shared/skills"
   "README.md" "CHANGELOG.md" "CLAUDE.md" "PUBLISH-CHECKLIST.md" "NO_TELEMETRY.md" "docs"
 )
 HITS=0

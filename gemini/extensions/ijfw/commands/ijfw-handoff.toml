@@ -1,0 +1,5 @@
+description = "Generate or load a session handoff for continuity. Saves status, decisions, next steps to .ijfw/memory/handoff.md."
+prompt = """
+Invoke the ijfw-handoff skill.
+{{args}}
+"""

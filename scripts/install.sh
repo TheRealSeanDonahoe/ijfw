@@ -252,17 +252,53 @@ for target in "${TARGETS[@]}"; do
       ;;
     gemini)
       log "[Gemini CLI]"
+      # Merge MCP registration into user settings.json.
       dst="$HOME/.gemini/settings.json"
       merge_json "$dst" "$LAUNCHER"
-      # W4.1 / E2 -- platform parity: copy the GEMINI.md rules file.
-      if [ ! -f "$HOME/.gemini/GEMINI.md" ]; then
-        mkdir -p "$HOME/.gemini"
-        cp "$REPO_ROOT/gemini/GEMINI.md" "$HOME/.gemini/GEMINI.md" 2>/dev/null \
-          && ok "Installed Gemini config + rules" \
-          || ok "Merged MCP into $dst"
-      else
-        ok "Merged MCP into $dst (GEMINI.md left as-is)"
-      fi
+      # Drop full extension bundle to ~/.gemini/extensions/ijfw/.
+      # Never overwrite files the user has modified (check mtime vs repo).
+      EXT_DST="$HOME/.gemini/extensions/ijfw"
+      EXT_SRC="$REPO_ROOT/gemini/extensions/ijfw"
+      mkdir -p "$EXT_DST/hooks" "$EXT_DST/skills" "$EXT_DST/commands" \
+               "$EXT_DST/agents" "$EXT_DST/policies" 2>/dev/null
+      # Manifest, context file, hooks.json, policy -- copy if absent.
+      for f in gemini-extension.json IJFW.md hooks/hooks.json policies/ijfw.toml; do
+        if [ ! -f "$EXT_DST/$f" ]; then
+          ddir=$(dirname "$EXT_DST/$f")
+          mkdir -p "$ddir" 2>/dev/null
+          cp "$EXT_SRC/$f" "$EXT_DST/$f" 2>/dev/null
+        fi
+      done
+      # Hook scripts -- copy if absent, chmod +x.
+      for hscript in "$EXT_SRC/hooks/"*.sh; do
+        bname=$(basename "$hscript")
+        if [ ! -f "$EXT_DST/hooks/$bname" ]; then
+          cp "$hscript" "$EXT_DST/hooks/$bname"
+          chmod +x "$EXT_DST/hooks/$bname" 2>/dev/null
+        fi
+      done
+      # Skills -- copy if absent.
+      for skill_dir in "$EXT_SRC/skills/"*/; do
+        skill_name=$(basename "$skill_dir")
+        if [ ! -d "$EXT_DST/skills/$skill_name" ]; then
+          cp -r "$skill_dir" "$EXT_DST/skills/$skill_name"
+        fi
+      done
+      # TOML commands -- copy if absent.
+      for cmd_file in "$EXT_SRC/commands/"*.toml; do
+        bname=$(basename "$cmd_file")
+        if [ ! -f "$EXT_DST/commands/$bname" ]; then
+          cp "$cmd_file" "$EXT_DST/commands/$bname"
+        fi
+      done
+      # Agents -- copy if absent.
+      for agent_file in "$EXT_SRC/agents/"*.md; do
+        bname=$(basename "$agent_file")
+        if [ ! -f "$EXT_DST/agents/$bname" ]; then
+          cp "$agent_file" "$EXT_DST/agents/$bname"
+        fi
+      done
+      ok "Installed Gemini bundle: MCP + extension + 15 skills + 11 hooks + policy"
       ;;
     cursor)
       log "[Cursor]"
