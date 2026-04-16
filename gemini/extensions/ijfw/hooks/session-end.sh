@@ -23,9 +23,22 @@ if [ -f "$IJFW_DIR/memory/project-journal.md" ]; then
   [ -z "$MEMORY_STORES" ] && MEMORY_STORES=0
 fi
 
-SESSION_COUNT=$(ls "$IJFW_DIR/sessions/" 2>/dev/null | wc -l | tr -d ' ')
-[ -z "$SESSION_COUNT" ] && SESSION_COUNT=0
-SESSION_NUM=$((SESSION_COUNT + 1))
+LOCK="$IJFW_DIR/.session-counter.lock"
+COUNTER="$IJFW_DIR/.session-counter"
+SESSION_NUM=""
+for i in 1 2 3 4 5; do
+  if mkdir "$LOCK" 2>/dev/null; then
+    trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+    CURRENT=$(cat "$COUNTER" 2>/dev/null || echo 0)
+    SESSION_NUM=$((CURRENT + 1))
+    echo "$SESSION_NUM" > "$COUNTER"
+    rmdir "$LOCK" 2>/dev/null
+    trap - EXIT
+    break
+  fi
+  sleep 0.1
+done
+SESSION_NUM="${SESSION_NUM:-$(date +%s%N 2>/dev/null | tail -c 8 || date +%s)}"
 
 HAS_HANDOFF="false"
 [ -f "$IJFW_DIR/memory/handoff.md" ] && HAS_HANDOFF="true"

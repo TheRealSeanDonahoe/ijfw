@@ -229,10 +229,52 @@ for target in "${TARGETS[@]}"; do
   case "$target" in
     claude)
       log "[Claude Code]"
-      note "Inside Claude Code, run:"
-      note "  /plugin marketplace add $REPO_ROOT/claude"
-      note "  /plugin install ijfw"
-      note "Plugin auto-registers the MCP server -- no extra step needed."
+      # Auto-register: write enabledPlugins + extraKnownMarketplaces into
+      # ~/.claude/settings.json and ~/.claude/plugins/known_marketplaces.json.
+      # Uses node for atomic read-modify-write; idempotent on re-run.
+      CLAUDE_PLUGIN_PATH="$HOME/.ijfw/claude"
+      CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+      CLAUDE_MARKETPLACES="$HOME/.claude/plugins/known_marketplaces.json"
+      mkdir -p "$HOME/.claude/plugins" 2>/dev/null
+      # Backup settings.json before modifying.
+      backup "$CLAUDE_SETTINGS"
+      node -e '
+        const fs = require("fs");
+        const settingsPath = process.argv[1];
+        const pluginPath   = process.argv[2];
+        const now = new Date().toISOString();
+
+        // --- settings.json ---
+        let settings = {};
+        if (fs.existsSync(settingsPath)) {
+          try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf8") || "{}"); } catch { settings = {}; }
+        }
+        if (!settings || typeof settings !== "object") settings = {};
+        settings.enabledPlugins = settings.enabledPlugins || {};
+        settings.enabledPlugins["ijfw@ijfw"] = true;
+        settings.extraKnownMarketplaces = settings.extraKnownMarketplaces || {};
+        settings.extraKnownMarketplaces["ijfw"] = {
+          source: { source: "directory", path: pluginPath }
+        };
+        fs.writeFileSync(settingsPath + ".tmp", JSON.stringify(settings, null, 2) + "\n");
+        fs.renameSync(settingsPath + ".tmp", settingsPath);
+
+        // --- known_marketplaces.json ---
+        const mpPath = process.argv[3];
+        let mp = {};
+        if (fs.existsSync(mpPath)) {
+          try { mp = JSON.parse(fs.readFileSync(mpPath, "utf8") || "{}"); } catch { mp = {}; }
+        }
+        if (!mp || typeof mp !== "object") mp = {};
+        mp["ijfw"] = {
+          source: { source: "directory", path: pluginPath },
+          installLocation: pluginPath,
+          lastUpdated: now
+        };
+        fs.writeFileSync(mpPath + ".tmp", JSON.stringify(mp, null, 2) + "\n");
+        fs.renameSync(mpPath + ".tmp", mpPath);
+      ' "$CLAUDE_SETTINGS" "$CLAUDE_PLUGIN_PATH" "$CLAUDE_MARKETPLACES"
+      ok "Claude Code ready -- restart any running sessions to activate IJFW."
       note ".claudeignore template at $REPO_ROOT/claude/.claudeignore"
       note "  Copy to your project root for instant context savings."
       ;;
@@ -433,15 +475,6 @@ if [ ${#LIVE[@]} -eq 0 ] && [ ${#STANDBY[@]} -eq 0 ]; then
   printf '  %sNo platforms matched.%s  Pass a target, e.g. %sbash scripts/install.sh claude%s\n' "$C_YELLOW" "$C_RESET" "$C_BOLD" "$C_RESET"
   echo
 fi
-for t in "${TARGETS[@]}"; do
-  if [ "$t" = "claude" ]; then
-    printf '  %s==> ONE MORE STEP%s  %sinside Claude Code%s\n' "$C_BOLD$C_WHITE" "$C_RESET" "$C_DIM" "$C_RESET"
-    printf '      %s/plugin marketplace add%s %s\n' "$C_BOLD" "$C_RESET" "$NATIVE_REPO${NATIVE_REPO:+\\}claude"
-    printf '      %s/plugin install ijfw%s\n' "$C_BOLD" "$C_RESET"
-    echo
-    break
-  fi
-done
 
 # --- Post-commit hook (opt-in only) ---
 HOOK_MARKER="# IJFW-POST-COMMIT-HOOK"
