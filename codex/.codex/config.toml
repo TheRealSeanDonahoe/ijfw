@@ -8,3 +8,6 @@ args = []
 enabled = true
 startup_timeout_sec = 10
 tool_timeout_sec = 30
+
+[hooks]
+config = ".codex/hooks.json"

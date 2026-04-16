@@ -210,15 +210,45 @@ for target in "${TARGETS[@]}"; do
       ;;
     codex)
       log "[Codex CLI]"
+      # Merge MCP registration into user config.toml.
       dst="$HOME/.codex/config.toml"
       merge_toml "$dst" "$LAUNCHER"
-      # Instructions append-only: only write if user doesn't have one.
-      if [ ! -f "$HOME/.codex/instructions.md" ]; then
-        cp "$REPO_ROOT/codex/.codex/instructions.md" "$HOME/.codex/instructions.md"
-        ok "Installed Codex config + instructions"
-      else
-        ok "Merged MCP into existing Codex config (instructions.md left as-is)"
+      # Drop hooks.json (declarative hook registration).
+      mkdir -p "$HOME/.codex/hooks"
+      if [ ! -f "$HOME/.codex/hooks.json" ]; then
+        cp "$REPO_ROOT/codex/.codex/hooks.json" "$HOME/.codex/hooks.json"
       fi
+      # Copy hook scripts (never overwrite user-modified scripts).
+      for hscript in "$REPO_ROOT/codex/.codex/hooks/"*.sh; do
+        bname=$(basename "$hscript")
+        if [ ! -f "$HOME/.codex/hooks/$bname" ]; then
+          cp "$hscript" "$HOME/.codex/hooks/$bname"
+          chmod +x "$HOME/.codex/hooks/$bname" 2>/dev/null
+        fi
+      done
+      # Drop IJFW context file (absorbs old instructions.md; merge-safe).
+      if [ ! -f "$HOME/.codex/IJFW.md" ]; then
+        cp "$REPO_ROOT/codex/.codex/IJFW.md" "$HOME/.codex/IJFW.md"
+      fi
+      # Drop skills to ~/.codex/skills/ (project skills go to .codex/skills/).
+      mkdir -p "$HOME/.codex/skills"
+      for skill_dir in "$REPO_ROOT/codex/skills/"*/; do
+        skill_name=$(basename "$skill_dir")
+        if [ ! -d "$HOME/.codex/skills/$skill_name" ]; then
+          cp -r "$skill_dir" "$HOME/.codex/skills/$skill_name"
+        fi
+      done
+      # Also drop skills to project .codex/skills/ if we're in a project.
+      if [ -f ".codex/config.toml" ] || [ -d ".ijfw" ]; then
+        mkdir -p ".codex/skills"
+        for skill_dir in "$REPO_ROOT/codex/skills/"*/; do
+          skill_name=$(basename "$skill_dir")
+          if [ ! -d ".codex/skills/$skill_name" ]; then
+            cp -r "$skill_dir" ".codex/skills/$skill_name"
+          fi
+        done
+      fi
+      ok "Installed Codex bundle: MCP + hooks + 15 skills + context"
       ;;
     gemini)
       log "[Gemini CLI]"
