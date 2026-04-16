@@ -465,6 +465,18 @@ if [ -f "$RECEIPTS_FILE" ] && [ -s "$RECEIPTS_FILE" ]; then
 fi
 
 printf '[ijfw] Ready.\n'
+
+# Dashboard render (async-tolerant: node renders inline into the banner buffer).
+# Locate bin.js relative to plugin root.
+_DASH_BIN=""
+for _cand in \
+    "${CLAUDE_PLUGIN_ROOT:-}/../scripts/dashboard/bin.js" \
+    "$(pwd)/scripts/dashboard/bin.js"; do
+  [ -f "$_cand" ] && { _DASH_BIN="$_cand"; break; }
+done
+if [ -n "$_DASH_BIN" ] && command -v node >/dev/null 2>&1; then
+  node "$_DASH_BIN" --last 50 --platform claude 2>/dev/null || true
+fi
 } > "$BANNER_BUF"
 
 # The banner above was buffered; we'll emit it via hookSpecificOutput.additionalContext

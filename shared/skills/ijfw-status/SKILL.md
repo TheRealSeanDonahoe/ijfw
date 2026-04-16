@@ -24,10 +24,15 @@ Call `ijfw_memory_status`. Report its output as a single line. If the tool is un
 ## 5. Last Handoff
 Read `.ijfw/memory/` for the most recent `HANDOFF*.md` or `handoff*.md`. Extract the date and first heading. Report as: "Last session: <date> -- <heading>". If none, "No handoff yet -- first session captures automatically".
 
+## 6. Observation Ledger + Dashboard
+- Count lines in `~/.ijfw/observations.jsonl`. Report: "Ledger: <N> observations captured".
+- If `.ijfw/dashboard.port` exists, report: "Dashboard: http://localhost:<port>". Otherwise: "Dashboard: run `ijfw dashboard start` to open".
+- Render the dashboard: run `node scripts/dashboard/bin.js --last 20` (if available) to show recent observations with icons, date groups, platform badges, and session summary. This is the "render the dashboard" action.
+
 ## Format
 
 Emit as a compact table or 5-line list. No headers larger than `##`. End with one receipt line:
 
 > `IJFW active -- <N> memory entries, <mode> mode, hooks live.`
 
-Total output: under 20 lines. Positive framing only.
+Total output: under 25 lines. Positive framing only.

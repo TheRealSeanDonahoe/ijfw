@@ -82,9 +82,22 @@ async function main() {
       break;
     }
     case 'dashboard': {
-      console.log('ijfw dashboard -- coming in Wave V1.1D');
-      console.log('Run `ijfw preflight` for the quality pipeline.');
-      process.exit(0);
+      const dashSub = argv[3]; // render | start | stop | status
+      if (dashSub === 'render' || !dashSub) {
+        // V1.1C: render terminal dashboard
+        const root = repoRoot();
+        const binJs = join(root, 'scripts', 'dashboard', 'bin.js');
+        if (existsSync(binJs)) {
+          const r = spawnSync('node', [binJs, ...argv.slice(dashSub ? 4 : 3)], { stdio: 'inherit' });
+          process.exit(r.status ?? 0);
+        } else {
+          console.log('[ijfw] Dashboard renderer not found. Run from the IJFW repo root.');
+          process.exit(1);
+        }
+      } else {
+        console.log(`ijfw dashboard ${dashSub} -- server commands coming in Wave V1.1D`);
+        process.exit(0);
+      }
       break;
     }
     case 'doctor': {
