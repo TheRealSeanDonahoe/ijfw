@@ -351,6 +351,63 @@ const INSTALL_HINT = {
   aider:    'pipx install aider-chat',
 };
 
+// Integration depth definitions per platform.
+// depth: list of detected capabilities that constitute "native" integration.
+const INTEGRATION_DEPTH = {
+  claude: {
+    label: 'Claude Code',
+    checks: [
+      { name: 'native plugin',  detect: () => existsSync(join(homedir(), '.claude', 'plugins', 'ijfw')) || existsSync(join(homedir(), '.claude', 'settings.json')) },
+      { name: 'skills',         detect: () => existsSync(join(homedir(), '.claude', 'plugins', 'ijfw', 'skills')) },
+      { name: 'hooks',          detect: () => existsSync(join(homedir(), '.claude', 'plugins', 'ijfw', 'hooks')) },
+      { name: 'agents',         detect: () => existsSync(join(homedir(), '.claude', 'plugins', 'ijfw', 'agents')) },
+      { name: 'commands',       detect: () => existsSync(join(homedir(), '.claude', 'plugins', 'ijfw', 'commands')) },
+      { name: 'MCP',            detect: () => { try { const s = JSON.parse(readFileSync(join(homedir(), '.claude', 'settings.json'), 'utf8')); return Boolean(s.mcpServers?.['ijfw-memory'] || s.enabledPlugins?.['ijfw-core@ijfw']); } catch { return false; } } },
+    ],
+  },
+  codex: {
+    label: 'Codex',
+    checks: [
+      { name: 'native skills',  detect: () => existsSync(join(homedir(), '.codex', 'skills')) },
+      { name: 'hooks',          detect: () => existsSync(join(homedir(), '.codex', 'hooks.json')) },
+      { name: 'context file',   detect: () => existsSync(join(homedir(), '.codex', 'IJFW.md')) },
+      { name: 'MCP',            detect: () => { try { const t = readFileSync(join(homedir(), '.codex', 'config.toml'), 'utf8'); return t.includes('ijfw-memory'); } catch { return false; } } },
+    ],
+  },
+  gemini: {
+    label: 'Gemini',
+    checks: [
+      { name: 'native extension', detect: () => existsSync(join(homedir(), '.gemini', 'extensions', 'ijfw', 'gemini-extension.json')) },
+      { name: 'skills',           detect: () => existsSync(join(homedir(), '.gemini', 'extensions', 'ijfw', 'skills')) },
+      { name: 'hooks',            detect: () => existsSync(join(homedir(), '.gemini', 'extensions', 'ijfw', 'hooks', 'hooks.json')) },
+      { name: 'commands',         detect: () => existsSync(join(homedir(), '.gemini', 'extensions', 'ijfw', 'commands')) },
+      { name: 'policy',           detect: () => existsSync(join(homedir(), '.gemini', 'extensions', 'ijfw', 'policies', 'ijfw.toml')) },
+      { name: 'MCP',              detect: () => { try { const s = JSON.parse(readFileSync(join(homedir(), '.gemini', 'settings.json'), 'utf8')); return Boolean(s.mcpServers?.['ijfw-memory']); } catch { return false; } } },
+    ],
+  },
+  cursor: {
+    label: 'Cursor',
+    checks: [
+      { name: 'rules',  detect: () => existsSync(join(process.cwd(), '.cursor', 'rules', 'ijfw.mdc')) },
+      { name: 'MCP',    detect: () => { try { const s = JSON.parse(readFileSync(join(process.cwd(), '.cursor', 'mcp.json'), 'utf8')); return Boolean(s.mcpServers?.['ijfw-memory']); } catch { return false; } } },
+    ],
+  },
+  windsurf: {
+    label: 'Windsurf',
+    checks: [
+      { name: 'rules',  detect: () => existsSync(join(process.cwd(), '.windsurfrules')) },
+      { name: 'MCP',    detect: () => { try { const s = JSON.parse(readFileSync(join(homedir(), '.codeium', 'windsurf', 'mcp_config.json'), 'utf8')); return Boolean(s.mcpServers?.['ijfw-memory']); } catch { return false; } } },
+    ],
+  },
+  copilot: {
+    label: 'Copilot',
+    checks: [
+      { name: 'instructions',  detect: () => existsSync(join(process.cwd(), '.github', 'copilot-instructions.md')) },
+      { name: 'MCP',           detect: () => { try { const s = JSON.parse(readFileSync(join(process.cwd(), '.vscode', 'mcp.json'), 'utf8')); return Boolean(s.mcpServers?.['ijfw-memory']); } catch { return false; } } },
+    ],
+  },
+};
+
 function cmdDoctor() {
   console.log('ijfw doctor -- roster + key probe');
   console.log('');
@@ -388,6 +445,20 @@ function cmdDoctor() {
     console.log('At least one auditor is reachable. Run `ijfw cross audit <file>` to start.');
   } else {
     console.log('IJFW has the Trident ready -- install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY), then run `ijfw demo`.');
+  }
+
+  // Integration depth: per-platform capability report (positive-framed, detected only).
+  console.log('');
+  console.log('Integration depth:');
+  let anyDepth = false;
+  for (const [id, def] of Object.entries(INTEGRATION_DEPTH)) {
+    const detected = def.checks.filter(c => { try { return c.detect(); } catch { return false; } });
+    if (detected.length === 0) continue;
+    anyDepth = true;
+    console.log(`  ${def.label}: ${detected.map(c => c.name).join(' + ')}`);
+  }
+  if (!anyDepth) {
+    console.log('  Run `bash scripts/install.sh` in your IJFW repo to activate platform bundles.');
   }
 }
 
