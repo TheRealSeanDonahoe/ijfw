@@ -1,5 +1,16 @@
 # Changelog -- @ijfw/install
 
+## [1.0.1] -- 2026-04-16
+
+### Fixed
+
+- `bin` field stripped on v1.0.0 publish because `dist/install.js` and
+  `dist/uninstall.js` were shipped without the executable bit. `npm install
+  -g @ijfw/install@1.0.0` installed the package but produced no
+  `ijfw-install` command. v1.0.1 restores the bin entries, adds
+  `chmod +x dist/*.js` to the build step, and adds a `prepublishOnly`
+  hook so this cannot regress. v1.0.0 has been deprecated on npm.
+
 ## [1.0.0] -- 2026-04-15
 
 First stable release. One-command installer configures IJFW across six AI

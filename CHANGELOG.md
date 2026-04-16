@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1] -- 2026-04-16
+
+### Fixed
+
+- `@ijfw/install` v1.0.0 npm publish stripped the `bin` field because
+  `dist/install.js` and `dist/uninstall.js` shipped without the executable
+  bit. The `ijfw-install` command did not exist after global install.
+  v1.0.1 restores bin entries, adds `chmod +x` to the build step, and adds
+  a `prepublishOnly` hook. v1.0.0 has been deprecated on npm.
+
 ## [1.0.0] -- 2026-04-16
 
 First stable release of IJFW. One install configures a native-depth IJFW plugin
