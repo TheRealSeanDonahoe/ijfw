@@ -5,10 +5,10 @@
   "description": "AI efficiency framework. One install. Zero config. It just fucking works. By Sean Donahoe.",
   "author": "Sean Donahoe",
   "license": "MIT",
-  "homepage": "https://github.com/seandonahoe/ijfw",
+  "homepage": "https://github.com/TheRealSeanDonahoe/ijfw",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seandonahoe/ijfw"
+    "url": "https://github.com/TheRealSeanDonahoe/ijfw"
   },
   "keywords": [
     "ai",

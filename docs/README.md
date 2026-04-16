@@ -19,11 +19,11 @@ One install. Zero config. Makes your AI coding agent smarter, more efficient, an
 
 ```bash
 # From the plugin marketplace
-/plugin marketplace add seandonahoe/ijfw
+/plugin marketplace add TheRealSeanDonahoe/ijfw
 /plugin install ijfw
 
 # Or manually
-git clone https://github.com/seandonahoe/ijfw.git
+git clone https://github.com/TheRealSeanDonahoe/ijfw.git
 cd ijfw/claude
 claude plugin install .
 ```

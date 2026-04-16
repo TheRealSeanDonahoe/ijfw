@@ -23,7 +23,7 @@ Three seconds. Six AI coding agents configured. Nothing to log into.
 **Windows** (PowerShell 5.1 or 7+):
 
 ```powershell
-iwr https://raw.githubusercontent.com/SeanDonahoe/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
+iwr https://raw.githubusercontent.com/TheRealSeanDonahoe/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
 .\install.ps1
 ```
 
@@ -503,6 +503,6 @@ If you ship code with AI, you need this. If you write with AI, run a business wi
 
 * * *
 
-[github.com/SeanDonahoe/ijfw](https://github.com/SeanDonahoe/ijfw) | MIT License | Local-only. No telemetry, no account, no cloud. One install, six platforms, five engines, three AIs, zero apologies.
+[github.com/TheRealSeanDonahoe/ijfw](https://github.com/TheRealSeanDonahoe/ijfw) | MIT License | Local-only. No telemetry, no account, no cloud. One install, six platforms, five engines, three AIs, zero apologies.
 
 **Install it. Inspect it. Fork it. Ship it. It just fucking works.**

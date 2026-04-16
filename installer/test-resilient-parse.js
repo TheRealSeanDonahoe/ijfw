@@ -59,9 +59,9 @@ test('tolerantJsonParse handles all three cases', () => {
 });
 
 test('URL values survive the comment stripper (https:// intact)', () => {
-  const raw = '{\n  "repo": "https://github.com/TradeCanyon/ijfw",\n  "other": "ok"\n}\n';
+  const raw = '{\n  "repo": "https://github.com/TheRealSeanDonahoe/ijfw",\n  "other": "ok"\n}\n';
   const parsed = tolerantJsonParse(raw, 'x');
-  assert.equal(parsed.repo, 'https://github.com/TradeCanyon/ijfw');
+  assert.equal(parsed.repo, 'https://github.com/TheRealSeanDonahoe/ijfw');
   assert.equal(parsed.other, 'ok');
 });
 

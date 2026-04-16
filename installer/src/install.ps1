@@ -6,7 +6,7 @@
 #   -> merge marketplace into %USERPROFILE%\.claude\settings.json -> summary.
 #
 # Usage:
-#   Invoke-Expression (iwr https://raw.githubusercontent.com/SeanDonahoe/ijfw/main/installer/src/install.ps1).Content
+#   Invoke-Expression (iwr https://raw.githubusercontent.com/TheRealSeanDonahoe/ijfw/main/installer/src/install.ps1).Content
 #   or:
 #   .\install.ps1 -Dir C:\Users\me\.ijfw -Branch main
 
@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$DEFAULT_REPO = "https://github.com/SeanDonahoe/ijfw.git"
+$DEFAULT_REPO = "https://github.com/TheRealSeanDonahoe/ijfw.git"
 
 function Write-Ok($msg) { Write-Host "  [ok] $msg" -ForegroundColor Green }
 function Write-Info($msg) { Write-Host "  ... $msg" -ForegroundColor Gray }
@@ -202,7 +202,7 @@ function Merge-Marketplace {
     }
   }
   if (-not $settings.ContainsKey('extraKnownMarketplaces')) { $settings['extraKnownMarketplaces'] = @{} }
-  $settings.extraKnownMarketplaces['ijfw'] = @{ source = @{ source = 'github'; repo = 'SeanDonahoe/ijfw' } }
+  $settings.extraKnownMarketplaces['ijfw'] = @{ source = @{ source = 'github'; repo = 'TheRealSeanDonahoe/ijfw' } }
   if (-not $settings.ContainsKey('enabledPlugins')) { $settings['enabledPlugins'] = @{} }
   $settings.enabledPlugins['ijfw-core@ijfw'] = $true
 
