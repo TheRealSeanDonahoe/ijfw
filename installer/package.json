@@ -36,6 +36,6 @@
   "author": "Sean Donahoe",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TheRealSeanDonahoe/ijfw"
+    "url": "git+https://github.com/TheRealSeanDonahoe/ijfw.git"
   }
 }
