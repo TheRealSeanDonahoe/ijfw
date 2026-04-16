@@ -279,15 +279,15 @@ What ships
 
 Claude Code
 
-Native plugin via marketplace, MCP auto-registered, 6 hook events, 15 on-demand skills, 19 slash commands
+Native plugin via marketplace, MCP auto-registered, 6 hook events, 16 on-demand skills, 19 slash commands
 
 Codex CLI
 
-Native plugin (.codex-plugin/plugin.json), 15 skills, 6 hook events, MCP registered, marketplace-ready
+Native plugin (.codex-plugin/plugin.json), 16 skills, 6 hook events, MCP registered, marketplace-ready
 
 Gemini CLI
 
-Native extension (gemini-extension.json), 15 skills, 11 hook events, 15 TOML slash commands, policy engine, BeforeModel injection, checkpointing
+Native extension (gemini-extension.json), 16 skills, 11 hook events, 16 TOML slash commands, policy engine, BeforeModel injection, checkpointing
 
 Cursor
 

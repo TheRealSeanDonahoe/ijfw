@@ -197,7 +197,7 @@ After LOCK, the brief drives every downstream phase. Same discipline, same memor
 - Each task: what / how-to-verify / file paths.
 - User reviews. One-word commit: `approve` / `trim` / `expand`.
 
-**Plan audit** -- visible checklist, not silent:
+**Plan audit** -- run `ijfw plan-check` or follow inline checklist, not silent:
 - Every task has a verify step.
 - No unstated assumptions.
 - Scope matches brief (nothing new).

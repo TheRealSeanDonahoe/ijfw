@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1F] -- 2026-04-16
+
+### Added
+
+- **ijfw-plan-check** (16th skill): Donahoe Loop pre-execution audit gate. Checks
+  goal alignment, scope leaks, risk surface, and dependency ordering. Returns a
+  decisive PASS / FLAG / BLOCK verdict. Owns audit-plan, check-plan, and
+  before-we-build intents across Claude Code, Codex, and Gemini.
+
+---
+
 ## [1.1.0] -- 2026-04-16
 
 Codex CLI and Gemini CLI reach **native-depth parity** with the Claude Code plugin.
