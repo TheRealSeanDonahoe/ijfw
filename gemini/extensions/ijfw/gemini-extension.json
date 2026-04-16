@@ -20,6 +20,6 @@
     "license": "MIT",
     "category": "productivity",
     "keywords": ["workflow", "memory", "audit", "trident", "efficiency"],
-    "min_gemini_version": "0.38.1"
+    "min_gemini_version": "0.38.0"
   }
 }

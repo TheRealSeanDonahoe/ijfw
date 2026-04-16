@@ -7,7 +7,7 @@
           {
             "name": "ijfw-session-start",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/session-start.sh",
+            "command": "bash {{extensionPath}}/hooks/session-start.sh",
             "description": "Initialize IJFW state, emit startup banner with memory summary, register project in global registry."
           }
         ]
@@ -20,7 +20,7 @@
           {
             "name": "ijfw-session-end",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/session-end.sh",
+            "command": "bash {{extensionPath}}/hooks/session-end.sh",
             "description": "Save session metrics, write journal entry, emit savings receipt."
           }
         ]
@@ -33,7 +33,7 @@
           {
             "name": "ijfw-before-agent",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/before-agent.sh",
+            "command": "bash {{extensionPath}}/hooks/before-agent.sh",
             "description": "Deterministic vague-prompt detector. Injects sharpening context when prompt signals are weak."
           }
         ]
@@ -46,7 +46,7 @@
           {
             "name": "ijfw-before-tool",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/before-tool.sh",
+            "command": "bash {{extensionPath}}/hooks/before-tool.sh",
             "description": "Scan about-to-run commands for destructive patterns. Inject confirmation reminders before execution."
           }
         ]
@@ -59,7 +59,7 @@
           {
             "name": "ijfw-after-tool",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/after-tool.sh",
+            "command": "bash {{extensionPath}}/hooks/after-tool.sh",
             "description": "Trim tool output noise, capture error signals, emit cleaned output as additionalContext."
           }
         ]
@@ -72,7 +72,7 @@
           {
             "name": "ijfw-after-agent",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/after-agent.sh",
+            "command": "bash {{extensionPath}}/hooks/after-agent.sh",
             "description": "Post-agent cleanup: flush signal files, update session state."
           }
         ]
@@ -85,7 +85,7 @@
           {
             "name": "ijfw-before-model",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/before-model.sh",
+            "command": "bash {{extensionPath}}/hooks/before-model.sh",
             "description": "First-turn memory injection. Calls ijfw_memory_prelude on turn 1 and injects full project context directly before the model call."
           }
         ]
@@ -98,7 +98,7 @@
           {
             "name": "ijfw-after-model",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/after-model.sh",
+            "command": "bash {{extensionPath}}/hooks/after-model.sh",
             "description": "Response auto-memorize trigger. Detects decision/pattern signals in model output and queues ijfw_memory_store calls."
           }
         ]
@@ -111,7 +111,7 @@
           {
             "name": "ijfw-before-tool-selection",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/before-tool-selection.sh",
+            "command": "bash {{extensionPath}}/hooks/before-tool-selection.sh",
             "description": "Policy enforcement checkpoint before tool selection. Enforces ijfw.toml policy rules."
           }
         ]
@@ -124,8 +124,21 @@
           {
             "name": "ijfw-notification",
             "type": "command",
-            "command": "bash {{extensionDir}}/hooks/notification.sh",
+            "command": "bash {{extensionPath}}/hooks/notification.sh",
             "description": "Relay Gemini notifications to IJFW journal for audit trail."
+          }
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "ijfw-pre-compress",
+            "type": "command",
+            "command": "bash {{extensionPath}}/hooks/pre-compress.sh",
+            "description": "Pre-compression hook: flush working memory signals and checkpoint session state before context compression."
           }
         ]
       }
