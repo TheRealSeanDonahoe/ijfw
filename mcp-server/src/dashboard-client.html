@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'">
+<title>IJFW Dashboard</title>
+<style>
+:root {
+  --bg:#0d1117; --fg:#e6edf3; --mute:#7d8590; --accent:#58a6ff;
+  --ok:#3fb950; --warn:#d29922; --err:#f85149;
+  --card:#161b22; --border:#30363d; --hover:#1c2128;
+  --claude:#58a6ff; --codex:#3fb950; --gemini:#a371f7;
+}
+[data-theme=light] {
+  --bg:#ffffff; --fg:#1f2328; --mute:#656d76; --accent:#0969da;
+  --ok:#1a7f37; --warn:#9a6700; --err:#cf222e;
+  --card:#f6f8fa; --border:#d0d7de; --hover:#f3f4f6;
+  --claude:#0969da; --codex:#1a7f37; --gemini:#8250df;
+}
+@media (prefers-color-scheme:light) { :root:not([data-theme]) {
+  --bg:#ffffff; --fg:#1f2328; --mute:#656d76; --accent:#0969da;
+  --ok:#1a7f37; --warn:#9a6700; --err:#cf222e;
+  --card:#f6f8fa; --border:#d0d7de; --hover:#f3f4f6;
+  --claude:#0969da; --codex:#1a7f37; --gemini:#8250df;
+}}
+@media (prefers-reduced-motion:reduce) { .dot { animation:none !important; } }
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,"DejaVu Sans Mono",monospace;
+  background:var(--bg); color:var(--fg); min-height:100vh;
+}
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* Header */
+header {
+  position:sticky; top:0; z-index:100;
+  background:var(--bg); border-bottom:1px solid var(--border);
+  padding:10px 20px; display:flex; align-items:center; gap:12px;
+}
+.dot {
+  width:8px; height:8px; border-radius:50%; background:var(--ok); flex-shrink:0;
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.logo { font-weight:700; font-size:14px; letter-spacing:.02em; }
+.logo span { color:var(--mute); font-weight:400; }
+#obs-count { color:var(--mute); font-size:12px; }
+.header-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+button {
+  background:var(--card); color:var(--fg); border:1px solid var(--border);
+  border-radius:6px; padding:4px 10px; font:inherit; cursor:pointer;
+  font-size:12px; transition:background .15s;
+}
+button:hover { background:var(--hover); }
+#theme-btn { font-size:11px; }
+
+/* Filter bar */
+.filters {
+  padding:8px 20px; border-bottom:1px solid var(--border);
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+}
+.filters input, .filters select {
+  background:var(--card); color:var(--fg); border:1px solid var(--border);
+  border-radius:6px; padding:5px 10px; font:inherit; font-size:12px; outline:none;
+}
+.filters input:focus, .filters select:focus { border-color:var(--accent); }
+#q { flex:1; min-width:160px; }
+.filter-label { font-size:11px; color:var(--mute); }
+
+/* Economics strip */
+#economics {
+  padding:8px 20px; border-bottom:1px solid var(--border);
+  font-size:11px; color:var(--mute); display:flex; gap:20px; flex-wrap:wrap;
+}
+.econ-item { display:flex; gap:5px; }
+.econ-val { color:var(--fg); }
+
+/* Legend */
+.legend {
+  padding:6px 20px; border-bottom:1px solid var(--border);
+  display:flex; gap:14px; font-size:11px; color:var(--mute); flex-wrap:wrap;
+}
+.legend-item { display:flex; align-items:center; gap:4px; }
+
+/* Feed */
+#feed { padding:12px 20px; display:flex; flex-direction:column; gap:2px; }
+.date-group { margin-top:16px; }
+.date-group:first-child { margin-top:0; }
+.date-header {
+  font-size:11px; font-weight:600; color:var(--mute);
+  padding:4px 0; border-bottom:1px solid var(--border); margin-bottom:6px;
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.file-group { margin-bottom:8px; }
+.file-header {
+  font-size:11px; color:var(--accent); padding:2px 0 4px;
+  cursor:pointer; user-select:none;
+}
+.file-header:hover { text-decoration:underline; }
+.obs-row {
+  display:grid;
+  grid-template-columns:52px 56px 70px 16px 1fr;
+  gap:8px; align-items:baseline;
+  padding:4px 8px; border-radius:5px; cursor:pointer;
+  transition:background .1s;
+  border:1px solid transparent;
+}
+.obs-row:hover { background:var(--hover); }
+.obs-row.expanded { background:var(--hover); border-color:var(--border); }
+.obs-time { color:var(--mute); font-size:11px; }
+.obs-id { color:var(--mute); font-size:11px; }
+.obs-plat { font-size:11px; font-weight:600; }
+.obs-plat[data-p=claude]  { color:var(--claude); }
+.obs-plat[data-p=codex]   { color:var(--codex);  }
+.obs-plat[data-p=gemini]  { color:var(--gemini); }
+.obs-plat[data-p=other]   { color:var(--mute);   }
+.obs-icon { font-style:normal; }
+.obs-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+.obs-type-badge {
+  display:inline-block; font-size:10px; padding:1px 5px; border-radius:3px;
+  background:var(--border); color:var(--mute); margin-left:6px; vertical-align:middle;
+}
+
+/* Detail panel */
+.obs-detail {
+  grid-column:1/-1; font-size:11px; color:var(--mute);
+  background:var(--card); border-radius:4px; padding:8px 10px; margin-top:4px;
+  display:none;
+}
+.obs-detail.open { display:block; }
+.obs-detail strong { color:var(--fg); }
+.detail-grid { display:grid; grid-template-columns:90px 1fr; gap:2px 10px; }
+
+/* Empty state */
+#empty {
+  text-align:center; padding:60px 20px; color:var(--mute);
+  display:none;
+}
+#empty h2 { font-size:15px; color:var(--fg); margin-bottom:8px; }
+
+/* Summary block */
+#summary-block {
+  margin:12px 20px; background:var(--card); border:1px solid var(--border);
+  border-radius:8px; padding:12px 16px; font-size:12px; display:none;
+}
+#summary-block h3 { font-size:12px; margin-bottom:8px; color:var(--accent); }
+.summary-grid { display:grid; grid-template-columns:96px 1fr; gap:3px 10px; }
+.summary-label { color:var(--mute); }
+
+/* Keyboard shortcut hint */
+#kb-hint { position:fixed; bottom:12px; right:16px; font-size:10px; color:var(--mute); }
+
+/* Type color helper classes */
+.type-bugfix    { color:#f85149; }
+.type-feature   { color:#3fb950; }
+.type-refactor  { color:#d29922; }
+.type-change    { color:#58a6ff; }
+.type-discovery { color:#a371f7; }
+.type-decision  { color:#ffa657; }
+.type-note      { color:#7d8590; }
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="live-dot" title="Connected"></span>
+  <span class="logo">IJFW <span>Dashboard</span></span>
+  <span id="obs-count">loading...</span>
+  <div class="header-right">
+    <button id="theme-btn" title="Toggle theme">light/dark</button>
+    <button id="clear-btn" title="Clear filter">clear</button>
+  </div>
+</header>
+
+<div class="filters">
+  <input id="q" type="search" placeholder="/ to search observations..." autocomplete="off">
+  <select id="platform-filter">
+    <option value="">All platforms</option>
+    <option value="claude">claude</option>
+    <option value="codex">codex</option>
+    <option value="gemini">gemini</option>
+  </select>
+  <select id="type-filter">
+    <option value="">All types</option>
+    <option value="bugfix">bugfix</option>
+    <option value="feature">feature</option>
+    <option value="refactor">refactor</option>
+    <option value="change">change</option>
+    <option value="discovery">discovery</option>
+    <option value="decision">decision</option>
+    <option value="note">note</option>
+  </select>
+  <span class="filter-label" id="filter-count"></span>
+</div>
+
+<div id="economics"></div>
+
+<div class="legend">
+  <span class="legend-item"><em class="obs-icon type-bugfix">x</em> bugfix</span>
+  <span class="legend-item"><em class="obs-icon type-feature">+</em> feature</span>
+  <span class="legend-item"><em class="obs-icon type-refactor">~</em> refactor</span>
+  <span class="legend-item"><em class="obs-icon type-change">.</em> change</span>
+  <span class="legend-item"><em class="obs-icon type-discovery">?</em> discovery</span>
+  <span class="legend-item"><em class="obs-icon type-decision">!</em> decision</span>
+  <span class="legend-item"><em class="obs-icon type-note">*</em> note</span>
+</div>
+
+<div id="feed"></div>
+<div id="empty"><h2>No observations yet</h2><p>Observations appear here as you work with your AI coding agents.</p></div>
+<div id="summary-block"></div>
+<div id="kb-hint">/ search &nbsp; j/k navigate &nbsp; Enter expand</div>
+
+<script>
+'use strict';
+// All DOM mutation uses textContent / createElement -- never innerHTML with untrusted data.
+
+const feed       = document.getElementById('feed');
+const emptyEl    = document.getElementById('empty');
+const countEl    = document.getElementById('obs-count');
+const filterCt   = document.getElementById('filter-count');
+const econEl     = document.getElementById('economics');
+const summaryEl  = document.getElementById('summary-block');
+const qInput     = document.getElementById('q');
+const platSel    = document.getElementById('platform-filter');
+const typeSel    = document.getElementById('type-filter');
+const themeBtn   = document.getElementById('theme-btn');
+const clearBtn   = document.getElementById('clear-btn');
+const liveDot    = document.getElementById('live-dot');
+
+// All observation records, newest last.
+let allRows = [];
+let navIndex = -1;
+let userScrolled = false;
+let expanded = null;
+
+// ---------- theme ----------
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('ijfw-theme', t);
+}
+(function initTheme() {
+  const saved = localStorage.getItem('ijfw-theme');
+  if (saved) applyTheme(saved);
+})();
+themeBtn.addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'light' ? 'dark' : 'light');
+});
+
+// ---------- scroll tracking ----------
+window.addEventListener('scroll', () => {
+  userScrolled = (window.innerHeight + window.scrollY) < (document.body.offsetHeight - 40);
+}, { passive: true });
+
+function scrollToBottom() {
+  if (!userScrolled) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+// ---------- type helpers ----------
+const ICONS = { bugfix:'x', feature:'+', refactor:'~', change:'.', discovery:'?', decision:'!', note:'*' };
+function iconForType(t) { return ICONS[t] || '*'; }
+function normPlatform(p) {
+  if (!p) return 'other';
+  const l = p.toLowerCase().replace('claude-code', 'claude').replace('-code','');
+  if (['claude','codex','gemini'].includes(l)) return l;
+  return 'other';
+}
+
+// ---------- render helpers (safe DOM only) ----------
+function makeDetail(r) {
+  const d = document.createElement('div');
+  d.className = 'obs-detail';
+
+  const g = document.createElement('div');
+  g.className = 'detail-grid';
+
+  function addRow(label, value) {
+    if (!value && value !== 0) return;
+    const l = document.createElement('span'); l.className = 'summary-label';
+    l.textContent = label;
+    const v = document.createElement('span');
+    v.textContent = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    g.appendChild(l); g.appendChild(v);
+  }
+
+  addRow('Tool:', r.tool_name || r.tool);
+  addRow('Session:', r.session_id);
+  addRow('Platform:', r.platform);
+  addRow('Type:', r.type);
+  if (r.files && r.files.length) {
+    addRow('Files:', r.files.join(', '));
+  }
+  addRow('Tokens:', r.token_cost);
+  addRow('ID:', r.id);
+
+  d.appendChild(g);
+  return d;
+}
+
+function makeObsRow(r) {
+  const plat = normPlatform(r.platform);
+  const icon = iconForType(r.type);
+  const type = r.type || 'note';
+
+  const row = document.createElement('div');
+  row.className = 'obs-row';
+  row.dataset.id = r.id;
+
+  const time = document.createElement('span');
+  time.className = 'obs-time';
+  time.textContent = r.ts ? new Date(r.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+
+  const idEl = document.createElement('span');
+  idEl.className = 'obs-id';
+  idEl.textContent = '#' + (r.id || '');
+
+  const platEl = document.createElement('span');
+  platEl.className = 'obs-plat';
+  platEl.dataset.p = plat;
+  platEl.textContent = plat === 'claude' ? 'claude' : plat;
+
+  const iconEl = document.createElement('em');
+  iconEl.className = 'obs-icon type-' + type;
+  iconEl.textContent = icon;
+
+  const titleEl = document.createElement('span');
+  titleEl.className = 'obs-title';
+  titleEl.textContent = r.title || r.summary || r.message || '(untitled)';
+
+  const badge = document.createElement('span');
+  badge.className = 'obs-type-badge';
+  badge.textContent = type;
+  titleEl.appendChild(badge);
+
+  row.appendChild(time);
+  row.appendChild(idEl);
+  row.appendChild(platEl);
+  row.appendChild(iconEl);
+  row.appendChild(titleEl);
+
+  const detail = makeDetail(r);
+  row.appendChild(detail);
+
+  row.addEventListener('click', () => {
+    const open = detail.classList.contains('open');
+    if (expanded && expanded !== detail) {
+      expanded.classList.remove('open');
+      expanded.closest('.obs-row')?.classList.remove('expanded');
+    }
+    detail.classList.toggle('open', !open);
+    row.classList.toggle('expanded', !open);
+    expanded = open ? null : detail;
+  });
+
+  return row;
+}
+
+// ---------- render feed ----------
+function getFiltered() {
+  const q    = qInput.value.toLowerCase();
+  const plat = platSel.value;
+  const type = typeSel.value;
+  return allRows.filter(r => {
+    if (plat && normPlatform(r.platform) !== plat) return false;
+    if (type && (r.type || 'note') !== type) return false;
+    if (q) {
+      const hay = ((r.title || '') + ' ' + (r.type || '') + ' ' + (r.summary || '') + ' ' + (r.platform || '')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function render() {
+  const filtered = getFiltered();
+  feed.textContent = '';
+  navIndex = -1;
+  expanded = null;
+
+  if (filtered.length === 0) {
+    emptyEl.style.display = 'block';
+    countEl.textContent = allRows.length + ' observations';
+    filterCt.textContent = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  countEl.textContent = allRows.length + ' observations';
+  if (filtered.length !== allRows.length) {
+    filterCt.textContent = '(' + filtered.length + ' shown)';
+  } else {
+    filterCt.textContent = '';
+  }
+
+  // Group by date, then by first file.
+  const byDate = {};
+  for (const r of filtered) {
+    const dk = r.ts ? new Date(r.ts).toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'}) : 'Unknown date';
+    if (!byDate[dk]) byDate[dk] = {};
+    const fk = (r.files && r.files[0]) ? r.files[0] : '';
+    if (!byDate[dk][fk]) byDate[dk][fk] = [];
+    byDate[dk][fk].push(r);
+  }
+
+  for (const dk of Object.keys(byDate)) {
+    const dateGroup = document.createElement('div');
+    dateGroup.className = 'date-group';
+
+    const dh = document.createElement('div');
+    dh.className = 'date-header';
+    dh.textContent = dk;
+    dateGroup.appendChild(dh);
+
+    for (const [file, recs] of Object.entries(byDate[dk])) {
+      const fg = document.createElement('div');
+      fg.className = 'file-group';
+
+      if (file) {
+        const fh = document.createElement('div');
+        fh.className = 'file-header';
+        const a = document.createElement('a');
+        a.href = 'vscode://file/' + file;
+        a.textContent = file;
+        fh.appendChild(a);
+        fg.appendChild(fh);
+      }
+
+      for (const r of recs) {
+        fg.appendChild(makeObsRow(r));
+      }
+      dateGroup.appendChild(fg);
+    }
+    feed.appendChild(dateGroup);
+  }
+}
+
+// ---------- economics ----------
+function fetchEconomics() {
+  fetch('/api/economics').then(r => r.json()).then(d => {
+    econEl.textContent = '';
+    function addItem(label, val) {
+      const span = document.createElement('span'); span.className = 'econ-item';
+      const l = document.createElement('span'); l.textContent = label;
+      const v = document.createElement('span'); v.className = 'econ-val';
+      v.textContent = typeof val === 'number' ? val.toLocaleString() : val;
+      span.appendChild(l); span.appendChild(v);
+      econEl.appendChild(span);
+    }
+    addItem('Observations: ', d.count);
+    if (d.totalTokens) addItem('Tokens loaded: ', d.totalTokens);
+    if (d.workTokens) addItem('Work invested: ', d.workTokens);
+  }).catch(() => {});
+}
+
+// ---------- summary ----------
+function fetchSummary() {
+  fetch('/api/summary').then(r => r.json()).then(d => {
+    if (!d) { summaryEl.style.display = 'none'; return; }
+    summaryEl.textContent = '';
+    summaryEl.style.display = 'block';
+    const h = document.createElement('h3'); h.textContent = 'Latest Session Summary';
+    summaryEl.appendChild(h);
+    const g = document.createElement('div'); g.className = 'summary-grid';
+    const FIELDS = [['request','Requested'],['investigated','Investigated'],['learned','Learned'],['completed','Completed'],['next_steps','Next steps'],['notes','Notes']];
+    for (const [key, label] of FIELDS) {
+      if (!d[key]) continue;
+      const l = document.createElement('span'); l.className = 'summary-label'; l.textContent = label + ':';
+      const v = document.createElement('span'); v.textContent = d[key];
+      g.appendChild(l); g.appendChild(v);
+    }
+    summaryEl.appendChild(g);
+  }).catch(() => {});
+}
+
+// ---------- initial load ----------
+function loadInitial() {
+  fetch('/api/observations?limit=200').then(r => r.json()).then(obs => {
+    allRows = obs;
+    render();
+    fetchEconomics();
+    fetchSummary();
+    scrollToBottom();
+  }).catch(() => {});
+}
+
+// ---------- SSE ----------
+let es;
+function connectSSE() {
+  es = new EventSource('/stream');
+
+  es.onopen = () => {
+    liveDot.style.background = 'var(--ok)';
+    liveDot.title = 'Live';
+  };
+
+  es.onmessage = e => {
+    try {
+      const r = JSON.parse(e.data);
+      // Deduplicate by id
+      if (!allRows.find(x => x.id === r.id)) {
+        allRows.push(r);
+        render();
+        fetchEconomics();
+        scrollToBottom();
+      }
+    } catch {}
+  };
+
+  es.addEventListener('close', () => { es.close(); });
+
+  es.onerror = () => {
+    liveDot.style.background = 'var(--warn)';
+    liveDot.title = 'Reconnecting...';
+  };
+}
+
+// Polling fallback if EventSource not available
+function startPolling() {
+  let lastCount = 0;
+  setInterval(() => {
+    fetch('/api/observations?limit=200').then(r => r.json()).then(obs => {
+      if (obs.length !== lastCount) {
+        lastCount = obs.length;
+        allRows = obs;
+        render();
+        fetchEconomics();
+        scrollToBottom();
+      }
+    }).catch(() => {});
+  }, 3000);
+}
+
+if (typeof EventSource !== 'undefined') {
+  connectSSE();
+} else {
+  startPolling();
+}
+
+// ---------- keyboard shortcuts ----------
+function getAllObsRows() {
+  return Array.from(feed.querySelectorAll('.obs-row'));
+}
+
+document.addEventListener('keydown', e => {
+  // / to focus search
+  if (e.key === '/' && document.activeElement !== qInput) {
+    e.preventDefault();
+    qInput.focus();
+    qInput.select();
+    return;
+  }
+  // Escape to blur search / collapse detail
+  if (e.key === 'Escape') {
+    if (document.activeElement === qInput) { qInput.blur(); return; }
+    if (expanded) {
+      expanded.classList.remove('open');
+      expanded.closest('.obs-row')?.classList.remove('expanded');
+      expanded = null;
+    }
+    return;
+  }
+  if (document.activeElement === qInput) return;
+  const rows = getAllObsRows();
+  if (!rows.length) return;
+  if (e.key === 'j') {
+    navIndex = Math.min(navIndex + 1, rows.length - 1);
+    rows[navIndex]?.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    rows[navIndex]?.focus();
+  } else if (e.key === 'k') {
+    navIndex = Math.max(navIndex - 1, 0);
+    rows[navIndex]?.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    rows[navIndex]?.focus();
+  } else if (e.key === 'Enter' && navIndex >= 0) {
+    rows[navIndex]?.click();
+  }
+});
+
+// ---------- filter events ----------
+qInput.addEventListener('input', render);
+platSel.addEventListener('change', render);
+typeSel.addEventListener('change', render);
+clearBtn.addEventListener('click', () => {
+  qInput.value = '';
+  platSel.value = '';
+  typeSel.value = '';
+  render();
+});
+
+loadInitial();
+</script>
+</body>
+</html>

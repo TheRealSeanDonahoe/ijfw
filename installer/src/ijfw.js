@@ -82,10 +82,33 @@ async function main() {
       break;
     }
     case 'dashboard': {
-      const dashSub = argv[3]; // render | start | stop | status
-      if (dashSub === 'render' || !dashSub) {
+      const dashSub = argv[3]; // start | stop | status | render
+      const root = repoRoot();
+
+      if (dashSub === 'start' || dashSub === 'stop' || dashSub === 'status') {
+        // V1.1D: HTTP server subcommands via ijfw-dashboard bin
+        const dashBin = join(root, 'mcp-server', 'bin', 'ijfw-dashboard');
+        if (existsSync(dashBin)) {
+          const r = spawnSync('node', [dashBin, dashSub, ...argv.slice(4)], { stdio: 'inherit' });
+          process.exit(r.status ?? 0);
+        } else {
+          // Fallback: run dashboard-server.js directly for start
+          const serverJs = join(root, 'mcp-server', 'src', 'dashboard-server.js');
+          if (dashSub === 'start' && existsSync(serverJs)) {
+            const { spawn } = await import('node:child_process');
+            const child = spawn(process.execPath, [serverJs, '--daemon'], {
+              detached: true,
+              stdio: 'ignore',
+            });
+            child.unref();
+            console.log('Dashboard starting... (check: ijfw dashboard status)');
+            process.exit(0);
+          }
+          console.log('[ijfw] Dashboard bin not found. Run from the IJFW repo root.');
+          process.exit(1);
+        }
+      } else if (dashSub === 'render' || !dashSub) {
         // V1.1C: render terminal dashboard
-        const root = repoRoot();
         const binJs = join(root, 'scripts', 'dashboard', 'bin.js');
         if (existsSync(binJs)) {
           const r = spawnSync('node', [binJs, ...argv.slice(dashSub ? 4 : 3)], { stdio: 'inherit' });
@@ -95,8 +118,8 @@ async function main() {
           process.exit(1);
         }
       } else {
-        console.log(`ijfw dashboard ${dashSub} -- server commands coming in Wave V1.1D`);
-        process.exit(0);
+        console.log('Usage: ijfw dashboard <start|stop|status|render>');
+        process.exit(1);
       }
       break;
     }

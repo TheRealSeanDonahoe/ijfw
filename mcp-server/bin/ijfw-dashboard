@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+/**
+ * ijfw-dashboard -- PID-managed launcher for dashboard-server.js
+ * Usage: ijfw-dashboard start|stop|status [--port N] [--no-open]
+ */
+
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { spawn, spawnSync } from 'node:child_process';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SERVER_JS  = join(__dirname, '..', 'src', 'dashboard-server.js');
+const IJFW_DIR   = join(homedir(), '.ijfw');
+const PID_FILE   = join(IJFW_DIR, 'dashboard.pid');
+const PORT_FILE  = join(IJFW_DIR, 'dashboard.port');
+const DEFAULT_PORT = 37891;
+
+function ensureDir() { mkdirSync(IJFW_DIR, { recursive: true }); }
+
+function readPid() {
+  try { return parseInt(readFileSync(PID_FILE, 'utf8').trim(), 10); } catch { return null; }
+}
+
+function readPort() {
+  try { return parseInt(readFileSync(PORT_FILE, 'utf8').trim(), 10); } catch { return DEFAULT_PORT; }
+}
+
+function isAlive(pid) {
+  if (!pid) return false;
+  try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+function removePidFiles() {
+  try { unlinkSync(PID_FILE); } catch {}
+  try { unlinkSync(PORT_FILE); } catch {}
+}
+
+function openBrowser(url) {
+  if (process.env.CI || process.env.NO_OPEN) return;
+  const cmd = process.platform === 'darwin' ? 'open'
+    : process.platform === 'win32' ? 'start'
+    : 'xdg-open';
+  try { spawn(cmd, [url], { detached: true, stdio: 'ignore' }).unref(); } catch {}
+}
+
+const argv = process.argv.slice(2);
+const sub  = argv[0] || 'status';
+const noOpen = argv.includes('--no-open');
+
+if (sub === 'start') {
+  ensureDir();
+  const existingPid = readPid();
+  if (existingPid && isAlive(existingPid)) {
+    const port = readPort();
+    console.log('Dashboard already running at http://localhost:' + port + ' (PID ' + existingPid + ')');
+    process.exit(0);
+  }
+  // Stale PID -- reclaim
+  removePidFiles();
+
+  // Spawn detached server; it writes its own PID + port files.
+  const child = spawn(process.execPath, [SERVER_JS, '--daemon'], {
+    detached: true,
+    stdio: ['ignore', 'ignore', 'ignore'],
+    env: { ...process.env, IJFW_PID_FILE: PID_FILE, IJFW_PORT_FILE: PORT_FILE },
+  });
+  child.unref();
+
+  // Poll for port file (server writes it after binding), max 3s.
+  let waited = 0;
+  const interval = setInterval(() => {
+    waited += 100;
+    if (existsSync(PORT_FILE)) {
+      clearInterval(interval);
+      const port = readPort();
+      const url  = 'http://localhost:' + port;
+      console.log('Dashboard live at ' + url);
+      if (!noOpen) openBrowser(url);
+      process.exit(0);
+    }
+    if (waited >= 3000) {
+      clearInterval(interval);
+      console.log('Dashboard starting... (check status with: ijfw dashboard status)');
+      process.exit(0);
+    }
+  }, 100);
+
+} else if (sub === 'stop') {
+  const pid = readPid();
+  if (!pid || !isAlive(pid)) {
+    removePidFiles();
+    console.log('Dashboard is not running.');
+    process.exit(0);
+  }
+  try {
+    process.kill(pid, 'SIGTERM');
+    // Wait up to 2s for clean exit, then SIGKILL.
+    let waited = 0;
+    const t = setInterval(() => {
+      waited += 100;
+      if (!isAlive(pid)) {
+        clearInterval(t);
+        removePidFiles();
+        console.log('Dashboard stopped.');
+        process.exit(0);
+      }
+      if (waited >= 2000) {
+        clearInterval(t);
+        try { process.kill(pid, 'SIGKILL'); } catch {}
+        removePidFiles();
+        console.log('Dashboard stopped (forced).');
+        process.exit(0);
+      }
+    }, 100);
+  } catch {
+    removePidFiles();
+    console.log('Dashboard stopped.');
+    process.exit(0);
+  }
+
+} else if (sub === 'status') {
+  const pid = readPid();
+  if (pid && isAlive(pid)) {
+    const port = readPort();
+    console.log('Dashboard running at http://localhost:' + port + ' (PID ' + pid + ')');
+  } else {
+    if (pid) removePidFiles();
+    console.log('Dashboard is not running. Start with: ijfw dashboard start');
+  }
+  process.exit(0);
+
+} else {
+  console.error('Usage: ijfw-dashboard start|stop|status [--no-open]');
+  process.exit(1);
+}
