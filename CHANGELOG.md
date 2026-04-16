@@ -1,5 +1,60 @@
 # Changelog
 
+## [1.1.0] -- 2026-04-16
+
+### Preflight pipeline
+
+- `ijfw preflight` -- 11-gate quality pipeline covering shell lint, JS lint, security scan, secret detection, npm audit, dead-code detection, license check, pack-smoke, and upgrade-smoke.
+- Blocking vs advisory distinction: exit 0 when all blocking gates pass even if advisory warnings exist. Exit 1 on any blocking failure.
+- Each gate uses `npx --yes <tool>@<pinned-version>`. Pinned versions in `preflight-versions.json`. Missing tools report "skipped" with a positive install hint, not a failure.
+- Warm-cache SLO: <=90s. Cold-cache: <=240s. Both printed in the summary line.
+- `prepublishOnly` in `installer/package.json` now runs preflight before every publish so no tag can ship with a blocking gate open.
+
+### Observation ledger
+
+- `~/.ijfw/observations.jsonl` -- append-only JSONL ledger. One record per PostToolUse event on Claude, Codex, and Gemini.
+- Heuristic classifier assigns type: `bugfix`, `feature`, `refactor`, `change`, `discovery`, `decision`. Deterministic -- zero LLM cost.
+- Atomic mkdir-lock serializes concurrent appenders. Rotation at 10 MB (plain rename, archived files kept for audit).
+- SessionEnd summary writes one JSON line to `~/.ijfw/session_summaries.jsonl` with request, investigated, learned, completed, and next_steps keys.
+- 36 unit tests: classifier (15), capture atomic correctness (4), summarizer (7), titleizer (10).
+
+### Local observability dashboard
+
+- `ijfw dashboard start` -- spawns detached Node process on 127.0.0.1:37891 (walks to 37900 on conflict). Writes `~/.ijfw/dashboard.pid` and `~/.ijfw/dashboard.port`.
+- `ijfw dashboard stop` -- sends `event: close` SSE, graceful shutdown, cleans PID + port files.
+- `ijfw dashboard status` -- shows port and live observation count.
+- Single-file HTML viewer (`dashboard-client.html`): inline CSS + JS, no React, no build step, no CDN references.
+- SSE `/stream` endpoint delivers new observations within ~150ms of ledger append (50ms debounce + watcher). `Last-Event-ID` replay on reconnect. `event: close` on shutdown.
+- `/api/observations` supports `?platform=`, `?since=`, `?backfill=` query params.
+- `/api/health` returns `{ok, status, version, uptime, ledgerPath, obsCount}`.
+- `Content-Security-Policy: default-src 'self'; ...` on every response. All DOM mutation via `textContent` or `createElement` -- no `innerHTML` with observation data.
+- Localhost guard: non-loopback requests receive 403. Server bound to 127.0.0.1 only.
+- Zero runtime dependencies. `npm ls --production`: 0 entries.
+- 10 unit tests: health, HTML, CSP, port walk, /api/observations filters, SSE backfill, SSE live event, XSS safe-render.
+
+### GitHub Actions CI/CD
+
+- `.github/workflows/ci.yml` -- runs `npm run preflight` on ubuntu-latest Node 18 + 22 matrix. Preflight gate blocks merge on any blocking failure.
+- `.github/workflows/release.yml` -- on `push: tags: v*`, re-runs preflight then `npm publish --provenance --access public` with `id-token: write` via npm Trusted Publishing. No `NPM_TOKEN` in repo secrets.
+- `.github/workflows/cross-audit.yml` -- manual or `trident`-label-triggered Trident on PRs.
+- `.github/dependabot.yml` -- weekly dev-dep updates.
+
+### Cross-platform parity
+
+- Observation capture and dashboard on Codex (PostToolUse hook) and Gemini (AfterTool hook).
+- Per-platform `session-start-dashboard.sh` banner: prints dashboard URL + live observation count. Async, never blocks session start.
+- `shared/skills/ijfw-preflight/SKILL.md` and `shared/skills/ijfw-dashboard/SKILL.md` canonical skills copied to Claude, Codex, and Gemini.
+- Gemini TOML slash commands `ijfw-preflight.toml` and `ijfw-dashboard.toml`.
+- Envelope invariant proven for all three platforms: PostToolUse/AfterTool JSON envelope is always the terminal stdout line, even when observation capture runs async in the background.
+
+### Tests
+
+- Total: 404 passing (up from 352 in v1.0.0). No failing tests.
+  - mcp-server suite: 352
+  - dashboard-server: 10 (new)
+  - installer: 6
+  - observation ledger + classifier: 36 (new)
+
 ## [1.0.0] -- 2026-04-17
 
 First stable release of IJFW. One install configures a native-depth IJFW plugin

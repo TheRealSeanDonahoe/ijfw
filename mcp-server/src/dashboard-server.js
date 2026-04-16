@@ -5,7 +5,7 @@
  */
 
 import { createServer } from 'node:http';
-import { existsSync, readFileSync, statSync, watch, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, watch, writeFileSync, mkdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -15,8 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const HTML_PATH = join(__dirname, 'dashboard-client.html');
 
 const DEFAULT_PORT  = 37891;
-const DEFAULT_MAX   = 37900;
-const PORT_WALK_MAX = 10; // max ports to try from the preferred port
+const PORT_WALK_MAX = 10; // walk up to 37891+PORT_WALK_MAX (37900)
 const BACKFILL_DEFAULT = 200;
 
 // ---------- localhost guard ----------
@@ -316,6 +315,14 @@ export async function startServer(options = {}) {
         process.once('SIGTERM', shutdown);
         process.once('SIGINT', shutdown);
 
+        // Wrap server.close so tests can clean up watcher + broadcaster without
+        // knowing about them directly.
+        const originalClose = server.close.bind(server);
+        server.close = (cb) => {
+          watcher.stop();
+          broadcaster.closeAll();
+          return originalClose(cb);
+        };
         resolve({ port, server, broadcaster, watcher });
       });
     }

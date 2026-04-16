@@ -1,3 +1,5 @@
+![CI](https://github.com/TheRealSeanDonahoe/ijfw/actions/workflows/ci.yml/badge.svg)
+
 # IJFW (It Just F\*cking Works!)
 
 **Your AI is brilliant. It's also forgetful, undisciplined, alone, and it's quietly burning tokens you never needed to spend.** IJFW fixes all four with one install. Richest on Claude Code, connected through to Codex, Gemini, Cursor, Windsurf, and Copilot.  
@@ -60,6 +62,66 @@ What you see:
 **Live now** is the platforms on your machine, configured immediately. **Standing by** is every platform you do not yet have, pre-staged. Install Cursor next month and IJFW activates automatically. No rerun, no setup, no thought.
 
 Every existing config gets a `.bak.<timestamp>` backup. Your existing MCP servers, model preferences, and per-project trust settings are preserved.
+
+* * *
+
+## Preflight
+
+**Run this before any publish or production deploy.** `ijfw preflight` executes an 11-gate quality pipeline in under 90 seconds on a warm cache and exits 0 only when every blocking gate passes.
+
+```bash
+ijfw preflight
+```
+
+| # | Gate | Blocks on fail? | What it catches |
+|---|------|-----------------|-----------------|
+| 1 | shellcheck | yes | Unbound variables, POSIX violations in hook scripts |
+| 2 | oxlint | yes | Unused imports, dead variables in JS/TS |
+| 3 | eslint-security | advisory | Security anti-patterns (non-literal fs paths, injection sinks) |
+| 4 | psscriptanalyzer | advisory on macOS | PowerShell lint (blocking in Windows CI) |
+| 5 | publint | yes | package.json bin/exports integrity |
+| 6 | gitleaks | yes | Plaintext secrets and credentials |
+| 7 | audit-ci | yes | npm audit: high and critical vulnerabilities |
+| 8 | knip | advisory | Unused exports and dead code |
+| 9 | license-check | advisory | Production dep license compatibility |
+| 10 | pack-smoke | yes | `npm pack` -> temp install -> `ijfw --help` exits 0 |
+| 11 | upgrade-smoke | yes | Plugin key wiring after upgrade from floor version |
+
+Each gate uses `npx --yes <tool>@<pinned-version>` with versions tracked in `preflight-versions.json`. Missing tools are reported as "skipped" with a positive install hint. Preflight is optional -- it is not on the install path -- so the three-second install promise holds.
+
+SLO: warm cache <=90s, cold cache <=240s. Both are printed in the summary line.
+
+```
+PASS 8  WARN 2  SKIP 1  FAIL 0
+Time: 7s  within warm-cache SLO (<=90s)
+
+All blocking gates passed.
+```
+
+* * *
+
+## Dashboard
+
+**A live window into every AI session across Claude, Codex, and Gemini.** Every PostToolUse event appends one JSONL line to `~/.ijfw/observations.jsonl`. The dashboard reads that ledger and streams new events to the browser in real time via SSE.
+
+```bash
+ijfw dashboard start    # bind 127.0.0.1:37891, open browser
+ijfw dashboard status   # show port + observation count
+ijfw dashboard stop     # graceful shutdown
+```
+
+The web dashboard at `http://localhost:37891` is a single-file zero-dependency HTML page:
+
+- Session timeline showing every tool call, file touched, and heuristic classification (bugfix, feature, change, discovery, decision).
+- Filter bar narrows rows client-side -- no round-trips.
+- Platform column color-coded: Claude (blue), Codex (purple), Gemini (green).
+- Light and dark themes via `prefers-color-scheme`. Reduced-motion respected.
+- "Load earlier" button for paginating past the default 200-row backfill.
+- Port walk: if 37891 is busy, walks to 37900. Actual port written to `~/.ijfw/dashboard.port`.
+- External requests (non-localhost) receive 403. Bound to 127.0.0.1 only.
+- Zero runtime dependencies. `npm ls --production`: 0 entries.
+
+The observation ledger feeds into a session summary written at SessionEnd: files read, files edited, what was learned, what ships next.
 
 * * *
 
@@ -259,6 +321,11 @@ Hard cap at 8. Every tool earns its slot or it gets cut.
 ### The `ijfw` CLI
 
 ```
+ijfw install                       Install IJFW into your AI coding agents.
+ijfw preflight                     Run 11-gate quality pipeline (blocking + advisory).
+ijfw dashboard start               Start localhost:37891 SSE dashboard (opens browser).
+ijfw dashboard stop                Graceful shutdown.
+ijfw dashboard status              Port + observation count.
 ijfw demo                          Run a 30-second Trident tour.
 ijfw status                        Hero line + recent runs + cache savings.
 ijfw doctor                        CLI + API-key reachability with literal fix commands.
@@ -287,23 +354,36 @@ Native plugin (.codex-plugin/plugin.json), 16 skills, 6 hook events, MCP registe
 
 Gemini CLI
 
-Native extension (gemini-extension.json), 16 skills, 11 hook events, 16 TOML slash commands, policy engine, BeforeModel injection, checkpointing
+Native extension (gemini-extension.json), 16 skills, 11 hook events, 16 TOML slash commands, policy engine, BeforeModel injection, checkpointing; observation ledger + dashboard write
 
 Cursor
 
-`.cursor/mcp.json` + `.cursor/rules/ijfw.mdc`
+`.cursor/mcp.json` + `.cursor/rules/ijfw.mdc`; dashboard view-only (no hook lifecycle)
 
 Windsurf
 
-`~/.codeium/windsurf/mcp_config.json` + `.windsurfrules`
+`~/.codeium/windsurf/mcp_config.json` + `.windsurfrules`; dashboard view-only
 
 Copilot (VS Code)
 
-`.vscode/mcp.json` + `.github/copilot-instructions.md`
+`.vscode/mcp.json` + `.github/copilot-instructions.md`; dashboard view-only
 
 Universal
 
 `universal/ijfw-rules.md`, paste into anything else
+
+### Observation + dashboard parity
+
+| Platform | Writes observations | Dashboard (read) | Hook lifecycle |
+|----------|--------------------|--------------------|----------------|
+| Claude Code | yes (PostToolUse hook) | yes | full |
+| Codex CLI | yes (PostToolUse hook) | yes | full |
+| Gemini CLI | yes (AfterTool hook) | yes | full |
+| Cursor | view-only | yes | none |
+| Windsurf | view-only | yes | none |
+| Copilot | view-only | yes | none |
+
+Claude, Codex, and Gemini write one JSONL line per tool call. Cursor, Windsurf, and Copilot have no hook lifecycle IJFW can write from, so they read the shared ledger via the dashboard instead.
 
 Same engine behind all of them. Native affordances on each.
 
@@ -414,6 +494,30 @@ Ship
 (via workflow)
 
 "ship it"
+
+Preflight
+
+`/ijfw-preflight`
+
+`ijfw preflight`
+
+"run preflight"
+
+Observations
+
+(auto on PostToolUse)
+
+`~/.ijfw/observations.jsonl`
+
+built-in
+
+Dashboard
+
+`/ijfw-dashboard`
+
+`ijfw dashboard start`
+
+"open the dashboard"
 
 **Natural language is a first-class input.** In any IJFW-enabled agent, saying "cross audit this file" or "let's cross-audit the auth module" routes to the same engine as the slash command, and the target is picked up from context (your current file, your last commit, your open diff). You do not have to remember syntax. You do not have to copy a path. You tell the agent what you want and it figures out the where.
 

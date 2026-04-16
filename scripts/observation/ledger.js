@@ -125,7 +125,8 @@ export function appendObservation(obs) {
       const lines = readFileSync(JSONL_PATH, 'utf8').split('\n').filter(Boolean);
       if (lines.length > 0) {
         const last = JSON.parse(lines[lines.length - 1]);
-        nextId = (last && last.id ? last.id : lines.length) + 1;
+        const lastId = last && typeof last.id === 'number' ? last.id : lines.length;
+        nextId = lastId + 1;
       }
     }
   } catch {}

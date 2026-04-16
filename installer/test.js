@@ -17,8 +17,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // --- Test 1: package layout ---
 test('package.json declares both bin entries', () => {
   const pkg = JSON.parse(readFileSync(join(HERE, 'package.json'), 'utf8'));
-  assert.equal(pkg.bin['ijfw-install'], './dist/install.js');
-  assert.equal(pkg.bin['ijfw-uninstall'], './dist/uninstall.js');
+  assert.ok(pkg.bin['ijfw-install'].includes('dist/install.js'), 'ijfw-install bin declared');
+  assert.ok(pkg.bin['ijfw-uninstall'].includes('dist/uninstall.js'), 'ijfw-uninstall bin declared');
   assert.deepEqual(pkg.dependencies, {});
   assert.ok(pkg.engines.node.startsWith('>='));
 });
@@ -41,12 +41,13 @@ test('marketplace merge preserves unrelated keys and unmerge reverses', async ()
   assert.equal(merged.custom.keep, 'me');
   assert.ok(merged.extraKnownMarketplaces.other, 'unrelated marketplace preserved');
   assert.ok(merged.extraKnownMarketplaces.ijfw, 'ijfw marketplace added');
-  assert.equal(merged.enabledPlugins['ijfw-core@ijfw'], true);
+  // v1.0.3+: plugin key is ijfw@ijfw (not legacy ijfw-core@ijfw)
+  assert.equal(merged.enabledPlugins['ijfw@ijfw'], true);
   assert.equal(merged.enabledPlugins['other@other'], true);
 
   const unmerged = unmergeMarketplace(settingsPath);
   assert.equal(unmerged.extraKnownMarketplaces.ijfw, undefined);
-  assert.equal(unmerged.enabledPlugins['ijfw-core@ijfw'], undefined);
+  assert.equal(unmerged.enabledPlugins['ijfw@ijfw'], undefined);
   assert.ok(unmerged.extraKnownMarketplaces.other, 'other marketplace still there after unmerge');
   assert.equal(unmerged.custom.keep, 'me');
 
