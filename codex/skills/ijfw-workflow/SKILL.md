@@ -1,6 +1,6 @@
 ---
 name: ijfw-workflow
-description: "Universal project workflow with built-in quality auditing. Two modes: Quick (brainstorm/build fast, 5-move Quick loop) and Deep (full project management, 6-module Deep spine). Trigger: 'build', 'create', 'plan', 'new project', 'brainstorm', 'help me build', or any project-level task."
+description: "Universal project workflow with built-in quality auditing. Quick mode (fast brainstorm, ~5 min) or Deep mode (full plan with audits, ~30 min). Auto-picks based on task size. Trigger: 'build', 'create', 'plan', 'new project', 'brainstorm', 'help me build', or any project-level task."
 ---
 
 

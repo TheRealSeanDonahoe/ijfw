@@ -24,6 +24,11 @@ if [ -f "$PWD/.ijfw-source" ]; then
 fi
 LAUNCHER="$REPO_ROOT/mcp-server/bin/ijfw-memory"
 
+command -v node >/dev/null 2>&1 || {
+  printf "IJFW needs Node.js 18+ to power the memory server. Install from https://nodejs.org then re-run.\n"
+  exit 1
+}
+
 # Parse flags and platform targets from args.
 INSTALL_POST_COMMIT_HOOK=0
 TARGETS=()
@@ -39,7 +44,7 @@ if [ ! -x "$LAUNCHER" ]; then
   chmod +x "$LAUNCHER" 2>/dev/null
 fi
 if [ ! -f "$LAUNCHER" ]; then
-  printf "IJFW launcher not found at %s -- reinstall @ijfw/install to restore it.\n" "$LAUNCHER" >&2
+  printf "Ready to activate IJFW -- install Node.js 18+ and run this script again to complete setup.\n" >&2
   exit 1
 fi
 
@@ -176,9 +181,10 @@ merge_toml() {
     fs.writeFileSync(f, text);
   ' "$tmp" || { rm -f "$tmp"; return 1; }
   # Append the MCP server block.
+  escaped_launcher=$(printf '%s' "$launcher" | sed 's/\\/\\\\/g; s/"/\\"/g')
   {
     printf '\n[mcp_servers.ijfw-memory]\n'
-    printf 'command = "%s"\n' "$launcher"
+    printf 'command = "%s"\n' "$escaped_launcher"
     printf 'args = []\n'
     printf 'enabled = true\n'
     printf 'startup_timeout_sec = 10\n'

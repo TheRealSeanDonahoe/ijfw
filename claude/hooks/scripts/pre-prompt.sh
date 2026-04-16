@@ -64,32 +64,29 @@ done
 
 # Single node invocation: intent router first (W2.1), then vague-prompt
 # detector. Emits combined additionalContext. Stays under ~100ms.
-ROUTER_IMPORT=""
+ROUTER_ARG=""
 ROUTER_CALL=""
 ROUTER_STATE="null"
 if [ -n "$ROUTER" ]; then
-  ROUTER_IMPORT="import { detectIntent } from '$ROUTER';"
-  ROUTER_CALL="const intent = detectIntent(prompt); if (intent) contextParts.push('<ijfw-intent>\\n' + intent.nudge + '\\n(Detected intent: ' + intent.intent + ' → ' + intent.skill + ')\\n</ijfw-intent>');"
+  ROUTER_ARG="$ROUTER"
+  ROUTER_CALL="const routerMod = await import(process.argv[3]); const { detectIntent } = routerMod; const intent = detectIntent(prompt); if (intent) contextParts.push('<ijfw-intent>\\n' + intent.nudge + '\\n(Detected intent: ' + intent.intent + ' → ' + intent.skill + ')\\n</ijfw-intent>');"
   ROUTER_STATE="intent ? intent.intent : null"
 fi
-FEEDBACK_IMPORT=""
+FEEDBACK_ARG=""
 FEEDBACK_CALL="const feedback = [];"
 if [ -n "$FEEDBACK" ]; then
-  FEEDBACK_IMPORT="import { detectFeedback } from '$FEEDBACK';"
-  FEEDBACK_CALL="const feedback = detectFeedback(prompt);"
+  FEEDBACK_ARG="$FEEDBACK"
+  FEEDBACK_CALL="const feedbackMod = await import(process.argv[4]); const { detectFeedback } = feedbackMod; const feedback = detectFeedback(prompt);"
 fi
 
 RESULT=$(node --input-type=module -e "
-import { checkPrompt } from '$DETECTOR';
-$ROUTER_IMPORT
-$FEEDBACK_IMPORT
+const { checkPrompt } = await import(process.argv[2]);
 import { writeFileSync, mkdirSync, appendFileSync } from 'fs';
 let payload = {};
 try { payload = JSON.parse(process.argv[1] || '{}'); } catch {}
 const prompt = payload.prompt || '';
 
 const contextParts = [];
-let intent = null;
 $ROUTER_CALL
 $FEEDBACK_CALL
 
@@ -132,7 +129,7 @@ if (contextParts.length > 0) {
     }
   }));
 }
-" "$HOOK_STDIN" 2>/dev/null)
+" "$HOOK_STDIN" "$DETECTOR" "$ROUTER_ARG" "$FEEDBACK_ARG" 2>/dev/null)
 
 if [ -n "$RESULT" ]; then
   printf '%s' "$RESULT"

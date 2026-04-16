@@ -44,7 +44,7 @@ done
 [ -z "$DETECTOR" ] && printf '{"decision":"allow"}\n' && exit 0
 
 RESULT=$(node --input-type=module -e "
-import { checkPrompt } from '$DETECTOR';
+const { checkPrompt } = await import(process.argv[2]);
 import { writeFileSync, mkdirSync } from 'fs';
 let payload = {};
 try { payload = JSON.parse(process.argv[1] || '{}'); } catch {}
@@ -65,7 +65,7 @@ if (r.vague) {
   block += '\nOverride: start prompt with * to skip.\nSignals: ' + r.signals.join(', ') + '.\n</ijfw-prompt-check>';
   process.stdout.write(JSON.stringify({ decision: 'allow', additionalContext: block }) + '\n');
 }
-" "$HOOK_STDIN" 2>/dev/null)
+" "$HOOK_STDIN" "$DETECTOR" 2>/dev/null)
 
 if [ -n "$RESULT" ]; then
   printf '%s' "$RESULT"

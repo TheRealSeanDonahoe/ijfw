@@ -51,7 +51,7 @@ done
 
 # Single node invocation: vague-prompt detector.
 RESULT=$(node --input-type=module -e "
-import { checkPrompt } from '$DETECTOR';
+const { checkPrompt } = await import(process.argv[2]);
 import { writeFileSync, mkdirSync } from 'fs';
 let payload = {};
 try { payload = JSON.parse(process.argv[1] || '{}'); } catch {}
@@ -78,7 +78,7 @@ if (r.vague) {
   hint += ' | Start with * to skip.';
   process.stdout.write(JSON.stringify({ continue: true, systemMessage: hint }) + '\n');
 }
-" "$HOOK_STDIN" 2>/dev/null)
+" "$HOOK_STDIN" "$DETECTOR" 2>/dev/null)
 
 if [ -n "$RESULT" ]; then
   printf '%s' "$RESULT"

@@ -86,7 +86,8 @@ test('codex: session-start hook references ijfw memory path', () => {
 const EXPECTED_SKILLS = [
   'ijfw-workflow', 'ijfw-handoff', 'ijfw-cross-audit', 'ijfw-commit',
   'ijfw-status', 'ijfw-doctor', 'ijfw-recall', 'ijfw-team',
-  'ijfw-compress', 'ijfw-review', 'ijfw-debug', 'ijfw-summarize'
+  'ijfw-compress', 'ijfw-review', 'ijfw-debug', 'ijfw-summarize',
+  'ijfw-critique', 'ijfw-memory-audit', 'ijfw-plan-check', 'ijfw-update'
 ];
 
 test('codex: all expected skill directories exist', () => {
