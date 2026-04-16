@@ -1,98 +1,99 @@
 # Changelog
 
-## [1.1F] -- 2026-04-16
+## [1.0.0] -- 2026-04-16
 
-### Added
+First stable release of IJFW. One install configures a native-depth IJFW plugin
+across three AI coding agents (Claude Code, Codex CLI, Gemini CLI) plus a
+rules-and-memory baseline across three more (Cursor, Windsurf, Copilot). All
+six platforms share the same skills, the same memory, and the same Trident
+cross-audit -- each using its own native format.
 
-- **ijfw-plan-check** (16th skill): Donahoe Loop pre-execution audit gate. Checks
-  goal alignment, scope leaks, risk surface, and dependency ordering. Returns a
-  decisive PASS / FLAG / BLOCK verdict. Owns audit-plan, check-plan, and
-  before-we-build intents across Claude Code, Codex, and Gemini.
+### Native-depth platform bundles
 
----
-
-## [1.1.0] -- 2026-04-16
-
-Codex CLI and Gemini CLI reach **native-depth parity** with the Claude Code plugin.
-IJFW now ships as a native plugin on three platforms -- same 15 skills, same
-memory, same Trident -- each platform using its own native format.
-
-### Added in v1.1
-
-- **Codex native plugin** (`codex/.codex-plugin/plugin.json` manifest, 15 skills
-  under `codex/skills/`, `codex/.codex/hooks.json` with 6 hook events:
+- **Claude Code plugin**: 16 skills, full hooks, agents, slash commands, MCP.
+  Auto-registered by the installer -- no manual `/plugin install` step.
+- **Codex native plugin** (`codex/.codex-plugin/plugin.json` manifest, 16
+  skills under `codex/skills/`, `codex/.codex/hooks.json` with 6 hook events:
   SessionStart, Stop, UserPromptSubmit, PreToolUse, PostToolUse, AfterAgent).
   Marketplace-ready with `codex/.agents/plugins/marketplace.json`.
 - **Gemini native extension** (`gemini/extensions/ijfw/gemini-extension.json`
-  manifest, 15 skills, 15 TOML slash commands with `{{args}}` interpolation,
+  manifest, 16 skills, 16 TOML slash commands with `{{args}}` interpolation,
   `hooks/hooks.json` with 11 hook events covering all Gemini lifecycle points).
 - **Gemini bonuses**: native policy engine (`policies/ijfw.toml`) enforcing safe
   defaults for destructive operations; BeforeModel hook for first-turn memory
-  injection richer than CLAUDE.md; PreCompress hook mirroring Claude PreCompact;
-  AfterModel auto-memorize trigger; hub-and-spoke agent files.
-- **Shared skills source** (`shared/skills/`): canonical SKILL.md per skill,
-  used verbatim across Claude Code, Codex, and Gemini.
-- **Installer + doctor parity**: `scripts/install.sh` drops both new bundles,
-  `ijfw doctor` reports integration depth (deep / baseline) per platform.
-- **Per-platform smoke tests**: 30 new tests in `mcp-server/test-codex-bundle.js`
-  and `mcp-server/test-gemini-bundle.js`. Suite count: 352 (was 322).
+  injection; PreCompress hook mirroring Claude PreCompact; AfterModel
+  auto-memorize trigger; hub-and-spoke agent files.
+- **Baseline coverage** for Cursor, Windsurf, Copilot: MCP + native rules file
+  with the same core discipline.
 
-### Changed in v1.1
+### Skills
 
-- README parity matrix updated: Claude Code and Codex now read "native plugin";
-  Gemini reads "native extension" with bonus capabilities listed.
-- `installer/package.json` version bumped to `1.1.0`.
+- 16 canonical skills in `shared/skills/` used verbatim across all three
+  native platforms: workflow, handoff, commit, cross-audit, recall, compress,
+  team, debug, review, critique, memory-audit, summarize, status, doctor,
+  update, plan-check.
+- **ijfw-plan-check**: Donahoe Loop pre-execution audit gate. Checks goal
+  alignment, scope leaks, risk surface, and dependency ordering. Returns a
+  decisive PASS / FLAG / BLOCK verdict. Owns audit-plan, check-plan, and
+  before-we-build intents.
+- Dual-mode workflow skill: Quick mode (fast brainstorm, ~5 min) or Deep mode
+  (full plan with audits, ~30 min). Auto-picks based on task size.
 
----
+### Memory and MCP
 
-## [1.0.0] -- 2026-04-15
+- Cross-platform MCP memory server (zero npm dependencies) with 8 tools:
+  recall, store, search, status, prelude, prompt_check, metrics,
+  cross_project_search.
+- Three memory tiers (working, project, global), faceted per-topic global
+  files, BM25 keyword search with hybrid rerank path.
+- Session auto-memorize with consent flow; corruption recovery.
 
-First stable release of `@ijfw/install`. Eleven phases of polish, audit, and
-dogfood compressed into a one-command install that configures IJFW across
-six AI coding agents (Claude Code, Codex, Gemini CLI, Cursor, Windsurf,
-Copilot) with per-platform auto-detection, graceful fallbacks, and a
-positive-framed summary.
+### Installer
 
-### Added in v1.0
+- `bash scripts/install.sh` drops all six platform configs with per-platform
+  auto-detection, graceful fallbacks, and positive-framed summary.
+- Deep-merges existing platform configs rather than overwriting. Backs up
+  originals with `.bak.<timestamp>`. Idempotent -- safe to re-run.
+- Auto-registers Claude Code plugin directly to `~/.claude/settings.json` +
+  `known_marketplaces.json` -- no manual `/plugin install` required.
+- Codex installer enables `codex_hooks = true` in config.toml and merges
+  IJFW hooks with absolute paths; skills copied to `~/.codex/skills/`.
+- Windows-native installer (`installer/src/install.ps1`) with PS 5.1+
+  compatibility, explicit Git Bash resolution, state-machine JSONC parser.
+- Visual redesign: ANSI-colored boxed banner, Live-now / Standing-by section
+  summary, full-log redirection, `--verbose` / `-v` tee-to-console mode.
+- Node.js 18+ validation at install time with positive-framed action message.
+- `.ijfw-source` dev-tree guard (PWD-based) so user clones install cleanly.
+- `ijfw doctor` reports integration depth per platform.
 
-- `ijfw import <tool>` CLI with importers for claude-mem (SQLite via Node's
+### CLI
+
+- `ijfw import <tool>` with importers for claude-mem (SQLite via Node's
   built-in `node:sqlite` on Node 22.5+) and RTK (metrics-only, opt-in).
   Idempotent by default; `--dry-run` previews; `--force` overwrites.
 - `ijfw cross project-audit <rule-file>` walks every registered IJFW project
   on the machine and aggregates findings into a portfolio doc.
-- `ijfw_cross_project_search` MCP tool -- BM25-ranked search across every
-  known IJFW project, tagged by project basename.
-- `mcp-server/src/dispatch-planner.js` + `bin/ijfw-dispatch-plan` -- decides
-  shared-branch vs worktree-isolated parallelism per sub-wave based on
-  declared file overlaps. Consumed by the ijfw-workflow skill.
-- Windows-native installer (`installer/src/install.ps1`): PS 5.1+ compatible,
-  explicit Git Bash resolution (no WSL decoys), state-machine JSONC parser
-  for marketplace merge, graceful fallback with manual `/plugin` hint when
-  user settings.json is unparseable.
-- Installer visual redesign: ANSI-colored boxed banner, Live-now /
-  Standing-by section summary, full-log redirection to `~/.ijfw/install.log`,
-  `--verbose` / `-v` tee-to-console mode.
-- `.ijfw-source` dev-tree guard moved from tracked file to gitignored
-  local-only marker so user clones install cleanly.
+- `ijfw demo` shows a complete IJFW session without requiring API keys.
 
-### Changed in v1.0
+### Trident cross-audit
 
-- MCP tool count now 8 (was 7): `ijfw_memory_recall`, `_store`, `_search`,
-  `_status`, `_prelude`, `ijfw_prompt_check`, `ijfw_metrics`, and the new
-  `ijfw_cross_project_search`. Pinned at the CLAUDE.md cap of 8.
-- `installer/package.json` version bumped from `0.4.0-rc.1` to `1.0.0`.
-  Description non-ASCII cleanup.
+- Three-way review: Claude specialist swarm (security, code-review,
+  reliability, tests) + Codex + Gemini, merged into a single response.
+- 2-second auto-fire default via background bash -- no manual paste.
+- Perspective diversity guaranteed: picks one OpenAI-family and one
+  Google-family auditor so blind spots never share a lineage.
+- `/cross-research` and `/cross-critique` slash commands on a shared
+  dispatcher.
 
-### Fixed in v1.0
+### Quality
 
-- PS 5.1 `??` null-coalescing parse error in install.ps1 (Get-Target).
-- WSL-bash decoy: installer now resolves Git Bash explicitly from git.exe's
-  own install dir, bypassing PATH shims.
-- PS marketplace JSONC stripper mangled files containing `//` or `/*` inside
-  string values. Replaced with a state-machine cleaner that tracks string
-  and escape context.
-
----
+- 352-test suite: unit, installer, smoke tests for Codex and Gemini bundles.
+- CI-guard (`scripts/check-all.sh`) enforces banned-char, positive-framing,
+  foreign-plugin-verb, narration-pattern rules on every run.
+- Atomic session-counter with `mkdir`-based lock -- no race on concurrent
+  session end.
+- Pre-release security audit: code-injection and TOML-injection fixes
+  through all installer and hook paths.
 
 ---
 
