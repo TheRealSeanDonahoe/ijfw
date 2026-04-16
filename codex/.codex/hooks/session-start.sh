@@ -72,6 +72,13 @@ fi
 
 BANNER="[ijfw] Ready -- mode: $MODE | routing: $ROUTING | memory: $MEMORY_COUNT entries$CONSOLIDATE_HINT"
 
+# Render dashboard async (does not block or affect stdout envelope).
+_DASH_SCRIPT="$(dirname "$0")/session-start-dashboard.sh"
+if [ -f "$_DASH_SCRIPT" ]; then
+  bash "$_DASH_SCRIPT" >>"$HOME/.ijfw/logs/obs-capture.log" 2>&1 &
+  disown $! 2>/dev/null || true
+fi
+
 # Emit Codex-format JSON response.
 if command -v node >/dev/null 2>&1; then
   node -e '

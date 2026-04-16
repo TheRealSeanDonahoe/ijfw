@@ -67,6 +67,16 @@ if (r.vague) {
 }
 " "$HOOK_STDIN" "$DETECTOR" 2>/dev/null)
 
+# Dispatch session-request observation ASYNC before emitting terminal envelope.
+# Invariant: decision:"allow" must be the TERMINAL stdout line.
+_OBS_CAPTURE="$(dirname "$0")/user-prompt-submit-capture.sh"
+if [ -f "$_OBS_CAPTURE" ] && [ -n "$HOOK_STDIN" ]; then
+  mkdir -p "$HOME/.ijfw/logs" 2>/dev/null
+  printf '%s' "$HOOK_STDIN" | bash "$_OBS_CAPTURE" \
+    >>"$HOME/.ijfw/logs/obs-capture.log" 2>&1 &
+  disown $! 2>/dev/null || true
+fi
+
 if [ -n "$RESULT" ]; then
   printf '%s' "$RESULT"
 else

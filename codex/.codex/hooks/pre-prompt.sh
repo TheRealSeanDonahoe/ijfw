@@ -80,6 +80,14 @@ if (r.vague) {
 }
 " "$HOOK_STDIN" "$DETECTOR" 2>/dev/null)
 
+# Dispatch session-request observation ASYNC (does not affect stdout envelope).
+_OBS_CAPTURE="$(dirname "$0")/user-prompt-submit-capture.sh"
+if [ -f "$_OBS_CAPTURE" ] && [ -n "$HOOK_STDIN" ]; then
+  printf '%s' "$HOOK_STDIN" | bash "$_OBS_CAPTURE" \
+    >>"$HOME/.ijfw/logs/obs-capture.log" 2>&1 &
+  disown $! 2>/dev/null || true
+fi
+
 if [ -n "$RESULT" ]; then
   printf '%s' "$RESULT"
 fi

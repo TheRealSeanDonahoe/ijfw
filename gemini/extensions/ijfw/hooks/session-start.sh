@@ -85,6 +85,16 @@ fi
 BANNER="$BANNER
 [ijfw] Ready."
 
+# Render dashboard async (does not block; output captured to log).
+_DASH_SCRIPT="$(dirname "$0")/session-start-dashboard.sh"
+if [ -f "$_DASH_SCRIPT" ]; then
+  DASH_OUT=$(bash "$_DASH_SCRIPT" 2>/dev/null)
+  if [ -n "$DASH_OUT" ]; then
+    BANNER="$BANNER
+$DASH_OUT"
+  fi
+fi
+
 # Build memory context for Gemini's additionalContext field.
 MEM_CONTEXT=""
 KB_FILE="$IJFW_DIR/memory/knowledge.md"

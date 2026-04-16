@@ -75,6 +75,16 @@ if [ "${LINE_COUNT:-0}" -gt 500 ]; then
     "$LINE_COUNT" "$HEAD_PART" "$TAIL_PART")
 fi
 
+# Dispatch observation capture ASYNC before emitting the terminal envelope.
+# Invariant: envelope must be the TERMINAL stdout line.
+_OBS_CAPTURE="$(dirname "$0")/observation-capture.sh"
+if [ -f "$_OBS_CAPTURE" ]; then
+  mkdir -p "$HOME/.ijfw/logs" 2>/dev/null
+  printf '%s' "$INPUT" | bash "$_OBS_CAPTURE" \
+    >>"$HOME/.ijfw/logs/obs-capture.log" 2>&1 &
+  disown $! 2>/dev/null || true
+fi
+
 # Emit as Codex systemMessage so trimmed output flows into agent context.
 node -e '
   const out = process.argv[1] || "";
