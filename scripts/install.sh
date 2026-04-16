@@ -18,7 +18,7 @@ set -u
 
 REPO_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if [ -f "$REPO_ROOT/.ijfw-source" ]; then
+if [ -f "$PWD/.ijfw-source" ]; then
   printf "IJFW source-repo detected -- platform-rule writes skipped to protect your dev tree. Run this script from your project directory to install.\n"
   exit 1
 fi
