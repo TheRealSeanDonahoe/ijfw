@@ -1,0 +1,10 @@
+{
+  "oxlint": "0.16.6",
+  "eslint": "9.27.0",
+  "eslint-plugin-security": "3.0.0",
+  "publint": "0.3.12",
+  "audit-ci": "7.1.0",
+  "knip": "5.51.0",
+  "license-checker": "25.0.1",
+  "gitleaks": "8.24.3"
+}

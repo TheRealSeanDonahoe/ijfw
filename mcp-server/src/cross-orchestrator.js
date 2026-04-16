@@ -255,7 +255,7 @@ async function fireExternal(pick, request, timeoutMs, env = process.env, signal 
 
 // fanOut -- rolling concurrency window; zero-dep semaphore.
 async function fanOut(tasks, concurrency = 3) {
-  const results = new Array(tasks.length);
+  const results = Array.from({ length: tasks.length });
   let next = 0;
   async function worker() {
     while (next < tasks.length) {
@@ -273,7 +273,7 @@ async function fanOut(tasks, concurrency = 3) {
 // Takes a shared AbortController (runAc) so pending picks get killed on threshold.
 async function minResponsesFanOut(requests, picks, resolvedTimeoutSec, env, concurrency, minResponses, runAc) {
   const total = requests.length;
-  const results = new Array(total).fill(null);
+  const results = Array.from({ length: total }, () => null);
   let settledCount = 0;
   let nextIdx = 0;
   let done = false;
@@ -320,7 +320,7 @@ export async function runCrossOp({
   projectDir,
   env,
   runStamp,
-  expand,              // reserved -- passed through but unused in current CLI context
+  expand: _expand,     // reserved -- passed through but unused in current CLI context
   only,
   confirm,             // reserved -- handled by caller (CLI layer)
   perAuditorTimeoutSec,

@@ -311,10 +311,10 @@ async function cmdDemo() {
   console.log('Findings:');
   console.log('');
 
-  let attributed = [];
+  let _attributed = [];
   if (auditorResults && auditorResults.length === picks.length) {
     // Per-auditor attribution (U11: read auditorResults pre-merge)
-    attributed = _printDemoFindings(picks, auditorResults);
+    _attributed = _printDemoFindings(picks, auditorResults);
   } else {
     // Graceful fallback to merged listing when auditorResults unavailable
     const items = Array.isArray(result.merged) ? result.merged : [];
@@ -414,7 +414,7 @@ function cmdDoctor() {
 
   const rows = [];
   for (const entry of ROSTER) {
-    const reach = isReachable(entry.id, process.env);
+    const _reach = isReachable(entry.id, process.env);
     const cli = isInstalled(entry.id);
     const apiKey = entry.apiFallback ? process.env[entry.apiFallback.authEnv] : null;
     const apiOk = Boolean(apiKey);
@@ -451,7 +451,7 @@ function cmdDoctor() {
   console.log('');
   console.log('Integration depth:');
   let anyDepth = false;
-  for (const [id, def] of Object.entries(INTEGRATION_DEPTH)) {
+  for (const [_id, def] of Object.entries(INTEGRATION_DEPTH)) {
     const detected = def.checks.filter(c => { try { return c.detect(); } catch { return false; } });
     if (detected.length === 0) continue;
     anyDepth = true;
@@ -513,7 +513,7 @@ async function cmdCross({ mode, target, only, confirm, expand }) {
     process.exit(1);
   }
 
-  const { merged, picks, missing, note } = result;
+  const { merged, picks, note } = result;
 
   if (picks.length === 0) {
     console.log('\nIJFW has the Trident ready -- install codex or gemini (or set OPENAI_API_KEY / GEMINI_API_KEY), then run `ijfw demo`.');

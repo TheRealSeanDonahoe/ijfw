@@ -13,6 +13,7 @@ export function sanitizeContent(s) {
   let out = s;
 
   // 1. Strip C0/C1 control characters (incl. NUL) except tab and newline.
+  // oxlint-disable-next-line no-control-regex -- intentional: sanitize control chars from stored content
   out = out.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '');
 
   // 2. Strip Unicode bidi/zero-width/format chars used to hide payloads.

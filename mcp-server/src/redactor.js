@@ -52,11 +52,11 @@ const PATTERNS = [
 // (e.g. `GOOGLE_API_KEY=[REDACTED:gcp]` must stay labeled, not get flattened
 // to `[REDACTED]`).
 const INLINE = [
-  /(password\s*=\s*)[^\s\[\]]+/gi,
-  /(api[_-]?token\s*=\s*)[^\s\[\]]+/gi,
-  /(api[_-]?key\s*=\s*)[^\s\[\]]+/gi,
-  /(secret\s*=\s*)[^\s\[\]]+/gi,
-  /(client[_-]?secret\s*=\s*)[^\s\[\]]+/gi,
+  /(password\s*=\s*)[^\s[\]]+/gi,
+  /(api[_-]?token\s*=\s*)[^\s[\]]+/gi,
+  /(api[_-]?key\s*=\s*)[^\s[\]]+/gi,
+  /(secret\s*=\s*)[^\s[\]]+/gi,
+  /(client[_-]?secret\s*=\s*)[^\s[\]]+/gi,
   // JSON-style "clientSecret": "value" and similar.
   /("(?:client_?secret|api_?key|password|access_?token)"\s*:\s*")[^"]+(")/gi,
 ];

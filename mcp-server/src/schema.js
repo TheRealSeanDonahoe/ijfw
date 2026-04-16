@@ -3,7 +3,7 @@
 // legacy files on next touch (prepend-only, no data loss). Gives us room
 // to evolve the on-disk format in future waves without silent corruption.
 
-import { existsSync, readFileSync, writeFileSync, renameSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 
 export const MEMORY_SCHEMA = 'v1';
@@ -46,6 +46,7 @@ export function recoverIfCorrupt(filepath) {
   if (/^\s*#/.test(cur)) return 'ok';
   // Binary-ish? Look for high ratio of non-printable bytes.
   const sample = cur.slice(0, 2048);
+  // oxlint-disable-next-line no-control-regex -- intentional: binary corruption detection
   const bad = (sample.match(/[\u0000-\u0008\u000E-\u001F]/g) || []).length;
   if (bad / Math.max(1, sample.length) > 0.02) {
     return quarantine(filepath, cur, 'binary-content');
