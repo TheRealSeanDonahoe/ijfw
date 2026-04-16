@@ -37,3 +37,12 @@ Last handoff: ## Handoff: 2026-04-15T03:00
 ### Status
 </ijfw-memory>
 <!-- IJFW-MEMORY-END -->
+
+<!-- IJFW-MEMORY-START (managed -- do not edit manually) -->
+<ijfw-memory>
+Project memory at .ijfw/memory/. Call `ijfw_memory_prelude` for full context.
+
+Last handoff: ## Handoff: 2026-04-16T16:00 -- v1.0 SHIPPED, v1.1 SCOPED
+### Status
+</ijfw-memory>
+<!-- IJFW-MEMORY-END -->
