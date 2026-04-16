@@ -1,41 +1,6 @@
 # Changelog
 
-## [1.0.3] -- 2026-04-16
-
-### Fixed
-
-- **Claude plugin key** (`ijfw@ijfw`): v1.0.0-1.0.2 wrote `ijfw-core@ijfw` to
-  `~/.claude/settings.json` `enabledPlugins`. Claude Code could not resolve the
-  plugin and silently skipped it. v1.0.3 writes the correct key and
-  opportunistically deletes the legacy key on upgrade.
-
-- **cloneOrPull upgrade resilience**: `git pull --ff-only origin <ref>` aborted
-  when the `~/.ijfw` clone lacked an `origin` remote or had local divergent
-  commits. v1.0.3 falls back to `fetch + checkout -f FETCH_HEAD`, then to a
-  safe fresh clone that preserves `memory/`, `sessions/`, `install.log`, and
-  `.session-counter`.
-
-## [1.0.2] -- 2026-04-16
-
-### Fixed
-
-- `scripts/install.sh` crashed on macOS and Linux with
-  `APPDATA: unbound variable` under `set -u` at the Copilot detection
-  step. `$APPDATA` is a Windows-only env var. Fixed to `${APPDATA:-}`.
-  Shipped versions v1.0.0 and v1.0.1 exhibit this crash on any non-Windows
-  machine; both are now deprecated. Use v1.0.2 or later.
-
-## [1.0.1] -- 2026-04-16
-
-### Fixed
-
-- `@ijfw/install` v1.0.0 npm publish stripped the `bin` field because
-  `dist/install.js` and `dist/uninstall.js` shipped without the executable
-  bit. The `ijfw-install` command did not exist after global install.
-  v1.0.1 restores bin entries, adds `chmod +x` to the build step, and adds
-  a `prepublishOnly` hook. v1.0.0 has been deprecated on npm.
-
-## [1.0.0] -- 2026-04-16
+## [1.0.0] -- 2026-04-17
 
 First stable release of IJFW. One install configures a native-depth IJFW plugin
 across three AI coding agents (Claude Code, Codex CLI, Gemini CLI) plus a
