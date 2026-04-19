@@ -1,0 +1,13 @@
+# Normalize line endings across Windows / macOS / Linux contributors.
+* text=auto eol=lf
+
+# Binary assets stay binary.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tgz binary
+*.gz binary

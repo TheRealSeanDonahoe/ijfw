@@ -1,0 +1,1 @@
+{"category":"bug-fix","max_turns":20,"timeout_s":300,"allowed_tools":["Read","Edit","Bash"]}

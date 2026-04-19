@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sidebar -- IJFW Design</title>
+<style>
+:root{--color-primary:#2563EB;--color-fg:#1E293B;--color-card:#FFFFFF;--color-muted:#E2E8F0;
+  --color-border:#CBD5E1;--color-bg:#F8FAFC;--radius:8px;--radius-sm:4px;--transition:200ms ease}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);line-height:1.5;min-height:100vh}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--color-card);border-right:1px solid var(--color-border);
+  display:flex;flex-direction:column;transition:width 250ms ease;flex-shrink:0}
+.sidebar.collapsed{width:56px;overflow:hidden}
+.sidebar-header{padding:1.25rem 1rem;display:flex;align-items:center;gap:.75rem;
+  border-bottom:1px solid var(--color-border)}
+.sidebar-brand{font-weight:700;font-size:1rem;color:var(--color-primary);white-space:nowrap;overflow:hidden}
+.sidebar-toggle{margin-left:auto;background:none;border:none;cursor:pointer;width:32px;height:32px;
+  border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;
+  color:var(--color-fg);opacity:.6;flex-shrink:0}
+.sidebar-toggle:hover{background:var(--color-muted);opacity:1}
+.sidebar-toggle:focus-visible{outline:2px solid var(--color-primary)}
+.sidebar-nav{padding:.75rem 0;flex:1}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.625rem 1rem;
+  color:var(--color-fg);opacity:.65;cursor:pointer;border:none;background:none;
+  width:100%;text-align:left;font-family:inherit;font-size:.9375rem;font-weight:500;
+  transition:background var(--transition),opacity var(--transition);white-space:nowrap;
+  overflow:hidden;min-height:44px}
+.nav-item:hover{background:color-mix(in srgb,var(--color-primary) 8%,transparent);opacity:1}
+.nav-item.active{background:color-mix(in srgb,var(--color-primary) 12%,transparent);
+  color:var(--color-primary);opacity:1;border-right:3px solid var(--color-primary)}
+.nav-item:focus-visible{outline:2px solid var(--color-primary);outline-offset:-2px}
+.nav-icon{flex-shrink:0;width:20px;text-align:center}
+.sidebar-footer{padding:1rem;border-top:1px solid var(--color-border)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--color-muted);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0}
+.main{flex:1;padding:2rem}
+.main h1{font-size:1.25rem;font-weight:700;margin-bottom:1rem}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="sidebar-header">
+      <span class="sidebar-brand" id="brand">IJFW</span>
+      <button class="sidebar-toggle" id="toggle" aria-label="Toggle sidebar" aria-expanded="true" aria-controls="sidebar">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="3" y1="4" x2="15" y2="4"/><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="14" x2="15" y2="14"/>
+        </svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav" role="navigation" aria-label="Sidebar navigation">
+      <button class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">&#9632;</span><span class="nav-label">Overview</span></button>
+      <button class="nav-item"><span class="nav-icon" aria-hidden="true">&#9650;</span><span class="nav-label">Analytics</span></button>
+      <button class="nav-item"><span class="nav-icon" aria-hidden="true">&#9670;</span><span class="nav-label">Data</span></button>
+      <button class="nav-item"><span class="nav-icon" aria-hidden="true">&#9786;</span><span class="nav-label">Users</span></button>
+      <button class="nav-item"><span class="nav-icon" aria-hidden="true">&#9881;</span><span class="nav-label">Settings</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <div class="avatar">SD</div>
+        <span class="nav-label" style="font-size:.875rem;font-weight:500">Sean Donahoe</span>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    <h1>Sidebar Component</h1>
+    <p>Click the hamburger icon to collapse/expand the sidebar. Nav items highlight on hover and show active state. Arrow keys supported for keyboard navigation.</p>
+  </main>
+</div>
+<script>
+(function(){
+  var sidebar=document.getElementById('sidebar');
+  var toggle=document.getElementById('toggle');
+  var labels=sidebar.querySelectorAll('.nav-label,.sidebar-brand');
+  var collapsed=false;
+  toggle.addEventListener('click',function(){
+    collapsed=!collapsed;
+    sidebar.classList.toggle('collapsed',collapsed);
+    toggle.setAttribute('aria-expanded',String(!collapsed));
+    labels.forEach(function(el){el.style.display=collapsed?'none':'';});
+  });
+  sidebar.querySelectorAll('.nav-item').forEach(function(item){
+    item.addEventListener('click',function(){
+      sidebar.querySelectorAll('.nav-item').forEach(function(i){i.classList.remove('active');i.removeAttribute('aria-current');});
+      item.classList.add('active');item.setAttribute('aria-current','page');
+    });
+  });
+})();
+</script>
+</body>
+</html>

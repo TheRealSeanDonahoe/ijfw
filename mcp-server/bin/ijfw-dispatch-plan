@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# ijfw-dispatch-plan -- emit dispatch manifest for a phase PLAN.md.
+#
+# Called by the ijfw-workflow skill at Wave 4 entry to decide shared-branch
+# vs worktree-isolated parallelism per sub-wave.
+#
+# Usage:
+#   ijfw-dispatch-plan <plan.md> [all-worktree | all-shared]
+
+SOURCE="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+MOD="$SCRIPT_DIR/../src/dispatch-planner.js"
+
+if [ -z "${1-}" ]; then
+  echo "Usage: ijfw-dispatch-plan <plan.md> [all-worktree|all-shared]" >&2
+  exit 1
+fi
+if [ ! -f "$1" ]; then
+  echo "Plan file not found: $1" >&2
+  exit 1
+fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "ijfw-dispatch-plan needs Node 18+ -- install from https://nodejs.org" >&2
+  exit 1
+fi
+
+exec node -e '
+import("'"$MOD"'").then(async (m) => {
+  const { readFile } = await import("node:fs/promises");
+  const md = await readFile(process.argv[1], "utf8");
+  const override = process.argv[2] || null;
+  const manifest = m.buildManifest(m.parsePlan(md), { override });
+  console.log(m.manifestSummary(manifest));
+  console.log(JSON.stringify(manifest, null, 2));
+}).catch(err => { console.error(err.message); process.exit(1); });
+' "$1" "${2-}"

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tabs -- IJFW Design</title>
+<style>
+:root{--color-primary:#2563EB;--color-fg:#1E293B;--color-card:#FFFFFF;--color-muted:#E2E8F0;
+  --color-border:#CBD5E1;--color-bg:#F8FAFC;--radius:8px;--transition:200ms ease}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+h2{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;opacity:.55;font-weight:600;margin:2rem 0 .75rem}
+.tab-demo{border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;background:var(--color-card)}
+.tab-bar{display:flex;border-bottom:1px solid var(--color-border);background:var(--color-card)}
+.tab-btn{padding:0 1rem;height:44px;background:none;border:none;border-bottom:3px solid transparent;
+  cursor:pointer;font-family:inherit;font-size:.9375rem;font-weight:500;color:var(--color-fg);
+  opacity:.65;transition:opacity var(--transition),border-color var(--transition)}
+.tab-btn:hover{opacity:1}
+.tab-btn.active{border-bottom-color:var(--color-primary);color:var(--color-primary);opacity:1}
+.tab-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:-2px}
+.tab-panel{padding:1.25rem;display:none}
+.tab-panel.active{display:block}
+</style>
+</head>
+<body>
+<h1>Tabs</h1>
+
+<h2>Default tabs</h2>
+<div class="tab-demo">
+  <div class="tab-bar" role="tablist" id="tl1" aria-label="Example tabs">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="p1-overview" id="t1-overview">Overview</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="p1-analytics" id="t1-analytics">Analytics</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="p1-settings" id="t1-settings">Settings</button>
+  </div>
+  <div id="p1-overview" class="tab-panel active" role="tabpanel" aria-labelledby="t1-overview">
+    <p>Overview content. Arrow keys navigate between tabs. Enter or Space activates.</p>
+  </div>
+  <div id="p1-analytics" class="tab-panel" role="tabpanel" aria-labelledby="t1-analytics" hidden>
+    <p>Analytics content goes here.</p>
+  </div>
+  <div id="p1-settings" class="tab-panel" role="tabpanel" aria-labelledby="t1-settings" hidden>
+    <p>Settings content goes here.</p>
+  </div>
+</div>
+<script>
+(function(){
+  document.querySelectorAll('[role=tablist]').forEach(function(tl){
+    var tabs=tl.querySelectorAll('[role=tab]');
+    tabs.forEach(function(tab){
+      tab.addEventListener('click',function(){
+        tabs.forEach(function(t){t.classList.remove('active');t.setAttribute('aria-selected','false');});
+        var panels=document.querySelectorAll('[role=tabpanel]');
+        panels.forEach(function(p){p.classList.remove('active');p.hidden=true;});
+        tab.classList.add('active');tab.setAttribute('aria-selected','true');
+        var panel=document.getElementById(tab.getAttribute('aria-controls'));
+        if(panel){panel.classList.add('active');panel.hidden=false;}
+      });
+      tab.addEventListener('keydown',function(e){
+        var arr=Array.from(tabs);var idx=arr.indexOf(tab);
+        if(e.key==='ArrowRight')arr[(idx+1)%arr.length].click();
+        if(e.key==='ArrowLeft')arr[(idx-1+arr.length)%arr.length].click();
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

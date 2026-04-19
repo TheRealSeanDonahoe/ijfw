@@ -1,0 +1,5 @@
+description = "Systematic debugging with hypothesis-driven root cause analysis."
+prompt = """
+Invoke the ijfw-debug skill.
+{{args}}
+"""

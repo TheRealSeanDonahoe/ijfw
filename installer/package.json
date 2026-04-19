@@ -1,0 +1,60 @@
+{
+  "name": "@ijfw/install",
+  "version": "1.1.1",
+  "description": "One-command installer for IJFW -- the AI efficiency layer. One install, every AI coding agent, zero config.",
+  "type": "module",
+  "bin": {
+    "ijfw": "dist/ijfw.js",
+    "ijfw-install": "dist/install.js",
+    "ijfw-uninstall": "dist/uninstall.js"
+  },
+  "files": [
+    "dist",
+    "src/install.ps1",
+    "docs/GUIDE.md",
+    "docs/guide/assets",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf docs && mkdir -p docs/guide && cp ../docs/GUIDE.md docs/GUIDE.md && cp -r ../docs/guide/assets docs/guide/assets && esbuild src/install.js src/uninstall.js src/ijfw.js --bundle --platform=node --target=node18 --outdir=dist --format=esm --banner:js='#!/usr/bin/env node' && chmod +x dist/install.js dist/uninstall.js dist/ijfw.js",
+    "test": "node --test test.js",
+    "preflight": "node dist/ijfw.js preflight",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "npm run build && npm run preflight"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "marked": "^18.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ijfw",
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "cursor",
+    "windsurf",
+    "copilot",
+    "mcp",
+    "ai-agents",
+    "memory",
+    "installer"
+  ],
+  "license": "MIT",
+  "author": "Sean Donahoe",
+  "homepage": "https://github.com/TheRealSeanDonahoe/ijfw",
+  "bugs": {
+    "url": "https://github.com/TheRealSeanDonahoe/ijfw/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheRealSeanDonahoe/ijfw.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

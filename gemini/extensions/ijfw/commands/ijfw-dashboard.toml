@@ -1,0 +1,11 @@
+description = "Control the IJFW observation dashboard (start/stop/status). Trigger: ijfw-dashboard, open dashboard, show observations."
+prompt = """
+Invoke the ijfw-dashboard skill.
+
+Run the appropriate `ijfw dashboard <subcommand>` based on the user's intent:
+- start: `ijfw dashboard start`
+- stop: `ijfw dashboard stop`
+- status: `ijfw dashboard status`
+Default to `ijfw dashboard status` if no subcommand specified.
+{{args}}
+"""

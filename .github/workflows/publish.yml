@@ -1,0 +1,63 @@
+name: Publish installer
+
+on:
+  push:
+    tags:
+      - 'installer-v*'
+  workflow_dispatch:
+    inputs:
+      dist_tag:
+        description: 'npm dist-tag (latest | next)'
+        required: false
+        default: 'next'
+        type: choice
+        options:
+          - latest
+          - next
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Derive dist-tag from tag name
+        id: tag
+        env:
+          TAG_REF: ${{ github.ref_name }}
+          INPUT_TAG: ${{ github.event.inputs.dist_tag }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            DIST_TAG="$INPUT_TAG"
+          elif echo "$TAG_REF" | grep -q -- '-rc\.'; then
+            DIST_TAG="next"
+          else
+            DIST_TAG="latest"
+          fi
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "Publishing with dist-tag: $DIST_TAG"
+
+      - name: Install + build
+        working-directory: installer
+        run: |
+          npm ci
+          npm run build
+          npm pack --dry-run
+
+      - name: Run tests
+        working-directory: installer
+        run: node --test test.js test-resilient-parse.js test-tagged-release.js
+
+      - name: Publish to npm with provenance
+        working-directory: installer
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ steps.tag.outputs.dist_tag }}
+        run: npm publish --access public --tag "$DIST_TAG" --provenance

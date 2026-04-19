@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" font-family="ui-monospace,Menlo,Consolas,monospace">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#010409"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="340" fill="url(#bg3)" rx="10"/>
+  <circle cx="26" cy="26" r="7" fill="#ff5f56"/>
+  <circle cx="48" cy="26" r="7" fill="#ffbd2e"/>
+  <circle cx="70" cy="26" r="7" fill="#27c93f"/>
+  <text x="600" y="32" fill="#7d8590" text-anchor="middle" font-size="13">Claude Code · SessionEnd</text>
+
+  <rect x="30" y="75" width="1140" height="185" rx="8" fill="#0a2b18" stroke="#2ea043" stroke-width="1.5"/>
+
+  <text x="60" y="110" fill="#3fb950" font-size="15" font-weight="bold">[ijfw]</text>
+  <text x="120" y="110" fill="#d1d7de" font-size="15">This session: ~14.3k tokens saved vs baseline (~$0.087)</text>
+
+  <text x="60" y="145" fill="#3fb950" font-size="15" font-weight="bold">[ijfw]</text>
+  <text x="120" y="145" fill="#d1d7de" font-size="15">Memory: 3 decisions stored, 1 Trident run on record.</text>
+
+  <text x="60" y="180" fill="#3fb950" font-size="15" font-weight="bold">[ijfw]</text>
+  <text x="120" y="180" fill="#d1d7de" font-size="15">Next: ship the auth migration after Trident review.</text>
+
+  <text x="60" y="222" fill="#7d8590" font-size="13">routing: Haiku 42% · Sonnet 51% · Opus 7%   cache hit: 73%</text>
+
+  <text x="30" y="295" fill="#d1d7de" font-size="14">Your bill goes down while your quality goes up. Every session a receipt.</text>
+
+  <text x="600" y="325" fill="#484f58" font-size="12" text-anchor="middle" font-style="italic">Placeholder illustration. Replace with a real terminal capture.</text>
+</svg>

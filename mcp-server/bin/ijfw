@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# IJFW CLI launcher -- cross-audit/research/critique across AI families.
+# Resolves script location through symlinks (POSIX-portable).
+
+SOURCE="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+CLI="$SCRIPT_DIR/../src/cross-orchestrator-cli.js"
+
+if [ ! -f "$CLI" ]; then
+  echo "IJFW launcher expects CLI at $CLI -- re-run the installer to restore it." >&2
+  exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "IJFW needs Node 18+ -- install from https://nodejs.org then retry." >&2
+  exit 1
+fi
+
+# Suppress only the ExperimentalWarning from node:sqlite -- keep all other
+# warnings visible (errors, deprecations, etc.). node:sqlite is marked
+# experimental through Node 22.x but is stable enough for read-only use.
+exec node --no-warnings=ExperimentalWarning "$CLI" "$@"

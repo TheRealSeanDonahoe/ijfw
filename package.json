@@ -1,0 +1,14 @@
+{
+  "name": "ijfw-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "IJFW monorepo workspace. The published npm package lives at installer/ (@ijfw/install).",
+  "author": "Sean Donahoe",
+  "license": "MIT",
+  "homepage": "https://github.com/TheRealSeanDonahoe/ijfw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheRealSeanDonahoe/ijfw"
+  }
+}

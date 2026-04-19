@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buttons -- IJFW Design</title>
+<style>
+:root {
+  --color-primary: #2563EB; --color-primary-on: #FFFFFF;
+  --color-muted: #E2E8F0; --color-fg: #1E293B;
+  --color-border: #CBD5E1; --color-destructive: #DC2626;
+  --color-bg: #F8FAFC; --radius-sm: 4px; --transition: 200ms ease;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --color-bg: #0F172A; --color-fg: #F1F5F9; --color-muted: #334155; --color-border: #475569; }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+h2{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;opacity:0.55;font-weight:600;margin:1.5rem 0 0.75rem}
+.row{display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;margin-bottom:1rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:0.5rem 1.125rem;
+  border-radius:var(--radius-sm);font-family:inherit;font-size:0.9375rem;font-weight:500;
+  border:none;cursor:pointer;transition:opacity var(--transition),transform var(--transition);
+  min-width:44px;min-height:44px}
+.btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.btn:hover{opacity:0.88}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-primary{background:var(--color-primary);color:var(--color-primary-on)}
+.btn-secondary{background:var(--color-muted);color:var(--color-fg);border:1px solid var(--color-border)}
+.btn-ghost{background:transparent;color:var(--color-primary);border:1px solid var(--color-primary)}
+.btn-destructive{background:var(--color-destructive);color:#fff}
+.btn-sm{padding:0.3rem 0.75rem;font-size:0.8125rem;min-height:36px}
+.btn-lg{padding:0.75rem 1.5rem;font-size:1.0625rem;min-height:52px}
+</style>
+</head>
+<body>
+<h1>Buttons</h1>
+
+<h2>Variants</h2>
+<div class="row">
+  <button class="btn btn-primary">Primary</button>
+  <button class="btn btn-secondary">Secondary</button>
+  <button class="btn btn-ghost">Ghost</button>
+  <button class="btn btn-destructive">Destructive</button>
+</div>
+
+<h2>Sizes</h2>
+<div class="row">
+  <button class="btn btn-primary btn-sm">Small</button>
+  <button class="btn btn-primary">Default</button>
+  <button class="btn btn-primary btn-lg">Large</button>
+</div>
+
+<h2>States</h2>
+<div class="row">
+  <button class="btn btn-primary">Normal</button>
+  <button class="btn btn-primary" disabled>Disabled</button>
+  <button class="btn btn-secondary">Secondary</button>
+  <button class="btn btn-secondary" disabled>Disabled</button>
+</div>
+</body>
+</html>

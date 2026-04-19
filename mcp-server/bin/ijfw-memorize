@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+// IJFW session-end synthesizer (W5.P5.2 / H1).
+// Reads .ijfw/.session-signals.jsonl + .session-feedback.jsonl + transcript
+// payload on stdin (Stop-hook json), produces structured memory entries,
+// and appends them to .ijfw/memory/knowledge.md via the existing store helpers.
+//
+// Deterministic by default: feedback/signals promote 1:1. LLM-based synthesis
+// activates only when IJFW_AUTOMEM_MODEL is set (documented as a wiring point;
+// current build emits a TODO marker instead of calling an LLM).
+//
+// Consent: reads .ijfw/.automem-consent. If absent or consented=false, exits 0
+// silently. User sets consent via `/ijfw memory consent yes|no|ask`.
+
+import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync, rmdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { redactSecrets } from '../src/redactor.js';
+import { applyCaps } from '../src/caps.js';
+import { ensureSchemaHeader, SCHEMA_HEADER } from '../src/schema.js';
+import { searchCorpus } from '../src/search-bm25.js';
+import { sanitizeContent } from '../src/sanitizer.js';
+
+const IJFW_DIR = '.ijfw';
+const MEMORY_DIR = join(IJFW_DIR, 'memory');
+const SIGNALS = join(IJFW_DIR, '.session-signals.jsonl');
+const FEEDBACK = join(IJFW_DIR, '.session-feedback.jsonl');
+const CONSENT = join(IJFW_DIR, '.automem-consent');
+const KNOWLEDGE = join(MEMORY_DIR, 'knowledge.md');
+
+function readConsent() {
+  if (!existsSync(CONSENT)) return { consented: null };
+  try { return JSON.parse(readFileSync(CONSENT, 'utf8')); } catch { return { consented: null }; }
+}
+
+function readJsonl(path) {
+  if (!existsSync(path)) return [];
+  try {
+    return readFileSync(path, 'utf8').split('\n').filter(Boolean).map(l => {
+      try { return JSON.parse(l); } catch { return null; }
+    }).filter(Boolean);
+  } catch { return []; }
+}
+
+function readExistingKnowledge() {
+  if (!existsSync(KNOWLEDGE)) return '';
+  try { return readFileSync(KNOWLEDGE, 'utf8'); } catch { return ''; }
+}
+
+// Y2 / R2-D -- relative BM25 dedupe. A fixed threshold doesn't generalize:
+// BM25 scores scale with corpus size (IDF depends on N) and query length.
+// Round-1 fix approximated the ceiling via a 1-doc self-corpus, but that
+// produces a DIFFERENT IDF than the N-doc candidate corpus -- incomparable
+// scores. R2-D fix: inject a synthetic self-doc INTO the existing corpus
+// so both candidate and ceiling scores share the same IDF denominator.
+function isDuplicate(summary, existingText) {
+  if (!existingText || !summary) return false;
+  const lines = existingText.split('\n').filter(l => l.trim().length > 0);
+  if (lines.length === 0) return false;
+  const corpusWithSelf = lines.map((line, i) => ({ id: `e${i}`, text: line }));
+  corpusWithSelf.push({ id: '_self', text: summary });
+  const results = searchCorpus(summary, corpusWithSelf, { limit: 5 });
+  if (results.length === 0) return false;
+  const selfHit = results.find(r => r.id === '_self');
+  const bestExisting = results.find(r => r.id !== '_self');
+  if (!selfHit || !bestExisting) return false;
+  // Duplicate if best existing hit is within 80% of the perfect-match ceiling.
+  return bestExisting.score >= selfHit.score * 0.8;
+}
+
+// C2 / ST5 / R2-C / R2-G -- file lock around multi-line structured appends.
+// Uses mkdir-based locking (atomic on POSIX + Windows). On contention:
+//   1. Check lock's mtime; if older than STALE_LOCK_MS, reclaim it (prior
+//      process likely crashed without releasing).
+//   2. Otherwise sleep (not busy-wait) for ~50ms via Atomics.wait on a
+//      shared buffer -- sync sleep that doesn't burn CPU.
+//   3. Retry up to ~2s deadline.
+// Always writes the holder's pid to a sidecar file inside the lock dir so
+// crashes are diagnosable.
+const LOCK_DIR = join(MEMORY_DIR, '.knowledge.lock');
+const LOCK_PID_FILE = join(LOCK_DIR, 'pid');
+const STALE_LOCK_MS = 10_000;
+
+// R2-G -- sync sleep without busy-wait. Atomics.wait blocks the thread on
+// a SharedArrayBuffer-backed Int32Array. Timeout in ms.
+const _sleepBuf = new Int32Array(new SharedArrayBuffer(4));
+function sleepSync(ms) { Atomics.wait(_sleepBuf, 0, 0, ms); }
+
+function tryReclaimStale() {
+  try {
+    const age = Date.now() - statSync(LOCK_DIR).mtimeMs;
+    if (age > STALE_LOCK_MS) {
+      try { rmdirSync(LOCK_DIR, { recursive: true }); } catch { /* fall through */ }
+      return true;
+    }
+  } catch { /* lock dir may have just been released */ }
+  return false;
+}
+
+function withLock(fn) {
+  const deadline = Date.now() + 2000;
+  let acquired = false;
+  while (!acquired && Date.now() < deadline) {
+    try {
+      mkdirSync(LOCK_DIR);
+      // Best-effort pid tag inside the lock for diagnostics.
+      try { writeFileSync(LOCK_PID_FILE, String(process.pid)); } catch { /* ignore */ }
+      acquired = true;
+    } catch {
+      // Contention. Consider reclaiming if stale; otherwise sleep + retry.
+      if (tryReclaimStale()) continue;
+      sleepSync(50);
+    }
+  }
+  if (!acquired) {
+    // Degrade to no-lock rather than lose the write -- record the incident.
+    try {
+      mkdirSync(IJFW_DIR, { recursive: true });
+      appendFileSync(
+        join(IJFW_DIR, '.error.log'),
+        `${new Date().toISOString()} ijfw-memorize: lock acquisition timed out after 2s; proceeding without lock\n`
+      );
+    } catch { /* ignore */ }
+    return fn();
+  }
+  try { return fn(); }
+  finally {
+    try { rmdirSync(LOCK_DIR, { recursive: true }); } catch { /* ignore */ }
+  }
+}
+
+function appendEntry({ type, summary, content, why, howToApply, tags }) {
+  mkdirSync(MEMORY_DIR, { recursive: true });
+  withLock(() => {
+    ensureSchemaHeader(KNOWLEDGE);
+    const ts = new Date().toISOString();
+    // X2 -- sanitize EVERY string that flows into the knowledge file.
+    // redactSecrets handles credentials; sanitizeContent defangs markdown
+    // structure + <system>-style tags + control chars. Both are needed.
+    const safeSummary      = sanitizeContent(summary);
+    const safeContent      = sanitizeContent(content);
+    const safeWhy          = sanitizeContent(why);
+    const safeHowToApply   = sanitizeContent(howToApply);
+    const safeTags         = tags.map(t => sanitizeContent(String(t)).replace(/[^a-zA-Z0-9_-]/g, ''));
+    const tagLine = safeTags.join(', ');
+    const block = [
+      '',
+      '---',
+      `type: ${type}`,
+      `summary: ${safeSummary}`,
+      `stored: ${ts}`,
+      `tags: [${tagLine}]`,
+      '---',
+      safeContent,
+      safeWhy ? `\n**Why:** ${safeWhy}` : '',
+      safeHowToApply ? `\n**How to apply:** ${safeHowToApply}` : '',
+      ''
+    ].filter(l => l !== '').join('\n') + '\n';
+    appendFileSync(KNOWLEDGE, block);
+  });
+}
+
+async function main() {
+  if (!existsSync(IJFW_DIR)) return;
+
+  const consent = readConsent();
+  if (consent.consented !== true) {
+    // Silent no-op if consent not granted. Consent is an explicit opt-in.
+    return;
+  }
+
+  const signals = readJsonl(SIGNALS);
+  const feedback = readJsonl(FEEDBACK);
+  if (signals.length === 0 && feedback.length === 0) return;
+
+  const existing = readExistingKnowledge();
+  let stored = 0;
+  const storedSummaries = [];
+  // X4 -- in-run dedupe. isDuplicate only sees the pre-run snapshot, so
+  // identical feedback lines within one session would both promote.
+  // Track summaries stored in THIS run as an additional blocklist.
+  const thisRunSummaries = new Set();
+  const alreadyStored = (summary) =>
+    thisRunSummaries.has(summary) || isDuplicate(summary, existing);
+
+  // 1:1 deterministic promotion of feedback.
+  for (const f of feedback) {
+    const rawPhrase = redactSecrets(f.phrase || '');
+    const rawContext = redactSecrets(f.context || '');
+    if (!rawPhrase) continue;
+    const summary = rawPhrase.slice(0, 110);
+    if (alreadyStored(summary)) continue;
+    const capped = applyCaps({
+      content: rawContext || rawPhrase,
+      summary,
+      why: `User stated during session: "${rawPhrase}"`,
+      how_to_apply: f.kind === 'correction' ? 'Avoid repeating the corrected pattern.'
+                 : f.kind === 'confirmation' ? 'Keep the approach that was confirmed.'
+                 : f.kind === 'preference'   ? 'Default to this preference on future similar tasks.'
+                 : 'Apply the stated rule consistently.',
+    });
+    appendEntry({
+      type: f.kind === 'preference' ? 'preference' : 'pattern',
+      summary: capped.summary,
+      content: capped.content,
+      why: capped.why,
+      howToApply: capped.how_to_apply,
+      tags: ['auto-memorize', f.kind],
+    });
+    stored++;
+    storedSummaries.push(capped.summary);
+    thisRunSummaries.add(capped.summary);
+  }
+
+  // 1:1 promotion of signal occurrences -- but only if the same error
+  // appears >=2x in the session (suggests a real blocker worth remembering).
+  const errorCounts = new Map();
+  for (const s of signals) {
+    const key = redactSecrets(s.error || s.fail || '');
+    if (!key) continue;
+    errorCounts.set(key, (errorCounts.get(key) || 0) + 1);
+  }
+  for (const [err, count] of errorCounts) {
+    if (count < 2) continue;
+    const summary = `Recurring error: ${err.slice(0, 90)}`;
+    if (alreadyStored(summary)) continue;
+    const capped = applyCaps({
+      content: err,
+      summary,
+      why: `Hit ${count} times in one session -- likely not a fluke.`,
+      how_to_apply: 'Next time this error surfaces, check prior session handoffs before debugging from scratch.',
+    });
+    appendEntry({
+      type: 'observation',
+      summary: capped.summary,
+      content: capped.content,
+      why: capped.why,
+      howToApply: capped.how_to_apply,
+      tags: ['auto-memorize', 'recurring-error'],
+    });
+    stored++;
+    storedSummaries.push(capped.summary);
+    thisRunSummaries.add(capped.summary);
+  }
+
+  // TODO: LLM-synthesis path (IJFW_AUTOMEM_MODEL). Stub emits a marker
+  // so downstream tooling can detect that a richer synthesis could run.
+  if (process.env.IJFW_AUTOMEM_MODEL && process.env.IJFW_AUTOMEM_MODEL !== 'off') {
+    // Wiring point -- Phase 5+ connects this to Anthropic SDK / Ollama.
+    // For now, record the opportunity.
+    try {
+      mkdirSync(IJFW_DIR, { recursive: true });
+      appendFileSync(join(IJFW_DIR, '.automem-llm-queue.jsonl'),
+        JSON.stringify({ ts: new Date().toISOString(), model: process.env.IJFW_AUTOMEM_MODEL, pending: true }) + '\n');
+    } catch {}
+  }
+
+  if (stored > 0) {
+    process.stdout.write(`Stored ${stored} new memor${stored === 1 ? 'y' : 'ies'}: ${storedSummaries.slice(0, 3).join('; ')}${storedSummaries.length > 3 ? '…' : ''}\n`);
+  }
+}
+
+// R2-H -- log errors before silent exit so EACCES / EDQUOT / malformed-JSON
+// failures are diagnosable. Hook caller sees exit 0 (never crashes Claude
+// Code); .ijfw/.error.log is the debug trail.
+main().catch((e) => {
+  try {
+    mkdirSync(IJFW_DIR, { recursive: true });
+    appendFileSync(
+      join(IJFW_DIR, '.error.log'),
+      `${new Date().toISOString()} ijfw-memorize: ${e && e.stack ? e.stack : (e && e.message) || String(e)}\n`
+    );
+  } catch { /* last-resort silent */ }
+  process.exit(0);
+});

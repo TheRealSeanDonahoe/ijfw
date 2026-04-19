@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IJFW Cockpit</title>
+<style>
+:root {
+  --bg-deep:#020203; --bg-base:#0b0b0d; --bg-elevated:#121216;
+  --surface:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.08);
+  --fg:#EDEDEF; --fg-dim:#8A8F98;
+  --accent:#5E6AD2; --claude:#D97757; --codex:#10A37F; --gemini:#4285F4;
+  --success:#2ecc71; --warn:#f59e0b; --danger:#ef4444;
+  --radius:8px; --radius-sm:4px; --trans:180ms ease;
+  --sidebar-w:240px;
+}
+[data-theme="light"] {
+  --bg-deep:#ffffff; --bg-base:#f4f4f6; --bg-elevated:#ffffff;
+  --surface:rgba(0,0,0,0.03); --border:rgba(0,0,0,0.1);
+  --fg:#111113; --fg-dim:#6b7280;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg-base);color:var(--fg);font-size:14px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- SHELL ---- */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ---- SIDEBAR ---- */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--bg-deep);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:width 220ms ease;overflow:hidden;
+}
+.sidebar.col{width:52px}
+.sb-header{
+  height:56px;display:flex;align-items:center;gap:10px;
+  padding:0 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.sb-brand{font-size:16px;font-weight:700;color:var(--fg);white-space:nowrap}
+.sb-brand em{color:var(--accent);font-style:normal}
+.sb-toggle{
+  margin-left:auto;width:28px;height:28px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--fg-dim);flex-shrink:0;
+  transition:background var(--trans);
+}
+.sb-toggle:hover{background:var(--surface);color:var(--fg)}
+.sb-toggle svg{transition:transform 220ms ease}
+.sidebar.col .sb-toggle svg{transform:scaleX(-1)}
+
+.sb-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0}
+.sb-group-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--fg-dim);opacity:.5;padding:12px 16px 4px;white-space:nowrap;overflow:hidden;
+}
+.sidebar.col .sb-group-label{opacity:0}
+.sb-item{
+  display:flex;align-items:center;gap:10px;padding:7px 14px;
+  font-size:13px;font-weight:500;color:var(--fg-dim);cursor:pointer;
+  border-left:2px solid transparent;white-space:nowrap;overflow:hidden;
+  transition:background var(--trans),color var(--trans),border-color var(--trans);
+  min-height:36px;
+}
+.sb-item:hover{background:var(--surface);color:var(--fg)}
+.sb-item.on{background:rgba(94,106,210,0.08);color:var(--fg);border-left-color:var(--accent)}
+.sb-icon{flex-shrink:0;width:18px;text-align:center;font-size:14px}
+.sb-label{overflow:hidden;text-overflow:ellipsis}
+.sidebar.col .sb-label{display:none}
+.sidebar.col .sb-group-label span{display:none}
+
+.sb-footer{
+  padding:12px 14px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.sb-avatar{width:28px;height:28px;border-radius:50%;background:rgba(94,106,210,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
+.sb-user{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden}
+.sidebar.col .sb-user{display:none}
+
+/* ---- MAIN ---- */
+.main-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main-header{
+  height:56px;display:flex;align-items:center;padding:0 20px;
+  background:var(--bg-deep);border-bottom:1px solid var(--border);
+  flex-shrink:0;gap:10px;
+}
+.breadcrumb{font-size:13px;color:var(--fg-dim)}
+.breadcrumb b{color:var(--fg)}
+.main-header .spacer{flex:1}
+.tier-pill{padding:4px 10px;border-radius:var(--radius-sm);background:rgba(94,106,210,0.12);font-size:11px;font-weight:600;color:var(--accent)}
+.icon-btn{padding:5px 10px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;color:var(--fg-dim);transition:background var(--trans),color var(--trans)}
+.icon-btn:hover{background:var(--surface);color:var(--fg)}
+
+.main-content{flex:1;overflow-y:auto;padding:24px}
+
+/* ---- SECTIONS (shown/hidden) ---- */
+.section{display:none}
+.section.on{display:block}
+
+/* ---- LAYOUT ---- */
+.hgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:900px){.hgrid{grid-template-columns:repeat(2,1fr)}}
+.row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.col{flex:1;min-width:0}
+.card{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.ctitle{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.iinfo{font-size:11px;color:var(--fg-dim);cursor:pointer;opacity:.6;transition:opacity var(--trans)}
+.iinfo:hover{opacity:1}
+.hcard{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.hlabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-dim);margin-bottom:6px}
+.hval{font-size:32px;font-weight:700;line-height:1;letter-spacing:-0.5px;margin-bottom:4px}
+.hsub{font-size:12px;color:var(--fg-dim)}
+.hsub b{color:var(--fg);font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-dim);padding:6px 8px 8px;border-bottom:1px solid var(--border);text-align:left}
+td{padding:8px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface)}
+.nr{text-align:right;font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
+.chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.cc{background:rgba(217,119,87,0.15);color:var(--claude)}
+.co{background:rgba(94,106,210,0.15);color:var(--accent)}
+.disc{font-size:11px;color:var(--fg-dim);padding:8px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius-sm);margin-top:8px;line-height:1.5}
+.disc em{font-style:normal;color:var(--warn);font-weight:600}
+.btn-g{padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--fg-dim);transition:background var(--trans),color var(--trans),border-color var(--trans)}
+.btn-g:hover{background:var(--surface);color:var(--fg)}
+.pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);animation:pa 2s ease-in-out infinite;vertical-align:middle}
+@keyframes pa{0%,100%{opacity:1}50%{opacity:.3}}
+.wbar{height:20px;background:var(--border);border-radius:10px;overflow:hidden;display:flex;margin-bottom:6px}
+.wseg{background:var(--claude);height:100%}
+.wmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--fg-dim)}
+.wok{color:var(--success);font-weight:600}
+.feed-row{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.feed-row:last-child{border-bottom:none}
+.fts{color:var(--fg-dim);white-space:nowrap;font-family:ui-monospace,monospace}
+.ftype{min-width:52px;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;text-align:center;align-self:flex-start;margin-top:1px}
+.ftype.recall{background:rgba(94,106,210,0.15);color:var(--accent)}
+.fbody{flex:1;color:var(--fg)}
+.empty{text-align:center;padding:40px 20px;color:var(--fg-dim)}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.4}
+
+/* Memory tree */
+.mem-layout{display:flex;gap:0;height:calc(100vh - 180px);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.mem-l{width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg-elevated)}
+.mem-r{flex:1;overflow-y:auto;background:var(--bg-base);padding:20px}
+.mem-search{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.mem-search input{flex:1;font-size:13px}
+.mem-search input::placeholder{color:var(--fg-dim)}
+.mem-list{flex:1;overflow-y:auto}
+.tier-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--fg-dim);padding:10px 12px 4px;display:flex;justify-content:space-between;cursor:pointer}
+.tier-hdr:hover{color:var(--fg)}
+.mfile{display:flex;align-items:center;justify-content:space-between;padding:7px 20px 7px 24px;cursor:pointer;transition:background var(--trans);border-left:2px solid transparent}
+.mfile:hover{background:var(--surface)}
+.mfile.on{background:rgba(94,106,210,0.08);border-left-color:var(--accent)}
+.mfname{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.mfrec{font-size:11px;color:var(--fg-dim);white-space:nowrap}
+.pv-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.pv-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--fg-dim)}
+.pv-meta b{color:var(--fg);font-weight:600}
+.ptag{display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;background:var(--surface);border:1px solid var(--border);color:var(--fg-dim);margin:0 3px 3px 0}
+.pv-body{font-size:14px;line-height:1.7;color:var(--fg-dim)}
+.pv-body p{margin-bottom:10px}
+.pv-body strong{color:var(--fg)}
+.pv-actions{display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.mem-preview{display:none}
+.mem-preview.on{display:block}
+
+/* Settings */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.scard{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.scard h3{font-size:14px;font-weight:600;margin-bottom:12px}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:none}
+.slbl{font-size:13px;color:var(--fg-dim)}
+.sval{font-size:13px;font-weight:500}
+.tog{position:relative;width:36px;height:20px;cursor:pointer}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-track{position:absolute;inset:0;border-radius:10px;background:var(--border);transition:background var(--trans)}
+.tog input:checked + .tog-track{background:var(--accent)}
+.tog-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:white;transition:transform var(--trans)}
+.tog input:checked ~ .tog-thumb{transform:translateX(16px)}
+.spark{height:80px;margin:8px 0}
+.spark svg{width:100%;height:80px;display:block}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+@media(max-width:700px){
+  .sidebar{display:none}
+  .mem-layout{flex-direction:column;height:auto}
+  .mem-l{width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:280px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="sb-header">
+    <div class="sb-brand">IJ<em>FW</em></div>
+    <button class="sb-toggle" id="sbToggle" aria-label="Collapse sidebar" aria-expanded="true" aria-controls="sidebar">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/>
+      </svg>
+    </button>
+  </div>
+
+  <nav class="sb-nav" id="sbNav">
+    <div class="sb-group-label"><span>Overview</span></div>
+    <button class="sb-item on" data-section="today" aria-current="page"><span class="sb-icon">&#9632;</span><span class="sb-label">Overview</span></button>
+    <button class="sb-item" data-section="live"><span class="sb-icon">&#11044;</span><span class="sb-label">Live Feed</span></button>
+
+    <div class="sb-group-label"><span>Cost</span></div>
+    <button class="sb-item" data-section="spend"><span class="sb-icon">$</span><span class="sb-label">Usage</span></button>
+
+    <div class="sb-group-label"><span>Memory</span></div>
+    <button class="sb-item" data-section="memsearch"><span class="sb-icon">&#128269;</span><span class="sb-label">Memory</span></button>
+    <button class="sb-item" data-section="sessions"><span class="sb-icon">&#128203;</span><span class="sb-label">Sessions</span></button>
+    <button class="sb-item" data-section="handoffs"><span class="sb-icon">&#128339;</span><span class="sb-label">Handoffs</span></button>
+
+    <div class="sb-group-label"><span>Projects</span></div>
+    <button class="sb-item" data-section="allprojects"><span class="sb-icon">&#9776;</span><span class="sb-label">Projects (17)</span></button>
+
+    <div class="sb-group-label"><span>Audits</span></div>
+    <button class="sb-item" data-section="trident"><span class="sb-icon">&#9650;</span><span class="sb-label">Cross-AI Reviews</span></button>
+
+    <div class="sb-group-label"><span>Settings</span></div>
+    <button class="sb-item" data-section="subs"><span class="sb-icon">&#9879;</span><span class="sb-label">Settings</span></button>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="sb-avatar">SD</div>
+    <div class="sb-user">Sean Donahoe</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <header class="main-header" role="banner">
+    <div class="breadcrumb" id="breadcrumb"><span style="color:var(--fg-dim)">Overview</span> <b>Today</b></div>
+    <div class="spacer"></div>
+    <span class="tier-pill">MAX 20x</span>
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">&#9790; Theme</button>
+  </header>
+
+  <main class="main-content" id="mainContent">
+
+    <!-- ======== TODAY ======== -->
+    <div class="section on" data-section="today">
+      <div class="card" style="padding:12px 16px;margin-bottom:16px;background:rgba(94,106,210,0.06);border-color:rgba(94,106,210,0.2)">
+        <span style="font-size:13px;color:var(--fg-dim)">New here? Try asking your AI to <b style="color:var(--fg)">"help me plan"</b> or <b style="color:var(--fg)">"review my code"</b> -- IJFW handles the rest. Memory and costs appear here as you work.</span>
+      </div>
+      <div class="hgrid">
+        <div class="hcard">
+          <div class="hlabel">Today's Cost</div>
+          <div class="hval" data-live="cost-today">$981</div>
+          <div class="hsub" data-live="cost-today-sub"><b>5</b> sessions, 5 projects</div>
+          <div style="margin-top:6px"><span style="font-size:11px;color:var(--fg-dim)">Claude, measured from API tokens</span></div>
+        </div>
+        <div class="hcard">
+          <div class="hlabel"><span class="pulse"></span> Active Session</div>
+          <div class="hval" style="font-size:20px;padding-top:6px">ijfw</div>
+          <div class="hsub">claude-opus-4-6 -- <b>current</b></div>
+        </div>
+        <div class="hcard">
+          <div class="hlabel">Cache Efficiency</div>
+          <div class="hval" style="color:var(--success)">97.0%</div>
+          <div class="hsub">2.71B tokens served from cache (30d)</div>
+          <div class="disc">Claude Code caches automatically. IJFW measures your efficiency.</div>
+        </div>
+        <div class="hcard">
+          <div class="hlabel">30-Day Actual</div>
+          <div class="hval" data-live="cost-30d">$6,546</div>
+          <div class="hsub" style="color:var(--fg-dim)">Claude measured</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Today by Project</div>
+        <table aria-label="Today spend by project">
+          <thead><tr><th>Project</th><th>Platform</th><th class="nr">Spend</th></tr></thead>
+          <tbody id="today-project-tbody">
+            <tr><td>ijfw</td><td><span class="chip cc">Claude</span></td><td class="nr">$392</td></tr>
+            <tr><td>wayland</td><td><span class="chip cc">Claude</span></td><td class="nr">$241</td></tr>
+            <tr><td>aion</td><td><span class="chip cc">Claude</span></td><td class="nr">$223</td></tr>
+            <tr><td>socialmedia</td><td><span class="chip cc">Claude</span></td><td class="nr">$124</td></tr>
+            <tr><td style="color:var(--fg-dim)">others</td><td></td><td class="nr" style="color:var(--fg-dim)">$1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======== LIVE FEED ======== -->
+    <div class="section" data-section="live">
+      <div class="card">
+        <div class="ctitle">Live Feed <span class="pulse"></span> <span style="font-size:11px;color:var(--fg-dim);margin-left:auto">Real data from ~/.ijfw/observations.jsonl (50 entries)</span></div>
+        <div class="feed-row"><span class="fts">15:37</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">15:19</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">15:16</span><span class="ftype recall">recall</span><span class="fbody">session_start -- decisions (mcp)</span></div>
+        <div class="feed-row"><span class="fts">15:15</span><span class="ftype recall">recall</span><span class="fbody">session_start -- decisions (mcp)</span></div>
+        <div class="feed-row"><span class="fts">15:05</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">14:59</span><span class="ftype recall">recall</span><span class="fbody">session_start -- decisions (mcp)</span></div>
+        <div class="feed-row"><span class="fts">14:58</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">13:48</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">13:47</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">13:46</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">13:33</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div class="feed-row"><span class="fts">13:29</span><span class="ftype recall">recall</span><span class="fbody">decisions -- session_start (mcp)</span></div>
+        <div style="padding:8px 0;font-size:12px;color:var(--fg-dim)">Showing memory-recall events. Tool call and file edit events populate as sessions run.</div>
+      </div>
+    </div>
+
+    <!-- ======== USAGE LIMIT (was 5H WINDOW) ======== -->
+    <div class="section" data-section="window">
+      <div class="card">
+        <div class="ctitle">Usage Limit</div>
+        <div style="margin-bottom:16px">
+          <div class="wbar"><div class="wseg" style="width:47%"></div><div style="flex:1;background:var(--surface)"></div></div>
+          <div class="wmeta"><span>2h 21m used of 5h window</span><span class="wok">2h 39m remaining -- 53%</span></div>
+        </div>
+        <div style="font-size:13px;color:var(--fg-dim);margin-bottom:16px">
+          <button class="btn-g" style="font-size:11px;padding:2px 8px" onclick="goSection('accounts')">+ Add account label</button>
+          <span style="margin-left:8px;font-size:12px">Account labels are optional -- add one to track multiple subscriptions.</span>
+        </div>
+        <div class="disc">Usage window shown as an estimate based on today's token spend vs. your daily average.</div>
+      </div>
+    </div>
+
+    <!-- ======== SPEND ======== -->
+    <div class="section" data-section="spend">
+      <div class="card">
+        <div class="ctitle">Spend by Project (30 days, Claude measured)</div>
+        <table aria-label="Spend by project 30 days">
+          <thead><tr><th>Project</th><th>Last Active</th><th class="nr">30d Cost</th><th class="nr">%</th></tr></thead>
+          <tbody id="spend-project-tbody">
+            <tr><td><strong>ijfw</strong></td><td>2026-04-16</td><td class="nr">$2,736</td><td class="nr">42%</td></tr>
+            <tr><td>wayland</td><td>2026-04-16</td><td class="nr">$2,126</td><td class="nr">32%</td></tr>
+            <tr><td>Flow</td><td>2026-03-27</td><td class="nr">$662</td><td class="nr">10%</td></tr>
+            <tr><td>socialmedia</td><td>2026-04-14</td><td class="nr">$605</td><td class="nr">9%</td></tr>
+            <tr><td>Crucible</td><td>2026-03-25</td><td class="nr">$110</td><td class="nr">2%</td></tr>
+            <tr><td>hearth</td><td>2026-03-30</td><td class="nr">$89</td><td class="nr">1%</td></tr>
+            <tr><td>PiPLLM</td><td>2026-03-18</td><td class="nr">$45</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>openclaw</td><td>2026-04-14</td><td class="nr">$45</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>mindgraph</td><td>2026-04-08</td><td class="nr">$40</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>aion</td><td>2026-04-16</td><td class="nr">$23</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>ContentDev</td><td>2026-04-07</td><td class="nr">$19</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>dev</td><td>2026-03-31</td><td class="nr">$13</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>pip</td><td>2026-04-11</td><td class="nr">$10</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>twitterclean</td><td>2026-04-05</td><td class="nr">$8</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>deepcode</td><td>2026-03-26</td><td class="nr">$7</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>TestBEd</td><td>2026-04-13</td><td class="nr">$5</td><td class="nr">&lt;1%</td></tr>
+            <tr><td>tradecanyon-sentinal</td><td>2026-03-24</td><td class="nr">$4</td><td class="nr">&lt;1%</td></tr>
+          </tbody>
+        </table>
+        <div class="disc">Claude cost is measured precisely from API tokens. Codex and Gemini costs are flat-rate subscriptions -- shown separately for clarity.</div>
+      </div>
+    </div>
+
+    <!-- ======== MODELS ======== -->
+    <div class="section" data-section="models">
+      <div class="card">
+        <div class="ctitle">By Model (Claude measured, 30d)</div>
+        <table aria-label="Spend by model">
+          <thead><tr><th>Model</th><th class="nr">30d Cost</th><th class="nr">Cache hit</th><th class="nr">Sessions</th></tr></thead>
+          <tbody id="spend-model-tbody">
+            <tr><td><span class="chip co">Opus 4.6</span></td><td class="nr">$6,544</td><td class="nr">97.0%</td><td class="nr">--</td></tr>
+            <tr><td><span class="chip" style="background:var(--surface);color:var(--fg-dim)">Sonnet 4.6</span></td><td class="nr">$2</td><td class="nr">--</td><td class="nr">--</td></tr>
+            <tr><td colspan="4" style="font-size:12px;color:var(--fg-dim);padding-top:10px">Codex and Gemini are flat-rate subscriptions -- shown separately from per-token Claude costs.</td></tr>
+          </tbody>
+        </table>
+        <div class="disc">Opus 4.6 is your primary model -- 99.9% of Claude cost. Cache hit rate 97.0% is measured from 2.71B cache_read tokens over 30 days.</div>
+      </div>
+    </div>
+
+    <!-- ======== ACTIVITY ======== -->
+    <div class="section" data-section="activity">
+      <div class="card">
+        <div class="ctitle">Activity Types</div>
+        <div class="empty">
+          <div class="empty-icon">&#128200;</div>
+          <p>Activity tracking activates as you work. Types and one-shot rates appear here.</p>
+          <p style="margin-top:8px;font-size:12px;color:var(--fg-dim)">Activity classification populates automatically from observed tool usage.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== TREND ======== -->
+    <div class="section" data-section="trend">
+      <div class="card">
+        <div class="ctitle">30-Day Cost Trend (Claude measured)</div>
+        <div class="spark" aria-label="30-day cost sparkline">
+          <svg viewBox="0 0 700 80" preserveAspectRatio="none" role="img" aria-label="Upward cost trend over 30 days">
+            <defs>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#D97757" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#D97757" stop-opacity="0.03"/>
+              </linearGradient>
+            </defs>
+            <polygon points="0,74 35,70 70,68 105,63 140,58 175,53 210,48 245,44 280,39 315,33 350,28 385,22 420,18 455,14 490,10 525,7 560,5 595,3 630,2 665,1 700,1 700,80 0,80" fill="url(#g2)"/>
+            <polyline points="0,74 35,70 70,68 105,63 140,58 175,53 210,48 245,44 280,39 315,33 350,28 385,22 420,18 455,14 490,10 525,7 560,5 595,3 630,2 665,1 700,1" fill="none" stroke="#D97757" stroke-width="2"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--fg-dim);margin-top:4px">
+            <span id="trend-start-label">Mar 17</span><span id="trend-total-label">Total: $6,546 Claude (30d measured)</span><span id="trend-end-label">Apr 16</span>
+          </div>
+        </div>
+        <div class="disc">Claude measured cost only. Codex/Gemini subscriptions ($270/mo combined) are flat-rate and excluded from this trend.</div>
+      </div>
+    </div>
+
+    <!-- ======== MEMORY SEARCH ======== -->
+    <div class="section" data-section="memsearch">
+      <div class="card">
+        <div class="ctitle" id="memsearch-title">Memory Search -- all 35 files</div>
+        <div class="mem-layout">
+          <div class="mem-l">
+            <div class="mem-search">
+              <span style="color:var(--fg-dim)">/</span>
+              <input type="search" id="memSearchB" placeholder="Search 35 files..." aria-label="Search memory" oninput="onMemSearch(this.value)">
+            </div>
+            <div class="mem-list" id="memListB" role="listbox" aria-label="Memory files">
+              <div class="tier-hdr" id="mem-tier-hdr">Project Memory (35)</div>
+              <div class="mfile on" role="option" aria-selected="true" tabindex="0" data-key="loop" onclick="pickMemB(this,'loop')"><span class="mfname">Donahoe Loop <span class="ptag" style="margin-left:4px">pattern</span></span><span class="mfrec" title="Recalled 170 times across sessions">170 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" data-key="posframe" onclick="pickMemB(this,'posframe')"><span class="mfname">Positive Framing is Sacred <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">12 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Memory Tiers <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">8 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Brainstorm is a Conversation <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">6 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Cross-AI Combo Policy <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">5 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Workflow Owns Execution <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">4 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Cross-Audit UX <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">4 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Ownership Discipline <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">3 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Always Recommend and Show Progress <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">3 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Dual-Mode Workflow <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">2 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Workflow Clarity and Navigation <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">2 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">No Proxy Rule <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">2 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Hook Event Semantics <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">2 recalls</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Cross-Audit Must Auto-Fire <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Claude-Side Specialist Swarm <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Phase 7 Scope <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">IJFW Forge Portability <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Installer Must Merge <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Plugin Auto-Register MCP <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Prelude Tool <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">FTS5 Deferred <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Live Todo Visibility <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Don't Make Me Think Cross-Audit <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Book-Tool Recursion <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Session State 2026-04-14 <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Migration Philosophy <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Mockups Must Be Real HTML <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Auto-Invoke Design Skills <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Design Requires Approval Before Build <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Prompt Improver <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Cross-Project Search <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Never Publish Without Live E2E <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">No Hanging Items <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">Reports Must Be Self-Contained <span class="ptag" style="margin-left:4px">feedback</span></span><span class="mfrec">1 recall</span></div>
+              <div class="mfile" role="option" tabindex="0" onclick="pickMemB(this,'generic')"><span class="mfname">IJFW Design Dispatcher <span class="ptag" style="margin-left:4px">project</span></span><span class="mfrec">1 recall</span></div>
+            </div>
+          </div>
+          <div class="mem-r" id="memRightB">
+            <div class="mem-preview on" data-key="loop">
+              <div class="pv-title">Donahoe Loop</div>
+              <div class="pv-meta"><span>Project Memory</span><span>Recalls: <b>170</b></span><span>~1.2 KB</span><span>Last: <b>2026-04-16 15:37</b></span></div>
+              <div style="margin-bottom:10px"><span class="ptag">pattern</span><span class="ptag">core</span><span class="ptag">IJFW</span></div>
+              <div class="pv-body">
+                <p><strong>Donahoe Loop</strong> -- canonical IJFW loop: audit gates between every stage, Multi-AI Trident handoff at each gate.</p>
+                <p>Plan -- Audit -- Execute -- Verify -- Ship, with cross-AI review at each gate.</p>
+              </div>
+              <div class="pv-actions"><button class="btn-g">Copy path</button><button class="btn-g">Open in editor</button></div>
+            </div>
+            <div class="mem-preview" data-key="posframe">
+              <div class="pv-title">Positive Framing is Sacred</div>
+              <div class="pv-meta"><span>Project Memory</span><span>Recalls: <b>12</b></span><span>~0.8 KB</span></div>
+              <div style="margin-bottom:10px"><span class="ptag">feedback</span><span class="ptag">UX</span></div>
+              <div class="pv-body"><p><strong>Positive framing is sacred</strong> -- no negatives ever in user-facing surfaces. Sutherland reframe rule: reposition every message as opportunity.</p></div>
+              <div class="pv-actions"><button class="btn-g">Copy path</button><button class="btn-g">Open in editor</button></div>
+            </div>
+            <div class="mem-preview" data-key="generic">
+              <div class="pv-title" id="bGfTitle">--</div>
+              <div class="pv-meta"><span>Project Memory</span><span id="bGfRec">1 recall</span></div>
+              <div class="pv-body"><p>Open in editor to view full file content.</p></div>
+              <div class="pv-actions"><button class="btn-g">Copy path</button><button class="btn-g">Open in editor</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== SESSIONS ======== -->
+    <div class="section" data-section="sessions">
+      <div class="card">
+        <div class="ctitle">Sessions (48 in 30 days)</div>
+        <table aria-label="Session list">
+          <thead><tr><th>Date</th><th>Project</th><th>Model</th><th>Trident</th></tr></thead>
+          <tbody>
+            <tr style="background:rgba(94,106,210,0.05)"><td>2026-04-16</td><td><strong>ijfw</strong></td><td style="color:var(--fg-dim);font-size:12px">opus-4-6</td><td style="color:var(--success)">active</td></tr>
+            <tr><td>2026-04-16</td><td>wayland</td><td style="color:var(--fg-dim);font-size:12px">opus-4-6</td><td style="color:var(--fg-dim)">--</td></tr>
+            <tr><td>2026-04-16</td><td>aion</td><td style="color:var(--fg-dim);font-size:12px">opus-4-6</td><td style="color:var(--fg-dim)">--</td></tr>
+            <tr><td>2026-04-16</td><td>socialmedia</td><td style="color:var(--fg-dim);font-size:12px">opus-4-6</td><td style="color:var(--fg-dim)">--</td></tr>
+            <tr><td>2026-04-15</td><td>ijfw</td><td style="color:var(--fg-dim);font-size:12px">opus-4-6</td><td style="color:var(--fg-dim)">--</td></tr>
+            <tr><td colspan="4" style="color:var(--fg-dim);font-size:11px">48 total sessions over 30 days.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======== HANDOFFS ======== -->
+    <div class="section" data-section="handoffs">
+      <div class="card">
+        <div class="ctitle">Handoff Documents</div>
+        <div id="handoffs-content">
+          <div class="empty">
+            <div class="empty-icon">&#128339;</div>
+            <p>No handoffs yet. Handoffs are created automatically at session end -- start a coding session to see them here.</p>
+            <p style="margin-top:8px;font-size:12px;color:var(--fg-dim)">Handoff documents appear here as you create them with /handoff.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== ALL PROJECTS ======== -->
+    <div class="section" data-section="allprojects">
+      <div class="card">
+        <div class="ctitle">All Projects (17 with spend, Claude measured 30d)</div>
+        <table aria-label="All projects">
+          <thead><tr><th>Project</th><th>Last Active</th><th class="nr">30d Cost</th><th>Model</th></tr></thead>
+          <tbody id="allprojects-tbody">
+            <tr><td><strong>ijfw</strong> <span style="font-size:11px;color:var(--accent)">current</span></td><td>2026-04-16</td><td class="nr">$2,736</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>wayland</td><td>2026-04-16</td><td class="nr">$2,126</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>Flow</td><td>2026-03-27</td><td class="nr">$662</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>socialmedia</td><td>2026-04-14</td><td class="nr">$605</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>Crucible</td><td>2026-03-25</td><td class="nr">$110</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>hearth</td><td>2026-03-30</td><td class="nr">$89</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>PiPLLM</td><td>2026-03-18</td><td class="nr">$45</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>openclaw</td><td>2026-04-14</td><td class="nr">$45</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>mindgraph</td><td>2026-04-08</td><td class="nr">$40</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>aion</td><td>2026-04-16</td><td class="nr">$23</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>ContentDev</td><td>2026-04-07</td><td class="nr">$19</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>dev</td><td>2026-03-31</td><td class="nr">$13</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>pip</td><td>2026-04-11</td><td class="nr">$10</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>twitterclean</td><td>2026-04-05</td><td class="nr">$8</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>deepcode</td><td>2026-03-26</td><td class="nr">$7</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>TestBEd</td><td>2026-04-13</td><td class="nr">$5</td><td><span class="chip co">Opus 4.6</span></td></tr>
+            <tr><td>tradecanyon-sentinal</td><td>2026-03-24</td><td class="nr">$4</td><td><span class="chip co">Opus 4.6</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======== CROSS-AI REVIEWS ======== -->
+    <div class="section" data-section="trident">
+      <div class="card">
+        <div class="ctitle">Cross-AI Review History</div>
+        <div class="empty">
+          <div class="empty-icon">&#10003;</div>
+          <p>Clean slate this week. Run /cross-audit to generate your first cross-AI review.</p>
+          <p style="margin-top:8px;font-size:12px;color:var(--fg-dim)">Cross-AI reviews get a second opinion from other AI engines -- findings appear here.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== SUBSCRIPTIONS ======== -->
+    <div class="section" data-section="subs">
+      <div class="sgrid">
+        <div class="scard">
+          <h3>Platform Subscriptions</h3>
+          <div id="subs-config-rows">
+            <div class="srow"><span class="slbl">Claude Max 20x</span><span class="sval">$200/mo</span></div>
+            <div class="srow"><span class="slbl">Codex Pro</span><span class="sval">$20/mo</span></div>
+            <div class="srow"><span class="slbl">Gemini AI Ultra</span><span class="sval">$249.99/mo</span></div>
+            <div class="srow"><span class="slbl">Combined flat-rate</span><span class="sval">$469.99/mo</span></div>
+            <div class="srow"><span class="slbl">Billing day</span><span class="sval">1st of month</span></div>
+          </div>
+          <div class="srow"><span class="slbl">Prices pinned</span><span class="sval" data-live="prices-pinned-date">2026-04-16</span></div>
+          <div class="disc">IJFW uses your subscription tier to calculate accurate cost and savings projections. No tier configured? Defaults work fine.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== ACCOUNTS (merged into subs section via direct link) ======== -->
+    <div class="section" data-section="accounts">
+      <div class="scard" style="max-width:420px">
+        <h3>Account Labels</h3>
+        <p style="font-size:13px;color:var(--fg-dim);margin-bottom:12px">Labels let you track which subscription generated which sessions.</p>
+        <div style="color:var(--fg-dim);font-size:13px;margin-bottom:12px">Account labels are optional. Most users never need them. Add one if you rotate between multiple Max accounts.</div>
+        <button class="btn-g">+ Add account label</button>
+      </div>
+    </div>
+
+    <!-- ======== DISPLAY ======== -->
+    <div class="section" data-section="display">
+      <div class="sgrid">
+        <div class="scard">
+          <h3>Display</h3>
+          <div class="srow">
+            <span class="slbl">Light mode</span>
+            <label class="tog" aria-label="Toggle light mode">
+              <input type="checkbox" id="themeCbB" onchange="applyTheme(this.checked)">
+              <div class="tog-track"></div>
+              <div class="tog-thumb"></div>
+            </label>
+          </div>
+          <div class="srow"><span class="slbl">Currency</span><span class="sval">USD</span></div>
+          <div class="srow"><span class="slbl">Platform filter</span><span class="sval" style="color:var(--fg-dim);font-size:12px">All platforms</span></div>
+          <div class="srow"><span class="slbl">Density</span><span class="sval" style="color:var(--fg-dim);font-size:12px">Comfortable</span></div>
+          <div class="srow"><span class="slbl">Cost methodology</span><a href="/api/savings/methodology" target="_blank" class="sval" style="color:var(--accent);font-size:12px;text-decoration:underline">View methodology</a></div>
+        </div>
+        <div class="scard">
+          <h3>Data Confidence</h3>
+          <div class="srow"><span class="slbl">Claude cost</span><span class="sval" style="color:var(--success)">Measured</span></div>
+          <div class="srow"><span class="slbl">Cache hit rate</span><span class="sval" style="color:var(--success)">Measured</span></div>
+          <div class="srow"><span class="slbl">Codex cost</span><span class="sval" style="color:var(--warn)">Flat-rate</span></div>
+          <div class="srow"><span class="slbl">Gemini cost</span><span class="sval" style="color:var(--warn)">Flat-rate</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /main-wrap -->
+</div><!-- /shell -->
+
+<script>
+// ====== LUCIDE ICONS (vendored, ISC license, https://lucide.dev) ======
+const ICONS = {"activity":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\"/></svg>","bar-chart-2":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 21v-6\"/><path d=\"M12 21V3\"/><path d=\"M19 21V9\"/></svg>","clock":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>","credit-card":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"20\" height=\"14\" x=\"2\" y=\"5\" rx=\"2\"/><line x1=\"2\" x2=\"22\" y1=\"10\" y2=\"10\"/></svg>","dollar-sign":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" x2=\"12\" y1=\"2\" y2=\"22\"/><path d=\"M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/></svg>","file-text":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v6h6\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/></svg>","folder-open":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2\"/></svg>","folder":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z\"/></svg>","home":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg>","layers":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z\"/><path d=\"M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12\"/><path d=\"M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17\"/></svg>","search":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m21 21-4.34-4.34\"/><circle cx=\"11\" cy=\"11\" r=\"8\"/></svg>","settings":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>","shield":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/></svg>","trending-up":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 7h6v6\"/><path d=\"m22 7-8.5 8.5-5-5L2 17\"/></svg>","users":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><path d=\"M16 3.128a4 4 0 0 1 0 7.744\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/></svg>","zap":"<svg class=\"icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"/></svg>"};
+
+var ICON_MAP = {today:'home',live:'activity',window:'clock',spend:'dollar-sign',models:'layers',activity:'bar-chart-2',trend:'trending-up',memsearch:'search',sessions:'clock',handoffs:'file-text',allprojects:'folder',trident:'shield',subs:'credit-card',accounts:'users',display:'settings'};
+
+document.querySelectorAll('.sb-icon').forEach(function(el) {
+  var sec = el.closest('.sb-item');
+  if (sec) {
+    var key = sec.dataset.section;
+    var ic = ICON_MAP[key];
+    if (ic && ICONS[ic]) el.innerHTML = ICONS[ic];
+  }
+});
+
+// ====== SIDEBAR ======
+var collapsed = false;
+var sbToggle = document.getElementById('sbToggle');
+var sidebar = document.getElementById('sidebar');
+
+sbToggle.addEventListener('click', function() {
+  collapsed = !collapsed;
+  sidebar.classList.toggle('col', collapsed);
+  sbToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  sbToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+});
+
+// ====== SECTION ROUTING ======
+var breadcrumbs = {
+  today: 'Overview > Today', live: 'Overview > Live Feed', window: 'Overview > Usage Limit',
+  spend: 'Cost > Usage', models: 'Cost > Models', activity: 'Cost > Activity', trend: 'Cost > Trend',
+  memsearch: 'Memory > Memory', sessions: 'Memory > Sessions', handoffs: 'Memory > Handoffs',
+  allprojects: 'Projects > All',
+  trident: 'Audits > Trident',
+  subs: 'Settings > Subscriptions', accounts: 'Settings > Accounts', display: 'Settings > Display',
+};
+
+function goSection(key) {
+  document.querySelectorAll('.sb-item').forEach(function(i) { i.classList.remove('on'); i.removeAttribute('aria-current'); });
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('on'); });
+  var btn = document.querySelector('.sb-item[data-section="'+key+'"]');
+  var sec = document.querySelector('.section[data-section="'+key+'"]');
+  if (btn) { btn.classList.add('on'); btn.setAttribute('aria-current','page'); }
+  if (sec) sec.classList.add('on');
+  var bc = breadcrumbs[key] || key;
+  var parts = bc.split(' > ');
+  var bel = document.getElementById('breadcrumb');
+  bel.textContent = '';
+  parts.forEach(function(p, i) {
+    var s = document.createElement('span');
+    if (i < parts.length - 1) { s.style.color = 'var(--fg-dim)'; s.textContent = p + ' > '; }
+    else { var b = document.createElement('b'); b.textContent = p; s.appendChild(b); }
+    bel.appendChild(s);
+  });
+  history.replaceState(null, '', '#' + key);
+  if (collapsed) { sidebar.classList.remove('col'); collapsed = false; sbToggle.setAttribute('aria-expanded','true'); }
+}
+
+document.querySelectorAll('.sb-item').forEach(function(item) {
+  item.addEventListener('click', function() { goSection(item.dataset.section); });
+});
+
+// hash routing
+(function() {
+  var h = window.location.hash.replace(/^#/,'');
+  if (h && document.querySelector('.sb-item[data-section="'+h+'"]')) goSection(h);
+})();
+
+// ====== THEME ======
+document.getElementById('themeBtn').addEventListener('click', function() {
+  var light = document.documentElement.getAttribute('data-theme') !== 'light';
+  applyTheme(light);
+  document.getElementById('themeCbB').checked = light;
+});
+function applyTheme(l) {
+  document.documentElement.setAttribute('data-theme', l ? 'light' : 'dark');
+}
+
+// ====== LIVE SSE (observation stream) ======
+if (typeof EventSource !== 'undefined') {
+  var es = new EventSource('/stream');
+  es.addEventListener('observation', function(e) {
+    try {
+      var obs = JSON.parse(e.data);
+      var feed = document.querySelector('[data-section="live"] .scard');
+      if (feed) {
+        var row = document.createElement('div');
+        row.style.cssText = 'padding:6px 0;border-bottom:1px solid var(--border);font-size:13px';
+        row.textContent = (obs.platform || 'claude') + ' | ' + (obs.type || 'change') + ' | ' + (obs.title || 'New observation');
+        feed.prepend(row);
+      }
+    } catch(err) {}
+  });
+  es.addEventListener('close', function() { es.close(); });
+}
+
+// ====== MEMORY (search section) ======
+function pickMemB(el, key) {
+  document.querySelectorAll('#memListB .mfile').forEach(function(f) { f.classList.remove('on'); f.setAttribute('aria-selected','false'); });
+  el.classList.add('on');
+  el.setAttribute('aria-selected','true');
+  document.querySelectorAll('#memRightB .mem-preview').forEach(function(p) { p.classList.remove('on'); });
+  var spec = document.querySelector('#memRightB .mem-preview[data-key="'+key+'"]');
+  if (spec) {
+    spec.classList.add('on');
+  } else {
+    var g = document.querySelector('#memRightB .mem-preview[data-key="generic"]');
+    g.classList.add('on');
+    document.getElementById('bGfTitle').textContent = el.querySelector('.mfname').textContent;
+    document.getElementById('bGfRec').textContent = el.querySelector('.mfrec').textContent;
+  }
+}
+function filterMemB(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('#memListB .mfile').forEach(function(f) {
+    f.style.display = (!q || f.querySelector('.mfname').textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+// ====== LIVE API LOADERS ======
+
+// Error handler for JS errors (appended to console, never visible to user)
+window.addEventListener('error', function(e) {
+  console.warn('[ijfw-dashboard] uncaught:', e.message);
+});
+
+// --- helpers ---
+function fmtDollars(n) {
+  if (n == null || isNaN(n)) return '$0';
+  if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'k';
+  if (n >= 10) return '$' + Math.round(n);
+  return '$' + n.toFixed(2);
+}
+
+function noData(el) {
+  if (!el) return;
+  el.textContent = '-- no live data --';
+  el.style.color = 'var(--fg-dim)';
+  el.style.fontSize = '12px';
+}
+
+// --- 1. Cost today ---
+async function loadCostToday() {
+  try {
+    var r = await fetch('/api/cost/today');
+    var d = await r.json();
+    var cost = d.measuredCost || d.cost || 0;
+    var el = document.querySelector('[data-live="cost-today"]');
+    if (el) el.textContent = fmtDollars(cost);
+    var sub = document.querySelector('[data-live="cost-today-sub"]');
+    if (sub && cost === 0) sub.textContent = 'no data yet today';
+  } catch(e) {}
+}
+
+// --- 2. Cost 30d ---
+async function loadCost30d() {
+  try {
+    var r = await fetch('/api/cost/period?days=30');
+    var d = await r.json();
+    var cost = d.measuredCost || d.cost || 0;
+    var el = document.querySelector('[data-live="cost-30d"]');
+    if (el) el.textContent = fmtDollars(cost);
+  } catch(e) {}
+}
+
+// --- 3. Per-project table (today) ---
+async function loadTodayProjects() {
+  try {
+    var r = await fetch('/api/cost/by?dim=project&period=1d');
+    var rows = await r.json();
+    var tbody = document.getElementById('today-project-tbody');
+    if (!tbody) return;
+    if (!Array.isArray(rows) || rows.length === 0) return;
+    tbody.innerHTML = '';
+    rows.forEach(function(row) {
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td'); td1.textContent = row.key || row.project || '--';
+      var td2 = document.createElement('td');
+      var chip = document.createElement('span'); chip.className = 'chip cc'; chip.textContent = 'Claude';
+      td2.appendChild(chip);
+      var td3 = document.createElement('td'); td3.className = 'nr'; td3.textContent = fmtDollars(row.cost || 0);
+      tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+      tbody.appendChild(tr);
+    });
+  } catch(e) {}
+}
+
+// --- 4. Per-project table (30d spend) ---
+async function loadSpendProjects() {
+  try {
+    var r = await fetch('/api/cost/by?dim=project&period=30d');
+    var rows = await r.json();
+    var tbody = document.getElementById('spend-project-tbody');
+    if (!tbody) return;
+    if (!Array.isArray(rows) || rows.length === 0) return;
+    var total = rows.reduce(function(s, x) { return s + (x.cost || 0); }, 0);
+    tbody.innerHTML = '';
+    rows.forEach(function(row) {
+      var tr = document.createElement('tr');
+      var cost = row.cost || 0;
+      var pct = total > 0 ? Math.round(cost / total * 100) : 0;
+      var td1 = document.createElement('td'); td1.textContent = row.key || row.project || '--';
+      var td2 = document.createElement('td'); td2.textContent = row.last_active || '--';
+      var td3 = document.createElement('td'); td3.className = 'nr'; td3.textContent = fmtDollars(cost);
+      var td4 = document.createElement('td'); td4.className = 'nr'; td4.textContent = pct < 1 ? '<1%' : pct + '%';
+      tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+      tbody.appendChild(tr);
+    });
+    // Update allprojects tbody with same data
+    var all = document.getElementById('allprojects-tbody');
+    if (all) {
+      all.innerHTML = '';
+      rows.forEach(function(row) {
+        var tr = document.createElement('tr');
+        var td1 = document.createElement('td'); td1.textContent = row.key || row.project || '--';
+        var td2 = document.createElement('td'); td2.textContent = row.last_active || '--';
+        var td3 = document.createElement('td'); td3.className = 'nr'; td3.textContent = fmtDollars(row.cost || 0);
+        var td4 = document.createElement('td');
+        var chip = document.createElement('span'); chip.className = 'chip co'; chip.textContent = 'Opus 4.6';
+        td4.appendChild(chip);
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+        all.appendChild(tr);
+      });
+      var cTitle = document.querySelector('[data-section="allprojects"] .ctitle');
+      if (cTitle) cTitle.textContent = 'All Projects (' + rows.length + ' with spend, Claude measured 30d)';
+      var sbAll = document.querySelector('.sb-item[data-section="allprojects"] .sb-label');
+      if (sbAll) sbAll.textContent = 'All (' + rows.length + ')';
+    }
+  } catch(e) {}
+}
+
+// --- 5. Per-model table (30d) ---
+async function loadSpendModels() {
+  try {
+    var r = await fetch('/api/cost/by?dim=model&period=30d');
+    var rows = await r.json();
+    var tbody = document.getElementById('spend-model-tbody');
+    if (!tbody) return;
+    if (!Array.isArray(rows) || rows.length === 0) return;
+    tbody.innerHTML = '';
+    rows.forEach(function(row) {
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td');
+      var chip = document.createElement('span'); chip.className = 'chip co'; chip.textContent = row.key || row.model || '--';
+      td1.appendChild(chip);
+      var td2 = document.createElement('td'); td2.className = 'nr'; td2.textContent = fmtDollars(row.cost || 0);
+      var td3 = document.createElement('td'); td3.className = 'nr'; td3.textContent = row.cache_hit != null ? (row.cache_hit * 100).toFixed(1) + '%' : '--';
+      var td4 = document.createElement('td'); td4.className = 'nr'; td4.textContent = row.sessions != null ? String(row.sessions) : '--';
+      tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+      tbody.appendChild(tr);
+    });
+  } catch(e) {}
+}
+
+// --- 6 & 7. Memory file list + search ---
+var _memFiles = [];
+
+function renderMemList(files) {
+  var list = document.getElementById('memListB');
+  var hdr = document.getElementById('mem-tier-hdr');
+  if (!list) return;
+  // Remove all mfile elements, keep tier headers
+  list.querySelectorAll('.mfile').forEach(function(el) { el.remove(); });
+  if (!files || files.length === 0) {
+    var empty = document.createElement('div');
+    empty.style.cssText = 'padding:16px;font-size:12px;color:var(--fg-dim)';
+    empty.textContent = 'No memory files found.';
+    list.appendChild(empty);
+    return;
+  }
+  if (hdr) hdr.textContent = 'Project Memory (' + files.length + ')';
+  var title = document.getElementById('memsearch-title');
+  if (title) title.textContent = 'Memory Search -- all ' + files.length + ' files';
+  var searchInput = document.getElementById('memSearchB');
+  if (searchInput) searchInput.placeholder = 'Search ' + files.length + ' files...';
+  // Clear existing and rebuild
+  var frag = document.createDocumentFragment();
+  files.forEach(function(f) {
+    var div = document.createElement('div');
+    div.className = 'mfile';
+    div.setAttribute('role', 'option');
+    div.setAttribute('tabindex', '0');
+    div.dataset.path = f.path || '';
+    var nameSpan = document.createElement('span'); nameSpan.className = 'mfname';
+    nameSpan.textContent = f.name || f.path || '--';
+    var recSpan = document.createElement('span'); recSpan.className = 'mfrec';
+    recSpan.textContent = f.recall_count ? f.recall_count + (f.recall_count === 1 ? ' recall' : ' recalls') : '0 recalls';
+    div.appendChild(nameSpan); div.appendChild(recSpan);
+    div.addEventListener('click', function() { pickMemFile(div, f); });
+    div.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') pickMemFile(div, f); });
+    frag.appendChild(div);
+  });
+  list.appendChild(frag);
+  // Select first
+  var first = list.querySelector('.mfile');
+  if (first) first.click();
+}
+
+function pickMemFile(el, f) {
+  document.querySelectorAll('#memListB .mfile').forEach(function(x) { x.classList.remove('on'); x.setAttribute('aria-selected','false'); });
+  el.classList.add('on'); el.setAttribute('aria-selected','true');
+  var right = document.getElementById('memRightB');
+  if (!right) return;
+  // Hide all static previews
+  right.querySelectorAll('.mem-preview').forEach(function(p) { p.classList.remove('on'); });
+  // Use generic preview, populate with file info
+  var g = right.querySelector('.mem-preview[data-key="generic"]');
+  if (!g) return;
+  g.classList.add('on');
+  var titleEl = document.getElementById('bGfTitle');
+  if (titleEl) titleEl.textContent = f.name || '--';
+  var recEl = document.getElementById('bGfRec');
+  if (recEl) { var rc = f.recall_count || 0; recEl.textContent = rc + (rc === 1 ? ' recall' : ' recalls'); }
+  // Fetch file content
+  if (f.path) {
+    var bodyEl = g.querySelector('.pv-body');
+    if (bodyEl) bodyEl.textContent = 'Loading...';
+    fetch('/api/memory/file?path=' + encodeURIComponent(f.path))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (bodyEl) {
+          if (d.body) {
+            bodyEl.textContent = d.body.slice(0, 2000);
+          } else {
+            bodyEl.textContent = '-- no content available --';
+          }
+        }
+      })
+      .catch(function() {
+        if (bodyEl) bodyEl.textContent = '-- could not load file --';
+      });
+  }
+}
+
+async function loadMemoryFiles() {
+  try {
+    var r = await fetch('/api/memory');
+    var d = await r.json();
+    _memFiles = d.files || [];
+    renderMemList(_memFiles);
+  } catch(e) {}
+}
+
+var _memSearchTimer = null;
+function onMemSearch(q) {
+  clearTimeout(_memSearchTimer);
+  if (!q) { renderMemList(_memFiles); return; }
+  _memSearchTimer = setTimeout(async function() {
+    try {
+      var r = await fetch('/api/memory/search?q=' + encodeURIComponent(q));
+      var d = await r.json();
+      renderMemList(d.results || []);
+    } catch(e) { filterMemB(q); }
+  }, 200);
+}
+
+// --- 8. Projects list ---
+async function loadProjects() {
+  try {
+    var r = await fetch('/api/projects');
+    var d = await r.json();
+    var projects = d.projects || [];
+    if (projects.length === 0) return;
+    // Update sidebar count
+    var sbAll = document.querySelector('.sb-item[data-section="allprojects"] .sb-label');
+    if (sbAll) sbAll.textContent = 'All (' + projects.length + ')';
+  } catch(e) {}
+}
+
+// --- 9. Handoffs ---
+async function loadHandoffs() {
+  try {
+    var r = await fetch('/api/memory/search?q=HANDOFF&limit=10');
+    var d = await r.json();
+    var results = (d.results || []).filter(function(f) {
+      return (f.name || f.path || '').toUpperCase().includes('HANDOFF');
+    });
+    var container = document.getElementById('handoffs-content');
+    if (!container) return;
+    if (results.length === 0) return; // keep placeholder
+    container.innerHTML = '';
+    results.forEach(function(f) {
+      var card = document.createElement('div');
+      card.style.cssText = 'padding:12px;border-bottom:1px solid var(--border);cursor:pointer';
+      var name = document.createElement('div');
+      name.style.cssText = 'font-weight:600;margin-bottom:4px';
+      name.textContent = f.name || f.path || '--';
+      var meta = document.createElement('div');
+      meta.style.cssText = 'font-size:12px;color:var(--fg-dim)';
+      meta.textContent = 'Recalls: ' + (f.recall_count || 0) + 'x';
+      card.appendChild(name); card.appendChild(meta);
+      if (f.path) {
+        card.addEventListener('click', function() {
+          fetch('/api/memory/file?path=' + encodeURIComponent(f.path))
+            .then(function(r2) { return r2.json(); })
+            .then(function(fd) {
+              if (!fd.body) return;
+              var pre = document.createElement('pre');
+              pre.style.cssText = 'margin-top:8px;font-size:12px;color:var(--fg-dim);white-space:pre-wrap;word-break:break-word';
+              pre.textContent = fd.body.slice(0, 3000);
+              card.appendChild(pre);
+            })
+            .catch(function() {});
+        });
+      }
+      container.appendChild(card);
+    });
+  } catch(e) {}
+}
+
+// --- 10 & 11. Config display + save ---
+async function loadConfig() {
+  try {
+    var r = await fetch('/api/config');
+    var d = await r.json();
+    // Prices pinned date
+    var ppEl = document.querySelector('[data-live="prices-pinned-date"]');
+    if (ppEl && d.prices_pinned_date) ppEl.textContent = d.prices_pinned_date;
+    // Subscriptions
+    var subsRows = document.getElementById('subs-config-rows');
+    if (subsRows && d.subscriptions && Object.keys(d.subscriptions).length > 0) {
+      subsRows.innerHTML = '';
+      var combined = 0;
+      Object.entries(d.subscriptions).forEach(function(entry) {
+        var platform = entry[0]; var cfg = entry[1];
+        var price = cfg.monthly_price || cfg.price || 0;
+        combined += price;
+        var row = document.createElement('div'); row.className = 'srow';
+        var lbl = document.createElement('span'); lbl.className = 'slbl';
+        lbl.textContent = platform.charAt(0).toUpperCase() + platform.slice(1);
+        var val = document.createElement('span'); val.className = 'sval';
+        val.textContent = '$' + price + '/mo';
+        row.appendChild(lbl); row.appendChild(val);
+        subsRows.appendChild(row);
+      });
+      if (combined > 0) {
+        var combRow = document.createElement('div'); combRow.className = 'srow';
+        var cLbl = document.createElement('span'); cLbl.className = 'slbl'; cLbl.textContent = 'Combined flat-rate';
+        var cVal = document.createElement('span'); cVal.className = 'sval'; cVal.textContent = '$' + combined.toFixed(2) + '/mo';
+        combRow.appendChild(cLbl); combRow.appendChild(cVal);
+        subsRows.appendChild(combRow);
+      }
+    }
+    // Tier pill in header
+    var tierPill = document.querySelector('.tier-pill');
+    if (tierPill && d.subscriptions && d.subscriptions.claude) {
+      var tier = d.subscriptions.claude.tier || d.subscriptions.claude.name || 'MAX';
+      tierPill.textContent = tier;
+    }
+  } catch(e) {}
+}
+
+// --- 16. Trend sparkline ---
+async function loadTrendSparkline() {
+  try {
+    var r = await fetch('/api/cost/history?days=30');
+    var series = await r.json();
+    if (!Array.isArray(series) || series.length < 2) return;
+    var values = series.map(function(p) { return p.cost || p.value || 0; });
+    var maxV = Math.max.apply(null, values) || 1;
+    var w = 700; var h = 80; var n = values.length;
+    var pts = values.map(function(v, i) {
+      var x = Math.round(i / (n - 1) * w);
+      var y = Math.round((1 - v / maxV) * (h - 10) + 4);
+      return x + ',' + y;
+    }).join(' ');
+    var polyline = document.querySelector('[data-section="trend"] polyline');
+    var polygon = document.querySelector('[data-section="trend"] polygon');
+    if (polyline) polyline.setAttribute('points', pts);
+    if (polygon) {
+      var first = pts.split(' ')[0];
+      var last = pts.split(' ')[n - 1];
+      polygon.setAttribute('points', pts + ' ' + last.split(',')[0] + ',' + h + ' 0,' + h);
+    }
+    var total = values.reduce(function(s, v) { return s + v; }, 0);
+    var startEl = document.getElementById('trend-start-label');
+    var endEl = document.getElementById('trend-end-label');
+    var totEl = document.getElementById('trend-total-label');
+    if (startEl && series[0]) startEl.textContent = (series[0].date || '').slice(5) || '';
+    if (endEl && series[series.length - 1]) endEl.textContent = (series[series.length - 1].date || '').slice(5) || '';
+    if (totEl) totEl.textContent = 'Total: ' + fmtDollars(total) + ' Claude (30d measured)';
+  } catch(e) {}
+}
+
+// --- 15. 5h window block ---
+async function loadBlockUsage() {
+  try {
+    var r = await fetch('/api/cost/block');
+    var d = await r.json();
+    if (!d || d.error) return;
+    var bar = document.querySelector('[data-section="window"] .wseg');
+    var meta = document.querySelector('[data-section="window"] .wmeta');
+    if (!bar || !meta) return;
+    var pct = Math.min(100, Math.round((d.usedMinutes || 0) / (d.windowMinutes || 300) * 100));
+    bar.style.width = pct + '%';
+    var used = document.createElement('span');
+    used.textContent = Math.floor((d.usedMinutes || 0) / 60) + 'h ' + ((d.usedMinutes || 0) % 60) + 'm used of 5h window';
+    var remaining = document.createElement('span');
+    remaining.className = 'wok';
+    remaining.textContent = Math.floor((d.remainingMinutes || 300) / 60) + 'h ' + ((d.remainingMinutes || 300) % 60) + 'm remaining -- ' + (100 - pct) + '%';
+    meta.innerHTML = '';
+    meta.appendChild(used); meta.appendChild(remaining);
+  } catch(e) {}
+}
+
+// ====== RUN ALL LOADERS ======
+document.addEventListener('DOMContentLoaded', function() {
+  loadCostToday();
+  loadCost30d();
+  loadTodayProjects();
+  loadSpendProjects();
+  loadSpendModels();
+  loadMemoryFiles();
+  loadProjects();
+  loadHandoffs();
+  loadConfig();
+  loadTrendSparkline();
+  loadBlockUsage();
+});
+</script>
+</body>
+</html>

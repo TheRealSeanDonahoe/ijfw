@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ijfw-memory": {
+      "command": "IJFW_LAUNCHER_PATH",
+      "args": [],
+      "env": {}
+    }
+  }
+}

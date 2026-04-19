@@ -1,0 +1,7 @@
+description = "Run the IJFW preflight pipeline (11 quality gates). Trigger: ijfw-preflight, run preflight, check before ship."
+prompt = """
+Invoke the ijfw-preflight skill.
+
+Run `ijfw preflight` and show the output. If the `ijfw` binary is not in PATH, show: "[ijfw] Ready to run -- install @ijfw/install globally then run: ijfw preflight"
+{{args}}
+"""

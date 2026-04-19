@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Form -- IJFW Design</title>
+<style>
+:root{--color-primary:#2563EB;--color-primary-on:#FFFFFF;--color-fg:#1E293B;--color-card:#FFFFFF;
+  --color-muted:#E2E8F0;--color-border:#CBD5E1;--color-bg:#F8FAFC;--color-destructive:#DC2626;
+  --radius:8px;--radius-sm:4px;--shadow-sm:0 1px 3px rgba(0,0,0,.12);--transition:200ms ease}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+.card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius);
+  padding:1.5rem;box-shadow:var(--shadow-sm);max-width:480px}
+.form-group{display:flex;flex-direction:column;gap:.25rem;margin-bottom:1rem}
+.form-label{font-size:.875rem;font-weight:500}
+.form-hint{font-size:.8rem;opacity:.55}
+.form-error{font-size:.8rem;color:var(--color-destructive)}
+.form-input{padding:.5rem .75rem;border-radius:var(--radius-sm);border:1px solid var(--color-border);
+  background:var(--color-bg);color:var(--color-fg);font-family:inherit;font-size:1rem;min-height:44px;
+  transition:border-color var(--transition),box-shadow var(--transition)}
+.form-input:focus{outline:none;border-color:var(--color-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--color-primary) 20%,transparent)}
+.form-input.error{border-color:var(--color-destructive)}
+textarea.form-input{min-height:100px;resize:vertical}
+.form-row{display:flex;gap:1rem}
+.form-row .form-group{flex:1}
+.form-group-inline{flex-direction:row;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.form-checkbox,.form-radio{width:18px;height:18px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0}
+.form-label-inline{font-size:.875rem}
+.radio-group,.checkbox-group{display:flex;flex-direction:column;gap:.5rem;margin-top:.25rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:.5rem 1.125rem;
+  border-radius:var(--radius-sm);font-family:inherit;font-size:.9375rem;font-weight:500;border:none;
+  cursor:pointer;transition:opacity var(--transition);min-height:44px}
+.btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.btn:hover{opacity:.88}
+.btn-primary{background:var(--color-primary);color:var(--color-primary-on)}
+.btn-secondary{background:var(--color-muted);color:var(--color-fg);border:1px solid var(--color-border)}
+.form-actions{display:flex;gap:.75rem;margin-top:1.5rem}
+fieldset{border:none;padding:0;margin:0 0 1rem}
+legend{font-size:.875rem;font-weight:500;margin-bottom:.5rem}
+</style>
+</head>
+<body>
+<h1>Form Inputs</h1>
+<div class="card">
+  <form onsubmit="return false" novalidate aria-label="Example form">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="f-first">First name</label>
+        <input class="form-input" id="f-first" type="text" value="Sean" autocomplete="given-name">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="f-last">Last name</label>
+        <input class="form-input" id="f-last" type="text" value="Donahoe" autocomplete="family-name">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="f-email">Email</label>
+      <input class="form-input" id="f-email" type="email" placeholder="you@example.com" autocomplete="email">
+      <span class="form-hint">We will never share your email.</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="f-role">Role</label>
+      <select class="form-input" id="f-role">
+        <option>Developer</option><option>Designer</option><option>Product manager</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="f-bio">Bio</label>
+      <textarea class="form-input" id="f-bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+    </div>
+    <fieldset>
+      <legend>Notifications</legend>
+      <div class="radio-group" role="radiogroup">
+        <div class="form-group-inline"><input type="radio" id="n-all" name="notif" class="form-radio" checked><label for="n-all" class="form-label-inline">All notifications</label></div>
+        <div class="form-group-inline"><input type="radio" id="n-imp" name="notif" class="form-radio"><label for="n-imp" class="form-label-inline">Important only</label></div>
+        <div class="form-group-inline"><input type="radio" id="n-none" name="notif" class="form-radio"><label for="n-none" class="form-label-inline">None</label></div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Preferences</legend>
+      <div class="checkbox-group">
+        <div class="form-group-inline"><input type="checkbox" id="p-dark" class="form-checkbox" checked><label for="p-dark" class="form-label-inline">Dark mode by default</label></div>
+        <div class="form-group-inline"><input type="checkbox" id="p-tips" class="form-checkbox"><label for="p-tips" class="form-label-inline">Show onboarding tips</label></div>
+      </div>
+    </fieldset>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <button type="reset" class="btn btn-secondary">Reset</button>
+    </div>
+  </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "ijfw",
+  "version": "1.1.0",
+  "description": "IJFW -- AI efficiency layer for Codex. 15 workflow skills, 6 hook events, persistent project memory via MCP. Same skills and memory as Claude Code and Gemini -- one workflow, three native homes.",
+  "author": "Sean Donahoe",
+  "homepage": "https://github.com/TheRealSeanDonahoe/ijfw",
+  "license": "MIT",
+  "marketplace_category": "productivity",
+  "keywords": ["workflow", "memory", "audit", "trident", "efficiency"],
+  "min_codex_version": "0.99.0",
+  "skills_dir": "skills",
+  "hooks_config": ".codex/hooks.json",
+  "mcp_config": ".codex/config.toml",
+  "dependencies": {}
+}

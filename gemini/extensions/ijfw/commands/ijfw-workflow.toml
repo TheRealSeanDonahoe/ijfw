@@ -1,0 +1,5 @@
+description = "Start or resume the IJFW project workflow (Quick 5-move or Deep 6-module). Trigger: build, create, plan, brainstorm, new project."
+prompt = """
+Invoke the ijfw-workflow skill.
+{{args}}
+"""

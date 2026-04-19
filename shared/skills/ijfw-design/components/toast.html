@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Toast -- IJFW Design</title>
+<style>
+:root{--color-primary:#2563EB;--color-primary-on:#FFFFFF;--color-fg:#1E293B;--color-card:#FFFFFF;
+  --color-muted:#E2E8F0;--color-border:#CBD5E1;--color-bg:#F8FAFC;--radius:8px;--radius-sm:4px;
+  --shadow-md:0 4px 12px rgba(0,0,0,.15);--transition:200ms ease}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:.5rem 1.125rem;
+  border-radius:var(--radius-sm);font-family:inherit;font-size:.9375rem;font-weight:500;border:none;
+  cursor:pointer;transition:opacity var(--transition);min-height:44px}
+.btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.btn:hover{opacity:.88}
+.btn-primary{background:var(--color-primary);color:var(--color-primary-on)}
+.btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:2rem}
+#toast-region{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;
+  gap:.5rem;z-index:100;pointer-events:none;max-width:360px;width:calc(100vw - 3rem)}
+.toast{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius);
+  padding:1rem 1rem 1rem 1.125rem;box-shadow:var(--shadow-md);display:flex;align-items:flex-start;
+  gap:.875rem;pointer-events:all;animation:slide-in .2s ease;border-left:4px solid}
+.toast.success{border-left-color:#16A34A}
+.toast.warning{border-left-color:#D97706}
+.toast.info{border-left-color:var(--color-primary)}
+.toast.removing{animation:slide-out .2s ease forwards}
+@keyframes slide-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes slide-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(8px)}}
+.toast-icon{font-size:1.1rem;flex-shrink:0;margin-top:.05rem}
+.toast-content{flex:1}
+.toast-title{font-weight:600;font-size:.9375rem}
+.toast-msg{font-size:.875rem;opacity:.7;margin-top:.15rem}
+.toast-close{background:none;border:none;cursor:pointer;width:28px;height:28px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;opacity:.5;font-size:1rem;flex-shrink:0}
+.toast-close:hover{background:var(--color-muted);opacity:1}
+.toast-close:focus-visible{outline:2px solid var(--color-primary)}
+</style>
+</head>
+<body>
+<h1>Toast Notifications</h1>
+<p style="font-size:.875rem;opacity:.65;margin-bottom:1.5rem">Positive framing -- no "error"; destructive actions become "archived" or "removed".</p>
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="showToast('success','Changes saved','Your project is ready.')">Success toast</button>
+  <button class="btn btn-primary" onclick="showToast('warning','Review needed','One item needs your attention.')">Warning toast</button>
+  <button class="btn btn-primary" onclick="showToast('info','Feature ready','Dark mode is now active.')">Info toast</button>
+</div>
+
+<div id="toast-region" aria-live="polite" aria-atomic="false" role="status"></div>
+
+<script>
+(function(){
+  var iconChars={success:'*',warning:'!',info:'i'};
+  var count=0;
+
+  function buildToast(type,title,msg,id){
+    var div=document.createElement('div');
+    div.className='toast '+type;
+    div.id=id;
+    div.setAttribute('role','alert');
+
+    var icon=document.createElement('span');
+    icon.className='toast-icon';
+    icon.setAttribute('aria-hidden','true');
+    icon.textContent=iconChars[type]||'*';
+    div.appendChild(icon);
+
+    var content=document.createElement('div');
+    content.className='toast-content';
+
+    var titleEl=document.createElement('div');
+    titleEl.className='toast-title';
+    titleEl.textContent=title;
+    content.appendChild(titleEl);
+
+    if(msg){
+      var msgEl=document.createElement('div');
+      msgEl.className='toast-msg';
+      msgEl.textContent=msg;
+      content.appendChild(msgEl);
+    }
+    div.appendChild(content);
+
+    var closeBtn=document.createElement('button');
+    closeBtn.className='toast-close';
+    closeBtn.setAttribute('aria-label','Dismiss notification');
+    closeBtn.textContent='x';
+    closeBtn.addEventListener('click',function(){dismiss(id);});
+    div.appendChild(closeBtn);
+
+    return div;
+  }
+
+  window.showToast=function(type,title,msg){
+    var region=document.getElementById('toast-region');
+    var id='toast-'+(++count);
+    var div=buildToast(type,title,msg,id);
+    region.appendChild(div);
+    setTimeout(function(){dismiss(id);},4000);
+  };
+
+  window.dismiss=function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.classList.add('removing');
+    setTimeout(function(){if(el.parentNode) el.parentNode.removeChild(el);},200);
+  };
+})();
+</script>
+</body>
+</html>

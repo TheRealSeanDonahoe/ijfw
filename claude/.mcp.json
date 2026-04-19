@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ijfw-memory": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/../mcp-server/src/server.js"],
+      "env": {}
+    }
+  }
+}

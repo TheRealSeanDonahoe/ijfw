@@ -1,0 +1,5 @@
+description = "One-line code review comments on a diff or file."
+prompt = """
+Invoke the ijfw-review skill.
+{{args}}
+"""

@@ -1,0 +1,5 @@
+description = "Surface relevant project memory on demand. Calls ijfw_memory_recall or ijfw_memory_prelude."
+prompt = """
+Invoke the ijfw-recall skill.
+{{args}}
+"""

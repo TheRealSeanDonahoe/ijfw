@@ -1,0 +1,5 @@
+description = "First-class design intelligence. Returns style + palette + typography + UX guidelines for your project. Trigger: design, UI, UX, dashboard, component, colors, accessibility, typography, layout, dark mode."
+prompt = """
+Invoke the ijfw-design skill.
+{{args}}
+"""

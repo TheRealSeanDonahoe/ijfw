@@ -1,0 +1,18 @@
+{
+  "entry": [
+    "installer/src/ijfw.js",
+    "installer/src/install.js",
+    "installer/src/uninstall.js",
+    "mcp-server/bin/mcp-server.js",
+    "mcp-server/src/**/*.js"
+  ],
+  "project": [
+    "installer/src/**/*.js",
+    "mcp-server/src/**/*.js",
+    "mcp-server/bin/**/*.js"
+  ],
+  "ignore": [
+    "installer/dist/**",
+    "node_modules/**"
+  ]
+}

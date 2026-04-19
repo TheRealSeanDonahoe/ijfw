@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Table -- IJFW Design</title>
+<style>
+:root{--color-primary:#2563EB;--color-fg:#1E293B;--color-card:#FFFFFF;--color-muted:#E2E8F0;
+  --color-border:#CBD5E1;--color-bg:#F8FAFC;--radius-sm:4px;--transition:200ms ease}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+.table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--color-border)}
+.data-table{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--color-card)}
+.data-table th,.data-table td{padding:.625rem 1rem;text-align:left;border-bottom:1px solid var(--color-border)}
+.data-table thead tr{background:var(--color-muted)}
+.data-table tbody tr:hover{background:color-mix(in srgb,var(--color-primary) 5%,transparent)}
+.data-table tbody tr:last-child td{border-bottom:none}
+.sort-btn{background:none;border:none;cursor:pointer;font-weight:600;font-size:.9rem;
+  color:var(--color-fg);padding:0;display:inline-flex;align-items:center;gap:.25rem}
+.sort-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.sort-btn[aria-sort="ascending"] .arrow{transform:rotate(180deg)}
+.badge{display:inline-block;padding:.2em .55em;border-radius:4px;font-size:.75rem;font-weight:600}
+.badge-success{background:#DCFCE7;color:#14532D}
+.badge-warning{background:#FEF9C3;color:#713F12}
+.badge-neutral{background:var(--color-muted);color:var(--color-fg)}
+@media(prefers-color-scheme:dark){.badge-success{background:#14532D;color:#DCFCE7}.badge-warning{background:#713F12;color:#FEF9C3}}
+.btn-link{background:none;border:none;color:var(--color-primary);cursor:pointer;font-size:.875rem;padding:.25rem .5rem;min-height:44px}
+.btn-link:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+</style>
+</head>
+<body>
+<h1>Data Table</h1>
+<div class="table-wrap" role="region" aria-label="Projects table" tabindex="0">
+  <table class="data-table" id="t">
+    <thead>
+      <tr>
+        <th scope="col"><button class="sort-btn" onclick="sort(0)" aria-sort="none" aria-label="Sort by Name">Name <span class="arrow" aria-hidden="true">&#x2195;</span></button></th>
+        <th scope="col"><button class="sort-btn" onclick="sort(1)" aria-sort="none" aria-label="Sort by Status">Status <span class="arrow" aria-hidden="true">&#x2195;</span></button></th>
+        <th scope="col"><button class="sort-btn" onclick="sort(2)" aria-sort="none" aria-label="Sort by Score">Score <span class="arrow" aria-hidden="true">&#x2195;</span></button></th>
+        <th scope="col"><button class="sort-btn" onclick="sort(3)" aria-sort="none" aria-label="Sort by Team">Team <span class="arrow" aria-hidden="true">&#x2195;</span></button></th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Alpha project</td><td><span class="badge badge-success">Active</span></td><td>94</td><td>Platform</td><td><button class="btn-link">View</button></td></tr>
+      <tr><td>Beta rollout</td><td><span class="badge badge-warning">Review</span></td><td>71</td><td>Growth</td><td><button class="btn-link">View</button></td></tr>
+      <tr><td>Gamma sprint</td><td><span class="badge badge-success">Active</span></td><td>88</td><td>Platform</td><td><button class="btn-link">View</button></td></tr>
+      <tr><td>Delta initiative</td><td><span class="badge badge-neutral">Draft</span></td><td>42</td><td>Research</td><td><button class="btn-link">View</button></td></tr>
+      <tr><td>Epsilon wave</td><td><span class="badge badge-success">Active</span></td><td>76</td><td>Growth</td><td><button class="btn-link">View</button></td></tr>
+    </tbody>
+  </table>
+</div>
+<script>
+(function(){
+  var sortState={col:-1,asc:true};
+  window.sort=function(col){
+    var tbody=document.querySelector('#t tbody');
+    var rows=Array.from(tbody.querySelectorAll('tr'));
+    var asc=sortState.col===col?!sortState.asc:true;
+    sortState={col:col,asc:asc};
+    rows.sort(function(a,b){
+      var av=a.cells[col].textContent.trim();
+      var bv=b.cells[col].textContent.trim();
+      var n1=parseFloat(av),n2=parseFloat(bv);
+      if(!isNaN(n1)&&!isNaN(n2)) return asc?n1-n2:n2-n1;
+      return asc?av.localeCompare(bv):bv.localeCompare(av);
+    });
+    rows.forEach(function(r){tbody.appendChild(r);});
+    document.querySelectorAll('.sort-btn').forEach(function(b,i){
+      b.setAttribute('aria-sort',i===col?(asc?'ascending':'descending'):'none');
+    });
+  };
+})();
+</script>
+</body>
+</html>

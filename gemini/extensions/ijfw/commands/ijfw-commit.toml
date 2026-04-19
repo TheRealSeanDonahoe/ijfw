@@ -1,0 +1,5 @@
+description = "Generate a terse conventional commit message for staged changes."
+prompt = """
+Invoke the ijfw-commit skill.
+{{args}}
+"""

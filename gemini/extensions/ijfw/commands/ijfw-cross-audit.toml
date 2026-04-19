@@ -1,0 +1,5 @@
+description = "Run a Trident cross-platform AI audit on a diff, brief, or artifact. Fires Codex + Gemini + Claude specialist swarm in parallel."
+prompt = """
+Invoke the ijfw-cross-audit skill.
+{{args}}
+"""

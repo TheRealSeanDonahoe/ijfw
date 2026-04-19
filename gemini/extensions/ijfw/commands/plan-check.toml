@@ -1,0 +1,5 @@
+description = "Donahoe Loop audit gate before execution. Checks goal alignment, scope, risk, and dependency order. Returns PASS / FLAG / BLOCK verdict."
+prompt = """
+Invoke the ijfw-plan-check skill.
+{{args}}
+"""

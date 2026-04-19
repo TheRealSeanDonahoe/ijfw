@@ -1,0 +1,51 @@
+name: Refresh model prices
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and filter LiteLLM prices
+        run: |
+          curl -fsSL \
+            "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json" \
+            -o /tmp/litellm_raw.json
+          python3 scripts/refresh_prices.py
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet mcp-server/data/model_prices.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR if prices changed
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BRANCH="chore/refresh-prices-${DATE}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add mcp-server/data/model_prices.json
+          git commit -m "chore: refresh model_prices.json from LiteLLM (${DATE})"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: refresh model prices (${DATE})" \
+            --body "Weekly automated refresh of model_prices.json from LiteLLM upstream." \
+            --base main \
+            --head "$BRANCH"

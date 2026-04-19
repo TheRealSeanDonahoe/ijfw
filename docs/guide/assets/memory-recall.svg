@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" font-family="ui-monospace,Menlo,Consolas,monospace">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#010409"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="460" fill="url(#bg2)" rx="10"/>
+  <circle cx="26" cy="26" r="7" fill="#ff5f56"/>
+  <circle cx="48" cy="26" r="7" fill="#ffbd2e"/>
+  <circle cx="70" cy="26" r="7" fill="#27c93f"/>
+  <text x="600" y="32" fill="#7d8590" text-anchor="middle" font-size="13">ijfw memory recall</text>
+
+  <text x="30" y="80"  fill="#7d8590" font-size="14">$</text>
+  <text x="50" y="80"  fill="#e6edf3" font-size="14">ijfw memory recall "version pinning"</text>
+
+  <text x="30" y="120" fill="#3fb950" font-size="13">[ijfw] 2 matches across 2 projects. Top result:</text>
+
+  <rect x="30" y="145" width="1140" height="190" rx="6" fill="#0d1f2d" stroke="#1f6feb" stroke-width="1"/>
+  <text x="50" y="172" fill="#58a6ff" font-size="14" font-weight="bold">◆ payments-api · 2026-04-19 · decision</text>
+  <text x="50" y="198" fill="#d1d7de" font-size="13">"We pin all npm packages to exact versions, no carets,</text>
+  <text x="50" y="220" fill="#d1d7de" font-size="13">decided 2026-04-19 because dependabot churn was</text>
+  <text x="50" y="242" fill="#d1d7de" font-size="13">destabilizing CI."</text>
+  <text x="50" y="278" fill="#7d8590" font-size="12">file: .ijfw/memory/project_pinning_policy.md</text>
+  <text x="50" y="298" fill="#7d8590" font-size="12">score: 0.94 BM25  ·  type: decision</text>
+
+  <text x="30" y="375" fill="#d1d7de" font-size="13">Your AI is no longer amnesiac. Store once, recall from anywhere,</text>
+  <text x="30" y="397" fill="#d1d7de" font-size="13">any project, any session.</text>
+
+  <text x="600" y="438" fill="#484f58" font-size="12" text-anchor="middle" font-style="italic">Placeholder illustration. Replace with a real terminal capture.</text>
+</svg>

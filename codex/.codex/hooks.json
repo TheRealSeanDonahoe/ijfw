@@ -1,0 +1,34 @@
+{
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "script": "hooks/session-start.sh",
+      "description": "Initialize IJFW state, emit startup banner, register project in global registry."
+    },
+    {
+      "event": "Stop",
+      "script": "hooks/session-end.sh",
+      "description": "Save session metrics, write journal entry, emit savings receipt. Also polls context utilization and triggers compress hint when threshold crossed (PreCompact workaround)."
+    },
+    {
+      "event": "UserPromptSubmit",
+      "script": "hooks/pre-prompt.sh",
+      "description": "Deterministic vague-prompt detector. Injects sharpening context when prompt signals are weak."
+    },
+    {
+      "event": "PreToolUse",
+      "script": "hooks/pre-tool-use.sh",
+      "description": "Scan about-to-run commands for destructive patterns. Inject confirmation reminders before execution."
+    },
+    {
+      "event": "PostToolUse",
+      "script": "hooks/post-tool-use.sh",
+      "description": "Trim tool output noise, capture error signals, emit cleaned output as additionalContext."
+    },
+    {
+      "event": "AfterAgent",
+      "script": "hooks/after-agent.sh",
+      "description": "Post-agent cleanup: flush signal files, update session state."
+    }
+  ]
+}

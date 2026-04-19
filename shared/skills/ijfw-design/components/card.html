@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cards -- IJFW Design</title>
+<style>
+:root {
+  --color-primary:#2563EB;--color-primary-on:#FFFFFF;--color-fg:#1E293B;
+  --color-card:#FFFFFF;--color-muted:#E2E8F0;--color-border:#CBD5E1;
+  --color-bg:#F8FAFC;--radius:8px;--radius-sm:4px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.12);--shadow-md:0 4px 12px rgba(0,0,0,.15);
+  --transition:200ms ease;
+}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+h2{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;opacity:0.55;font-weight:600;margin:1.5rem 0 0.75rem}
+.row{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;align-items:flex-start}
+.card{background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius);
+  padding:1.25rem;box-shadow:var(--shadow-sm);min-width:160px;flex:1;
+  transition:box-shadow var(--transition),transform var(--transition)}
+.card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.card-stat{display:flex;flex-direction:column;gap:.25rem}
+.stat-label{font-size:.75rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;opacity:.6}
+.stat-value{font-size:1.75rem;font-weight:700}
+.stat-delta{font-size:.8125rem;font-weight:600}
+.stat-delta.positive{color:#16A34A}
+.stat-delta.negative{color:#DC2626}
+.stat-delta.neutral{opacity:.5}
+.card-content h3{font-size:1rem;font-weight:600;margin-bottom:.5rem}
+.card-content p{font-size:.875rem;opacity:.7;margin-bottom:1rem}
+.btn{display:inline-flex;align-items:center;padding:.4rem .9rem;border-radius:var(--radius-sm);
+  font-size:.875rem;font-weight:500;border:none;cursor:pointer;background:var(--color-primary);
+  color:var(--color-primary-on);transition:opacity var(--transition);min-height:36px}
+.btn:hover{opacity:.88}
+.btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.btn-ghost{background:transparent;color:var(--color-primary);border:1px solid var(--color-primary)}
+.badge{display:inline-block;padding:.2em .55em;border-radius:4px;font-size:.7rem;font-weight:600}
+.badge-success{background:#DCFCE7;color:#14532D}
+@media(prefers-color-scheme:dark){.badge-success{background:#14532D;color:#DCFCE7}}
+</style>
+</head>
+<body>
+<h1>Cards</h1>
+
+<h2>Stat cards</h2>
+<div class="row">
+  <article class="card"><div class="card-stat"><span class="stat-label">Total Users</span><span class="stat-value">24,891</span><span class="stat-delta positive">+12.4%</span></div></article>
+  <article class="card"><div class="card-stat"><span class="stat-label">Revenue</span><span class="stat-value">$184,320</span><span class="stat-delta positive">+8.1%</span></div></article>
+  <article class="card"><div class="card-stat"><span class="stat-label">Sessions</span><span class="stat-value">3,204</span><span class="stat-delta neutral">+0.2%</span></div></article>
+</div>
+
+<h2>Content cards</h2>
+<div class="row">
+  <article class="card card-content" style="max-width:280px">
+    <span class="badge badge-success" style="margin-bottom:.75rem">Active</span>
+    <h3>Alpha project</h3>
+    <p>End-to-end design system for the IJFW platform. Multi-agent, zero-config.</p>
+    <button class="btn">View project</button>
+  </article>
+  <article class="card card-content" style="max-width:280px">
+    <span class="badge badge-success" style="margin-bottom:.75rem">Active</span>
+    <h3>Beta rollout</h3>
+    <p>Phase 2 deployment with full MCP memory integration and cross-agent routing.</p>
+    <button class="btn btn-ghost">Learn more</button>
+  </article>
+</div>
+</body>
+</html>

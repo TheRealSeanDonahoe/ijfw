@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Preflight (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+          cache-dependency-path: installer/package-lock.json
+
+      - name: Install dependencies
+        working-directory: installer
+        run: npm ci
+
+      - name: Build installer
+        working-directory: installer
+        run: npm run build
+
+      - name: Run preflight (JSON output)
+        working-directory: installer
+        run: node dist/ijfw.js preflight --json > preflight-report.json
+
+      - name: Upload preflight report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflight-report-ubuntu
+          path: installer/preflight-report.json
+          retention-days: 14
+
+  preflight-windows:
+    name: Preflight (windows -- PSScriptAnalyzer)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path installer/ -Recurse -Severity Warning
+          if ($results) {
+            $results | Format-Table -AutoSize
+            exit 1
+          }
+          Write-Output "PSScriptAnalyzer: all checks passed"
+
+  check-all:
+    name: check-all.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run check-all
+        run: bash scripts/check-all.sh
+
+  plugin-manifest:
+    name: Plugin manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate plugin manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('claude/.claude-plugin/plugin.json','utf8'))"
+      - name: Required plugin manifest fields
+        run: |
+          node -e "const m=JSON.parse(require('fs').readFileSync('claude/.claude-plugin/plugin.json','utf8')); for (const k of ['name','version','description']) if(!m[k]){console.error('missing: '+k);process.exit(1);} console.log('ok')"
+
+  trident:
+    name: Trident cross-audit
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'trident')
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Run cross-audit
+        run: node mcp-server/bin/ijfw cross-audit --json > /tmp/trident-report.json 2>&1 || true
+
+      - name: Post audit results as PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          body="## Trident cross-audit\n\n"
+          if [ -f /tmp/trident-report.json ]; then
+            body="${body}\`\`\`json\n$(head -c 8000 /tmp/trident-report.json)\n\`\`\`"
+          else
+            body="${body}_Report not available. Check workflow logs._"
+          fi
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$(printf '%b' "$body")"

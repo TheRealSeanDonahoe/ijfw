@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# IJFW Memory Server launcher — Claude Code plugin variant.
+# Resolves the server binary across the repo's multiple possible install layouts:
+#   1. Plugin installed standalone: ${CLAUDE_PLUGIN_ROOT}/../mcp-server/src/server.js
+#   2. Plugin cached by Claude Code: walks up to find mcp-server/
+#   3. User-set IJFW_HOME: ${IJFW_HOME}/mcp-server/src/server.js
+#   4. Sibling to this script (if mcp-server/ was bundled into the plugin)
+# Prints a JSON-RPC error and exits 1 if none resolve.
+
+# Resolve real script dir through symlinks.
+SOURCE="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+
+CANDIDATES=()
+[ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && CANDIDATES+=("$CLAUDE_PLUGIN_ROOT/../mcp-server/src/server.js")
+[ -n "${IJFW_HOME:-}" ]          && CANDIDATES+=("$IJFW_HOME/mcp-server/src/server.js")
+CANDIDATES+=("$SCRIPT_DIR/../mcp-server/src/server.js")
+CANDIDATES+=("$SCRIPT_DIR/../../mcp-server/src/server.js")
+
+SERVER=""
+for candidate in "${CANDIDATES[@]}"; do
+  if [ -f "$candidate" ]; then
+    SERVER="$candidate"
+    break
+  fi
+done
+
+if [ -z "$SERVER" ]; then
+  printf '{"jsonrpc":"2.0","id":null,"error":{"code":-32000,"message":"IJFW server.js not found. Set IJFW_HOME or reinstall."}}\n' >&2
+  exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  printf '{"jsonrpc":"2.0","id":null,"error":{"code":-32001,"message":"node not installed (Node 18+ required)"}}\n' >&2
+  exit 1
+fi
+
+exec node "$SERVER" "$@"

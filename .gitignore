@@ -1,0 +1,32 @@
+# IJFW runtime state — per-install, not source.
+.ijfw/
+
+# Derived: installer/docs/ is synced from /docs at build time
+installer/docs/
+
+# Vestigial installer template. Do not track.
+.ijfw-gitignore
+
+# Internal planning docs (per-project, not public).
+.planning/
+
+# Node
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# install.sh leaks when run on IJFW's own repo (dogfood)
+.cursor/
+.windsurfrules
+.github/copilot-instructions.md
+
+# Local dev-tree guard (Sean only) -- prevents install.sh from targeting the
+# IJFW source checkout itself. Must NOT be tracked or user clones will refuse
+# to install. Recreate locally with: touch .ijfw-source
+.ijfw-source

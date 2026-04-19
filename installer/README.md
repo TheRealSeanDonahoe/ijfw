@@ -1,0 +1,53 @@
+# @ijfw/install
+
+One-command installer for [IJFW](https://github.com/TheRealSeanDonahoe/ijfw) -- the AI
+efficiency layer for Claude Code, Codex, Gemini, Cursor, Windsurf, Copilot.
+
+## Install
+
+```bash
+npm install -g @ijfw/install
+ijfw demo
+```
+
+IJFW configures every agent on your machine. The options below let you customize the install location, branch, or skip specific steps -- all are optional.
+
+### Options
+
+| Flag | Default | Notes |
+|------|---------|-------|
+| `--dir <path>` | `$IJFW_HOME` or `~/.ijfw` | Install location |
+| `--branch <name>` | latest released tag | Git branch or tag |
+| `--no-marketplace` | off | Skip settings.json edits |
+| `--yes` | off | Non-interactive |
+
+### Uninstall
+
+```bash
+npx @ijfw/install uninstall        # preserves ~/.ijfw/memory/
+npx @ijfw/install uninstall --purge # removes memory too
+```
+
+Memory is preserved across re-runs by default.
+
+## Preflight
+
+Requires `node >=18`, `git`, `bash`. On native Windows use the PowerShell
+installer (PS 5.1+), which shells Git Bash under the hood -- no WSL required:
+
+```powershell
+iwr https://raw.githubusercontent.com/TheRealSeanDonahoe/ijfw/main/installer/src/install.ps1 -OutFile install.ps1
+.\install.ps1 -Dir $env:USERPROFILE\.ijfw
+```
+
+## Build (contributors)
+
+```bash
+cd installer
+npm install
+npm run build   # outputs dist/install.js + dist/uninstall.js
+npm test
+npm run pack:check
+```
+
+Tarball target: **<100 KB**.

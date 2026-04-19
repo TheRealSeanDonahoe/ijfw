@@ -1,0 +1,13 @@
+# IJFW configuration for OpenAI Codex CLI
+# Place at ~/.codex/config.toml (user-scoped) or .codex/config.toml (project-scoped).
+# The command path is substituted to an absolute path by scripts/install.sh.
+
+[mcp_servers.ijfw-memory]
+command = "IJFW_LAUNCHER_PATH"
+args = []
+enabled = true
+startup_timeout_sec = 10
+tool_timeout_sec = 30
+
+[hooks]
+config = ".codex/hooks.json"

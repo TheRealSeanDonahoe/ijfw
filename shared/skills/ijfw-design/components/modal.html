@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Modal -- IJFW Design</title>
+<style>
+:root{--color-primary:#2563EB;--color-primary-on:#FFFFFF;--color-fg:#1E293B;--color-card:#FFFFFF;
+  --color-muted:#E2E8F0;--color-border:#CBD5E1;--color-bg:#F8FAFC;--color-destructive:#DC2626;
+  --radius:8px;--radius-sm:4px;--shadow-lg:0 8px 24px rgba(0,0,0,.18);--transition:200ms ease}
+@media(prefers-color-scheme:dark){:root{--color-bg:#0F172A;--color-fg:#F1F5F9;--color-card:#1E293B;--color-muted:#334155;--color-border:#475569}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--color-bg);color:var(--color-fg);padding:2rem;line-height:1.5}
+h1{font-size:1.25rem;font-weight:700;margin-bottom:1.5rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:.5rem 1.125rem;
+  border-radius:var(--radius-sm);font-family:inherit;font-size:.9375rem;font-weight:500;border:none;
+  cursor:pointer;transition:opacity var(--transition);min-height:44px;min-width:44px}
+.btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.btn:hover{opacity:.88}
+.btn-primary{background:var(--color-primary);color:var(--color-primary-on)}
+.btn-secondary{background:var(--color-muted);color:var(--color-fg);border:1px solid var(--color-border)}
+.btn-destructive{background:var(--color-destructive);color:#fff}
+.btn-ghost{background:transparent;color:var(--color-fg);border:none;font-size:1.25rem;padding:.25rem .5rem}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;
+  justify-content:center;z-index:50;padding:1rem}
+.overlay.open{display:flex}
+.dialog{background:var(--color-card);border-radius:var(--radius);box-shadow:var(--shadow-lg);
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;outline:none}
+.dialog-header{display:flex;align-items:center;padding:1.25rem 1.25rem .75rem;
+  border-bottom:1px solid var(--color-border)}
+.dialog-title{font-size:1.0625rem;font-weight:700;flex:1}
+.dialog-close{background:none;border:none;cursor:pointer;width:36px;height:36px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;opacity:.6;font-size:1.1rem}
+.dialog-close:hover{background:var(--color-muted);opacity:1}
+.dialog-close:focus-visible{outline:2px solid var(--color-primary)}
+.dialog-body{padding:1.25rem}
+.dialog-body p{font-size:.9375rem;opacity:.75}
+.dialog-footer{padding:.75rem 1.25rem 1.25rem;display:flex;justify-content:flex-end;gap:.75rem}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.875rem;font-weight:500;margin-bottom:.25rem}
+.form-input{width:100%;padding:.5rem .75rem;border-radius:var(--radius-sm);border:1px solid var(--color-border);
+  background:var(--color-bg);color:var(--color-fg);font-family:inherit;font-size:1rem;min-height:44px}
+.form-input:focus{outline:none;border-color:var(--color-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--color-primary) 20%,transparent)}
+</style>
+</head>
+<body>
+<h1>Modal</h1>
+<div style="display:flex;gap:.75rem;flex-wrap:wrap">
+  <button class="btn btn-primary" onclick="openModal('modal-confirm')">Confirmation modal</button>
+  <button class="btn btn-secondary" onclick="openModal('modal-form')">Form modal</button>
+  <button class="btn btn-destructive" onclick="openModal('modal-danger')">Danger modal</button>
+</div>
+
+<!-- Confirmation modal -->
+<div class="overlay" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="mc-title">
+  <div class="dialog" tabindex="-1" id="mc-dialog">
+    <div class="dialog-header">
+      <span class="dialog-title" id="mc-title">Confirm action</span>
+      <button class="dialog-close" onclick="closeModal('modal-confirm')" aria-label="Close dialog">&#x2715;</button>
+    </div>
+    <div class="dialog-body"><p>Are you ready to proceed? This will finalize your selection and move to the next step.</p></div>
+    <div class="dialog-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirm')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-confirm')">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Form modal -->
+<div class="overlay" id="modal-form" role="dialog" aria-modal="true" aria-labelledby="mf-title">
+  <div class="dialog" tabindex="-1" id="mf-dialog">
+    <div class="dialog-header">
+      <span class="dialog-title" id="mf-title">New project</span>
+      <button class="dialog-close" onclick="closeModal('modal-form')" aria-label="Close dialog">&#x2715;</button>
+    </div>
+    <div class="dialog-body">
+      <form onsubmit="return false" novalidate>
+        <div class="form-group"><label class="form-label" for="mf-name">Project name</label><input class="form-input" id="mf-name" type="text" placeholder="My project"></div>
+        <div class="form-group"><label class="form-label" for="mf-type">Type</label><select class="form-input" id="mf-type"><option>Dashboard</option><option>Landing</option><option>App</option></select></div>
+      </form>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-form')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-form')">Create project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Danger modal -->
+<div class="overlay" id="modal-danger" role="dialog" aria-modal="true" aria-labelledby="md-title">
+  <div class="dialog" tabindex="-1" id="md-dialog">
+    <div class="dialog-header">
+      <span class="dialog-title" id="md-title">Remove project</span>
+      <button class="dialog-close" onclick="closeModal('modal-danger')" aria-label="Close dialog">&#x2715;</button>
+    </div>
+    <div class="dialog-body"><p>This project will be archived and can be restored within 30 days from your account settings.</p></div>
+    <div class="dialog-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-danger')">Keep project</button>
+      <button class="btn btn-destructive" onclick="closeModal('modal-danger')">Archive</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var prevFocus=null;
+  window.openModal=function(id){
+    prevFocus=document.activeElement;
+    var overlay=document.getElementById(id);
+    overlay.classList.add('open');
+    var dialog=overlay.querySelector('[tabindex="-1"]');
+    if(dialog) dialog.focus();
+    document.addEventListener('keydown',handleKey);
+    overlay.addEventListener('click',function(e){if(e.target===overlay)closeModal(id);});
+  };
+  window.closeModal=function(id){
+    document.getElementById(id).classList.remove('open');
+    document.removeEventListener('keydown',handleKey);
+    if(prevFocus) prevFocus.focus();
+  };
+  function handleKey(e){
+    if(e.key==='Escape'){
+      var open=document.querySelector('.overlay.open');
+      if(open) closeModal(open.id);
+    }
+    if(e.key==='Tab'){
+      var open=document.querySelector('.overlay.open');
+      if(!open) return;
+      var focusable=open.querySelectorAll('button,input,select,[tabindex]:not([tabindex="-1"])');
+      var arr=Array.from(focusable);
+      if(arr.length===0) return;
+      var first=arr[0],last=arr[arr.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
+  }
+})();
+</script>
+</body>
+</html>
